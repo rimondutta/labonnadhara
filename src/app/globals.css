@@ -1,0 +1,291 @@
+/* Google Fonts are loaded via next/font/google in layout.tsx — no @import needed */
+@import "tailwindcss";
+
+/* Swiper — bundled here to avoid render-blocking separate stylesheet requests */
+@import "swiper/css";
+@import "swiper/css/effect-fade";
+@import "swiper/css/pagination";
+@import "swiper/css/navigation";
+
+/* ═══════════════════════════════════════════════════
+   TOYHOURSE — Joy Lab Design System
+   "Premium toy brand. Tactile, colorful, confident."
+   ═══════════════════════════════════════════════════ */
+
+@theme {
+  /* ─── Joy Lab Palette ─── */
+  --color-joy-cream:   #FEFAF3; /* Base background — warmer than white */
+  --color-joy-navy:    #1A1F3A; /* Primary text + dark surfaces */
+  --color-joy-cobalt:  #043224; /* Primary brand color — dark hunter green */
+  --color-joy-coral:   #FF5533; /* CTAs, badges, urgency */
+  --color-joy-sun:     #FFB800; /* Stars, promos, warmth */
+  --color-joy-mist:    #EEF0F7; /* Card surfaces, hover backgrounds */
+  --color-joy-rule:    #D8DAE8; /* Borders, dividers */
+  --color-joy-muted:   #6B7280; /* Secondary text */
+
+  /* ─── Semantic aliases (used in components) ─── */
+  --color-ink-black:   #1A1F3A;
+  --color-paper-white: #FEFAF3;
+  --color-paper-grey:  #EEF0F7;
+  --color-rule-grey:   #D8DAE8;
+  --color-stamp-red:   #FF5533; /* re-mapped to coral for CTAs */
+  --color-accent-yellow: #FFB800;
+
+  /* ─── Typography ─── */
+  --font-display: var(--font-poppins), 'Poppins', var(--font-manrope), 'Manrope', sans-serif;
+  --font-heading: var(--font-poppins), 'Poppins', var(--font-manrope), 'Manrope', sans-serif;
+  --font-serif:   var(--font-poppins), 'Poppins', var(--font-manrope), 'Manrope', sans-serif;
+  --font-poppins: var(--font-poppins), 'Poppins', var(--font-manrope), 'Manrope', sans-serif;
+  --font-body:    var(--font-dm-sans), 'DM Sans', var(--font-manrope), 'Manrope', sans-serif;
+  --font-sans:    var(--font-dm-sans), 'DM Sans', var(--font-manrope), 'Manrope', sans-serif;
+  --font-mono:    var(--font-dm-sans), 'DM Sans', sans-serif;
+
+  /* ─── Radii — rounded but not bubbly ─── */
+  --radius-none: 0px;
+  --radius-sm:   4px;
+  --radius-md:   8px;
+  --radius-lg:   12px;
+  --radius-xl:   16px;
+  --radius-2xl:  24px;
+  --radius-3xl:  32px;
+  --radius:      8px;
+
+  /* ─── Easing ─── */
+  --ease-joy:     cubic-bezier(0.34, 1.56, 0.64, 1); /* spring-like */
+  --ease-smooth:  cubic-bezier(0.25, 1, 0.5, 1);
+}
+
+/* ═══════════════════════════════════════
+   Global Reset & Base
+   ═══════════════════════════════════════ */
+
+html {
+  /* Do NOT set scroll-behavior: smooth here — Lenis owns scroll smoothing.
+     Setting both causes double-smoothing jank on desktop. */
+  background-color: #FEFAF3;
+}
+
+body {
+  background-color: #FEFAF3;
+  color: #1A1F3A;
+  font-family: var(--font-dm-sans), 'DM Sans', var(--font-manrope), 'Manrope', sans-serif;
+  font-weight: 400;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  overflow-x: hidden;
+  line-height: 1.6;
+}
+
+/* ═══════════════════════════════════════
+   GPU Compositing Hints
+   ═══════════════════════════════════════ */
+
+/* Images inside transformed containers should be promoted early */
+img, video {
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+
+/* Only hint will-change on explicit interactive elements, not globally.
+   Broad will-change hints on hundreds of elements exhaust GPU memory. */
+.will-change-transform {
+  will-change: transform;
+}
+
+/* Logo, Main Heading, Product Title, Price -> Poppins */
+h1, h2, h3, h4, h5, h6,
+.font-display,
+.font-heading,
+.font-serif,
+.font-poppins,
+.font-logo,
+.font-price,
+.font-title,
+.logo-text,
+.product-title,
+.price-tag {
+  font-family: var(--font-poppins), 'Poppins', var(--font-manrope), 'Manrope', sans-serif;
+}
+
+/* Body text, Button, Nav text -> DM Sans */
+p, span, li, td, th, input, select, textarea, label,
+button,
+nav,
+nav a,
+.font-body,
+.font-sans,
+.font-mono,
+.font-dm-sans,
+.font-button,
+.font-nav {
+  font-family: var(--font-dm-sans), 'DM Sans', var(--font-manrope), 'Manrope', sans-serif;
+}
+
+/* Explicit Button Font Override */
+button, input[type="button"], input[type="submit"], [role="button"], .btn {
+  font-family: var(--font-dm-sans), 'DM Sans', var(--font-manrope), 'Manrope', sans-serif !important;
+}
+
+/* Explicit Logo & Product Title & Price Font Overrides */
+[data-logo="true"], .brand-logo, .site-logo {
+  font-family: var(--font-poppins), 'Poppins', var(--font-manrope), 'Manrope', sans-serif !important;
+}
+
+::selection {
+  background-color: #043224;
+  color: #FEFAF3;
+}
+
+/* ═══════════════════════════════════════
+   Typography Utilities
+   ═══════════════════════════════════════ */
+
+.font-display {
+  font-family: var(--font-poppins), 'Poppins', var(--font-manrope), 'Manrope', sans-serif;
+}
+
+.font-body {
+  font-family: var(--font-dm-sans), 'DM Sans', var(--font-manrope), 'Manrope', sans-serif;
+}
+
+.font-mono {
+  font-family: var(--font-dm-sans), 'DM Sans', sans-serif;
+}
+
+.font-serif {
+  font-family: var(--font-poppins), 'Poppins', var(--font-manrope), 'Manrope', sans-serif;
+}
+
+/* ═══════════════════════════════════════
+   Focus Rings (Accessibility — WCAG AA)
+   ═══════════════════════════════════════ */
+
+:focus-visible {
+  outline: 2px solid #043224;
+  outline-offset: 3px;
+  border-radius: 4px;
+}
+
+/* ═══════════════════════════════════════
+   Custom Scrollbar
+   ═══════════════════════════════════════ */
+
+::-webkit-scrollbar {
+  width: 5px;
+}
+
+::-webkit-scrollbar-track {
+  background: #EEF0F7;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #D8DAE8;
+  border-radius: 99px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #2D5BE3;
+}
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #D8DAE8 #EEF0F7;
+}
+
+/* ═══════════════════════════════════════
+   Horizontal Scroll Utilities
+   ═══════════════════════════════════════ */
+
+.scroll-snap-x {
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  -webkit-overflow-scrolling: touch;
+}
+
+.scroll-snap-x > * {
+  scroll-snap-align: start;
+}
+
+.scroll-snap-x::-webkit-scrollbar {
+  display: none;
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* ═══════════════════════════════════════
+   Line Clamp
+   ═══════════════════════════════════════ */
+
+.line-clamp-1 {
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 1;
+  line-clamp: 1;
+}
+
+.line-clamp-2 {
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+}
+
+/* ═══════════════════════════════════════
+   Joy Pop — Signature Interaction
+   ═══════════════════════════════════════ */
+
+.joy-card-shadow {
+  box-shadow: 0 2px 8px rgba(26,31,58,0.06), 0 0 0 1px rgba(26,31,58,0.04);
+  transition: box-shadow 0.4s cubic-bezier(0.25,1,0.5,1), transform 0.4s cubic-bezier(0.25,1,0.5,1);
+}
+
+.joy-card-shadow:hover {
+  box-shadow: 0 20px 48px rgba(26,31,58,0.14), 0 0 0 1px rgba(26,31,58,0.06);
+}
+
+/* ═══════════════════════════════════════
+   Reduced Motion
+   ═══════════════════════════════════════ */
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* ═══════════════════════════════════════
+   Keyframes
+   ═══════════════════════════════════════ */
+
+@keyframes gradientMove {
+  0%   { background-position: 0% 50%; }
+  50%  { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+.animate-gradient {
+  animation: gradientMove 4s linear infinite;
+}
+
+@keyframes joyBounce {
+  0%, 100% { transform: translateY(0); }
+  50%       { transform: translateY(-4px); }
+}
+
+.animate-joy-bounce {
+  animation: joyBounce 2s ease-in-out infinite;
+}
