@@ -31,6 +31,7 @@ export default function AdminMobileSidebar({ isOpen, onClose }: AdminMobileSideb
     { name: "Add User", href: "/admin/users/add", icon: UserPlus },
     { name: "Pixel Settings", href: "/admin/settings/pixel", icon: BarChart2 },
     { name: "Shipping Settings", href: "/admin/settings/shipping", icon: Truck },
+    { name: "Size Guide", href: "/admin/settings/size-guide", icon: FileText },
   ]
 
   const isActive = (href: string) => {

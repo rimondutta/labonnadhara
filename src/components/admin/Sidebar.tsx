@@ -29,6 +29,7 @@ export default function Sidebar() {
     { name: "Pixel Settings", href: "/admin/settings/pixel", icon: BarChart2 },
     { name: "Shipping Settings", href: "/admin/settings/shipping", icon: Truck },
     { name: "Courier APIs", href: "/admin/settings/couriers", icon: Package },
+    { name: "Size Guide", href: "/admin/settings/size-guide", icon: FileText },
   ]
 
   const isActive = (href: string) => {

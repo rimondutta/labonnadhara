@@ -41,7 +41,7 @@ function SidebarFilterItem({ label, selected, onClick }: { label: string; select
         "w-4 h-4 rounded-md border-2 flex items-center justify-center transition-all",
         selected ? "bg-joy-cobalt border-joy-cobalt" : "border-joy-rule bg-white group-hover:border-joy-cobalt/50"
       )}>
-        {selected && <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6L9 17l-5-5"/></svg>}
+        {selected && <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6L9 17l-5-5" /></svg>}
       </div>
       <span className={cn("font-display font-medium text-sm transition-colors", selected ? "text-joy-navy" : "text-joy-muted group-hover:text-joy-navy")}>
         {label}
@@ -50,16 +50,16 @@ function SidebarFilterItem({ label, selected, onClick }: { label: string; select
   );
 }
 
-function ShopGridPure({ 
-  initialProducts, 
-  categoryParam, 
-  ageParam, 
-  searchParam 
-}: { 
-  initialProducts: any[], 
-  categoryParam: string | null, 
-  ageParam: string | null, 
-  searchParam: string | null 
+function ShopGridPure({
+  initialProducts,
+  categoryParam,
+  ageParam,
+  searchParam
+}: {
+  initialProducts: any[],
+  categoryParam: string | null,
+  ageParam: string | null,
+  searchParam: string | null
 }) {
   const router = useRouter();
   const reduced = useReducedMotion() ?? false;
@@ -73,10 +73,10 @@ function ShopGridPure({
     if (categoryParam) currentParams.set("category", categoryParam);
     if (ageParam) currentParams.set("age", ageParam);
     if (searchParam) currentParams.set("search", searchParam);
-    
+
     if (value === null) currentParams.delete(key);
     else currentParams.set(key, value);
-    
+
     startTransition(() => {
       router.push(`/products?${currentParams.toString()}`, { scroll: false });
     });
@@ -118,7 +118,7 @@ function ShopGridPure({
       <section className="relative bg-joy-cream pb-4 pt-32 lg:pt-36">
         <div className="px-4 sm:px-8 lg:px-[5vw] py-5 flex items-end justify-between border-b border-joy-rule">
           <h1 className="font-display font-bold text-4xl md:text-5xl text-joy-navy tracking-tight">
-            {categoryParam || "All Toys"}
+            {categoryParam || "All products"}
           </h1>
           <span className="font-body text-sm text-joy-muted mb-1">
             {filteredProducts.length} products
@@ -350,9 +350,9 @@ function ShopGridPure({
 
 function ShopContent({ initialProducts }: { initialProducts: any[] }) {
   const searchParams = useSearchParams();
-  
+
   return (
-    <ShopGridPure 
+    <ShopGridPure
       initialProducts={initialProducts}
       categoryParam={searchParams.get("category")}
       ageParam={searchParams.get("age")}
@@ -363,13 +363,13 @@ function ShopContent({ initialProducts }: { initialProducts: any[] }) {
 
 export default function ShopClient({ initialProducts }: { initialProducts: any[] }) {
   return (
-    <Suspense 
+    <Suspense
       fallback={
-        <ShopGridPure 
-          initialProducts={initialProducts} 
-          categoryParam={null} 
-          ageParam={null} 
-          searchParam={null} 
+        <ShopGridPure
+          initialProducts={initialProducts}
+          categoryParam={null}
+          ageParam={null}
+          searchParam={null}
         />
       }
     >

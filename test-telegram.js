@@ -16,7 +16,7 @@ fetch(url, {
   },
   body: JSON.stringify({
     chat_id: chatId, chatId,
-    text: "Hello bot abhi",
+    text: "Hello",
   }),
 })
   .then(res => res.json())

@@ -33,6 +33,11 @@ const CourierConfigSchema = new mongoose.Schema({
   notes: { type: String, default: '' },
 });
 
+const SizeGuideSchema = new mongoose.Schema({
+  enabled: { type: Boolean, default: false },
+  content: { type: String, default: '' },
+});
+
 const SettingsSchema = new mongoose.Schema(
   {
     // Singleton key — always "global"
@@ -40,6 +45,7 @@ const SettingsSchema = new mongoose.Schema(
     facebookPixel: { type: FacebookPixelSchema, default: () => ({}) },
     shipping: { type: ShippingSchema, default: () => ({}) },
     couriers: { type: [CourierConfigSchema], default: () => [] },
+    sizeGuide: { type: SizeGuideSchema, default: () => ({}) },
   },
   { timestamps: true }
 );

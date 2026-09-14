@@ -13,23 +13,23 @@
    ═══════════════════════════════════════════════════ */
 
 @theme {
-  /* ─── Joy Lab Palette ─── */
-  --color-joy-cream:   #FEFAF3; /* Base background — warmer than white */
-  --color-joy-navy:    #1A1F3A; /* Primary text + dark surfaces */
-  --color-joy-cobalt:  #043224; /* Primary brand color — dark hunter green */
-  --color-joy-coral:   #FF5533; /* CTAs, badges, urgency */
-  --color-joy-sun:     #FFB800; /* Stars, promos, warmth */
-  --color-joy-mist:    #EEF0F7; /* Card surfaces, hover backgrounds */
-  --color-joy-rule:    #D8DAE8; /* Borders, dividers */
-  --color-joy-muted:   #6B7280; /* Secondary text */
+  /* ─── Monochrome Palette (Jewelry) ─── */
+  --color-joy-cream:   #FFFFFF; /* Base background — pure white */
+  --color-joy-navy:    #000000; /* Primary text + dark surfaces — pure black */
+  --color-joy-cobalt:  #111111; /* Primary brand color — off black */
+  --color-joy-coral:   #000000; /* CTAs, badges, urgency — black */
+  --color-joy-sun:     #333333; /* Stars, promos, warmth — dark grey */
+  --color-joy-mist:    #F5F5F5; /* Card surfaces, hover backgrounds — light grey */
+  --color-joy-rule:    #E5E5E5; /* Borders, dividers */
+  --color-joy-muted:   #737373; /* Secondary text */
 
   /* ─── Semantic aliases (used in components) ─── */
-  --color-ink-black:   #1A1F3A;
-  --color-paper-white: #FEFAF3;
-  --color-paper-grey:  #EEF0F7;
-  --color-rule-grey:   #D8DAE8;
-  --color-stamp-red:   #FF5533; /* re-mapped to coral for CTAs */
-  --color-accent-yellow: #FFB800;
+  --color-ink-black:   #000000;
+  --color-paper-white: #FFFFFF;
+  --color-paper-grey:  #F5F5F5;
+  --color-rule-grey:   #E5E5E5;
+  --color-stamp-red:   #000000; /* re-mapped to black for CTAs */
+  --color-accent-yellow: #333333;
 
   /* ─── Typography ─── */
   --font-display: var(--font-poppins), 'Poppins', var(--font-manrope), 'Manrope', sans-serif;
@@ -62,12 +62,12 @@
 html {
   /* Do NOT set scroll-behavior: smooth here — Lenis owns scroll smoothing.
      Setting both causes double-smoothing jank on desktop. */
-  background-color: #FEFAF3;
+  background-color: #FFFFFF;
 }
 
 body {
-  background-color: #FEFAF3;
-  color: #1A1F3A;
+  background-color: #FFFFFF;
+  color: #000000;
   font-family: var(--font-dm-sans), 'DM Sans', var(--font-manrope), 'Manrope', sans-serif;
   font-weight: 400;
   -webkit-font-smoothing: antialiased;
@@ -132,8 +132,8 @@ button, input[type="button"], input[type="submit"], [role="button"], .btn {
 }
 
 ::selection {
-  background-color: #043224;
-  color: #FEFAF3;
+  background-color: #000000;
+  color: #FFFFFF;
 }
 
 /* ═══════════════════════════════════════
@@ -161,7 +161,7 @@ button, input[type="button"], input[type="submit"], [role="button"], .btn {
    ═══════════════════════════════════════ */
 
 :focus-visible {
-  outline: 2px solid #043224;
+  outline: 2px solid #000000;
   outline-offset: 3px;
   border-radius: 4px;
 }
@@ -175,21 +175,21 @@ button, input[type="button"], input[type="submit"], [role="button"], .btn {
 }
 
 ::-webkit-scrollbar-track {
-  background: #EEF0F7;
+  background: #F5F5F5;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #D8DAE8;
+  background: #E5E5E5;
   border-radius: 99px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #2D5BE3;
+  background: #333333;
 }
 
 * {
   scrollbar-width: thin;
-  scrollbar-color: #D8DAE8 #EEF0F7;
+  scrollbar-color: #E5E5E5 #F5F5F5;
 }
 
 /* ═══════════════════════════════════════

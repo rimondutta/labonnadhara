@@ -45,27 +45,27 @@ export default function MobileMenu() {
             aria-hidden="true"
           />
 
-          {/* Drawer — cinematic dark panel */}
+          {/* Drawer — clean white panel */}
           <m.div
             key="drawer"
             initial={{ x: reduced ? 0 : "-100%" }}
             animate={{ x: 0 }}
             exit={{ x: reduced ? 0 : "-100%", opacity: reduced ? 0 : 1 }}
             transition={{ ease: [0.25, 1, 0.5, 1] as any, duration: reduced ? 0.15 : 0.6 }}
-            className="fixed inset-y-0 left-0 w-[85vw] max-w-sm z-[1001] bg-[#0D0D14]/95 backdrop-blur-2xl flex flex-col overflow-hidden border-r border-violet-500/10"
+            className="fixed inset-y-0 left-0 w-[85vw] max-w-sm z-[1001] bg-white/95 backdrop-blur-2xl flex flex-col overflow-hidden border-r border-black/10"
           >
             {/* Header */}
-            <div className="flex items-center justify-between px-6 py-5 border-b border-white/10">
+            <div className="flex items-center justify-between px-6 py-5 border-b border-black/10">
               <Link
                 href="/"
                 onClick={closeMobileMenu}
-                className="font-serif text-[22px] uppercase tracking-[-0.02em] text-white"
+                className="font-serif text-[22px] uppercase tracking-[-0.02em] text-black"
               >
-                TOYHOURSE
+                LABONNADHARA
               </Link>
               <button
                 onClick={closeMobileMenu}
-                className="text-white/70 hover:text-white transition-colors"
+                className="text-black/70 hover:text-black transition-colors"
                 aria-label="Close menu"
               >
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
@@ -86,12 +86,12 @@ export default function MobileMenu() {
                   <Link
                     href={link.href}
                     onClick={closeMobileMenu}
-                    className="group flex items-baseline gap-4 py-4 border-b border-white/5 last:border-0"
+                    className="group flex items-baseline gap-4 py-4 border-b border-black/5 last:border-0"
                   >
-                    <span className="font-mono text-[11px] text-violet-500 w-6 shrink-0">
+                    <span className="font-mono text-[11px] text-gray-400 w-6 shrink-0">
                       {link.num}
                     </span>
-                    <span className="font-display text-[28px] uppercase text-white leading-none tracking-[-0.02em] group-hover:text-violet-400 transition-colors duration-200">
+                    <span className="font-display text-[28px] uppercase text-black leading-none tracking-[-0.02em] group-hover:text-gray-500 transition-colors duration-200">
                       {link.label}
                     </span>
                   </Link>
@@ -100,9 +100,9 @@ export default function MobileMenu() {
             </m.nav>
 
             {/* Footer strip */}
-            <div className="px-6 py-4 border-t border-white/10">
-              <p className="font-mono text-[10px] text-white/40 uppercase tracking-[0.1em]">
-                © {new Date().getFullYear()} TOYHOURSE
+            <div className="px-6 py-4 border-t border-black/10">
+              <p className="font-mono text-[10px] text-black/40 uppercase tracking-[0.1em]">
+                © {new Date().getFullYear()} LABONNADHARA
               </p>
             </div>
           </m.div>

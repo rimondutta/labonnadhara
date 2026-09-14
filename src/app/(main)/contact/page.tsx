@@ -9,9 +9,9 @@ const contactInfo = [
   {
     icon: Mail,
     label: "Email Us",
-    value: "hello@toyhourse.com",
+    value: "hello@labonnadhara.com",
     detail: "Response within 24 hours",
-    href: "mailto:hello@toyhourse.com",
+    href: "mailto:hello@labonnadhara.com",
     color: "#FFC93C",
   },
   {

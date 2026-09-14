@@ -190,7 +190,7 @@ export default function ProductCardModern({ product, priority = false, index = 1
         <button
           onClick={handleQuickAdd}
           disabled={isAdding || isOutOfStock}
-          className="w-full mt-5 bg-[#D5AEFD] hover:bg-[#D5AEFD]/90 text-black font-body font-bold text-[15px] py-3.5 rounded-full transition-colors disabled:opacity-70 flex justify-center items-center"
+          className="w-full mt-5 bg-black hover:bg-black/90 text-white font-body font-bold text-[15px] py-3.5 rounded-full transition-colors disabled:opacity-70 flex justify-center items-center"
         >
           {isAdding ? "Adding..." : (isOutOfStock ? "Sold Out" : "Add to Cart")}
         </button>

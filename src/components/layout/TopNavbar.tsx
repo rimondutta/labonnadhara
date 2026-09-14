@@ -2,6 +2,7 @@
 
 import React from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { useCart } from "@/components/providers/CartProvider";
 import { useSearch } from "@/components/providers/SearchProvider";
@@ -94,10 +95,10 @@ export default function TopNavbar() {
           left: 0,
           right: 0,
           zIndex: 999,
-          backgroundColor: scrolled ? "rgba(249,245,240,0.97)" : "#f9f5f0",
+          backgroundColor: scrolled ? "#ffffffff" : "#ffffffff",
           backdropFilter: scrolled ? "blur(12px)" : "none",
           WebkitBackdropFilter: scrolled ? "blur(12px)" : "none",
-          boxShadow: scrolled ? "0 1px 20px rgba(0,0,0,0.08)" : "none",
+          boxShadow: scrolled ? "0 4px 20px rgba(0,0,0,0.08)" : "0 2px 10px rgba(0,0,0,0.05)",
           transition: "box-shadow 0.3s ease, background-color 0.3s ease",
         }}
         suppressHydrationWarning
@@ -106,7 +107,7 @@ export default function TopNavbar() {
         <div style={{ height: 1, background: "linear-gradient(to right, transparent, rgba(180,150,120,0.3) 30%, rgba(180,150,120,0.3) 70%, transparent)" }} />
 
         {/* Main row */}
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", maxWidth: 1400, margin: "0 auto", padding: "0 28px", height: 68, position: "relative" }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", maxWidth: 1400, margin: "0 auto", padding: "0 28px", height: 90, position: "relative" }}>
 
           {/* ── LEFT nav links ── */}
           <div style={{ display: "flex", alignItems: "center", flex: 1 }}>
@@ -128,11 +129,16 @@ export default function TopNavbar() {
 
           {/* ── CENTER brand ── */}
           <div style={{ position: "absolute", left: "50%", transform: "translateX(-50%)", display: "flex", alignItems: "center", gap: 18, pointerEvents: "none" }}>
-            <span className="lbn-divider lbn-desktop-only" />
-            <Link href="/" className="lbn-logo" aria-label="Labonnodhara home">
-              Labonnodhara
+            <Link href="/" className="lbn-logo" aria-label="Labonnadhara home">
+              <Image
+                src="/logo/labonnadhara-logo.png"
+                alt="Labonnadhara"
+                width={120}
+                height={60}
+                className="lbn-logo-img"
+                priority
+              />
             </Link>
-            <span className="lbn-divider lbn-desktop-only" />
           </div>
 
           {/* ── RIGHT icons ── */}
@@ -158,8 +164,7 @@ export default function TopNavbar() {
           </div>
         </div>
 
-        {/* Bottom separator */}
-        <div style={{ height: 1, background: "linear-gradient(to right, transparent, rgba(90,81,71,0.18) 15%, rgba(90,81,71,0.18) 85%, transparent)" }} />
+
       </nav>
 
       {/* ── Scoped styles ── */}
@@ -169,19 +174,21 @@ export default function TopNavbar() {
 
         /* Logo */
         .lbn-logo {
-          font-family: 'Playfair Display', 'Cormorant Garamond', Georgia, serif !important;
-          font-size: clamp(1.3rem, 2.4vw, 1.9rem);
-          font-weight: 700;
-          font-style: italic;
-          letter-spacing: -0.01em;
-          color: #1a1208;
+          display: flex;
+          align-items: center;
+          justify-content: center;
           text-decoration: none;
-          white-space: nowrap;
           pointer-events: auto;
           transition: opacity 0.22s ease;
           line-height: 1;
         }
-        .lbn-logo:hover { opacity: 0.68; }
+        .lbn-logo:hover { opacity: 0.75; }
+        .lbn-logo-img {
+          height: 72px;
+          width: auto;
+          object-fit: contain;
+          display: block;
+        }
 
         /* Vertical dividers */
         .lbn-divider {
@@ -256,7 +263,7 @@ export default function TopNavbar() {
         @media (max-width: 767px) {
           .lbn-desktop-only { display: none !important; }
           .lbn-links { display: none !important; }
-          .lbn-logo { font-size: 1.15rem; }
+          .lbn-logo-img { height: 56px; }
         }
       `}</style>
     </>
