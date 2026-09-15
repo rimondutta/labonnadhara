@@ -65,143 +65,74 @@ export default function Homepage({
     <div className="bg-white min-h-screen font-body" suppressHydrationWarning>
 
       {/* ═══════════════════════════════════════════════
-          HERO — Full width video background
+          HERO — Full width image background
           ═══════════════════════════════════════════════ */}
       <section className="relative min-h-[92vh] flex items-center overflow-hidden">
-        {/* Background Video */}
+
+
         <div className="absolute inset-0 z-0 bg-[#0a0a0a]">
-          <div className="absolute inset-0 bg-black/40 z-10" /> {/* Dark overlay for readability */}
-
-          <video
-            autoPlay
-            muted
-            loop
-            playsInline
-            preload="auto"
-            className="absolute inset-0 w-full h-full object-cover object-center z-0"
-          >
-            <source src="/video/hero-bg.mp4" type="video/mp4" />
-          </video>
+          <div className="absolute inset-0 /40 z-10" />
+          <Image
+            src="/images/hero-bg.png"
+            alt="Hero Background"
+            fill
+            priority
+            className="object-cover object-center z-0"
+          />
         </div>
 
-        <div className="relative z-10 w-full px-4 sm:px-8 lg:px-[5vw] pt-32 pb-12 md:pb-20">
-          <div ref={heroRef} className="flex flex-col max-w-2xl">
-            <div data-hero-item className="mb-4">
-              <span className="inline-flex items-center gap-2 bg-transparent text-white/80 font-mono text-xs uppercase tracking-[0.2em] border border-white/20 px-4 py-2">
-                Curated Collection
-              </span>
-            </div>
 
-            <h1
-              data-hero-item
-              className="font-serif font-light text-[52px] sm:text-[64px] lg:text-[80px] xl:text-[96px] text-white leading-[1.05] tracking-tight mb-8"
-            >
-              Timeless
-              <br />
-              <span className="italic text-white/90">Jewelry</span>
-              <br />
-              Made to Shine.
-            </h1>
-
-            <p
-              data-hero-item
-              className="font-body font-light text-lg text-white/70 max-w-md mb-12 leading-relaxed"
-            >
-              Discover elegant jewelry designed to make every moment special. From everyday pieces to statement styles, find something that feels uniquely yours.
-            </p>
-
-            <div data-hero-item className="flex items-center gap-4 flex-wrap">
-              <Link
-                href="/products"
-                className="inline-flex items-center justify-center bg-white text-black font-body font-medium text-sm uppercase tracking-widest px-8 py-4 hover:bg-black hover:text-white transition-colors"
-              >
-                Shop Now
-              </Link>
-              <Link
-                href="/products"
-                className="inline-flex items-center justify-center bg-transparent border border-white/30 text-white font-body font-medium text-sm uppercase tracking-widest px-8 py-4 hover:bg-white/10 transition-colors"
-              >
-                Browse Catagories
-              </Link>
-            </div>
-
-            {/* Trust indicators */}
-            <div data-hero-item className="mt-16 flex items-center gap-8 flex-wrap">
-              {[
-                { label: "4.9 from 2,400+ parents" },
-                { label: "Free shipping over ৳1,500" },
-                { label: "30-day returns" },
-              ].map((item, i) => (
-                <div key={i} className="flex items-center gap-1.5 opacity-60">
-                  <span className="font-mono text-xs uppercase tracking-wider text-white">{item.label}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-
-        </div>
       </section>
 
       {/* ═══════════════════════════════════════════════
-          CATEGORIES — Horizontal scroll cards on mobile, grid on desktop
+          CATEGORIES — Circular design matching reference
           ═══════════════════════════════════════════════ */}
       {categories.length > 0 && (
         <section className="py-16 md:py-24 px-4 sm:px-8 lg:px-[5vw]">
-          <AnimatedReveal className="flex items-end justify-between mb-12">
-            <div>
-              <p className="font-mono text-xs uppercase tracking-[0.2em] text-zinc-500 mb-3">Shop by Category</p>
-              <h2 className="font-serif font-light text-4xl md:text-5xl text-black tracking-tight">
-                Curated Collections
+          <AnimatedReveal className="flex flex-col items-center justify-center mb-12 text-center">
+            <div className="flex items-center justify-center gap-4 mb-3">
+              <div className="h-[2px] w-12 bg-pink-300 rounded-full" />
+              <h2 className="font-serif font-semibold text-3xl md:text-[34px] text-slate-800 tracking-tight">
+                Shop by Category
               </h2>
+              <div className="h-[2px] w-12 bg-pink-300 rounded-full" />
             </div>
-            <Link
-              href="/products"
-              className="hidden md:flex items-center gap-2 font-mono text-xs uppercase tracking-widest text-black hover:text-zinc-500 transition-colors border-b border-black/20 hover:border-zinc-500 pb-1"
-            >
-              All categories
-            </Link>
+            <p className="font-sans text-sm md:text-base text-gray-500 font-medium">
+              Find the perfect piece for your style
+            </p>
           </AnimatedReveal>
 
-          {/* Desktop: grid */}
-          <div className="hidden md:grid grid-cols-3 lg:grid-cols-6 gap-4">
-            {categories.slice(0, 6).map((cat, i) => (
-              <AnimatedReveal key={cat.slug} delay={i * 0.06}>
+          <div className="flex flex-nowrap md:flex-wrap items-center md:justify-center gap-6 md:gap-14 overflow-x-auto snap-x snap-mandatory pb-6 no-scrollbar -mx-4 px-4 md:mx-0 md:px-0">
+            {categories.slice(0, 5).map((cat, i) => (
+              <AnimatedReveal key={cat.slug} delay={i * 0.1}>
                 <Link
                   href={`/products?category=${cat.slug}`}
-                  className="group relative aspect-[3/4] rounded-2xl md:rounded-3xl overflow-hidden bg-zinc-100 flex flex-col items-center justify-end p-6 hover:shadow-2xl transition-all duration-500"
+                  className="group flex flex-col items-center gap-5 shrink-0 snap-center w-36 md:w-44"
                 >
-                  {cat.image && (
-                    <Image
-                      src={cat.image}
-                      alt={cat.name}
-                      fill
-                      className="object-cover group-hover:scale-105 transition-transform duration-700 ease-out"
-                      sizes="(max-width: 1024px) 33vw, 16vw"
-                    />
-                  )}
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-80 group-hover:opacity-100 transition-opacity duration-500" />
-                  <span className="relative z-10 font-serif font-light italic text-white text-xl text-center leading-tight tracking-wide">
-                    {cat.name}
-                  </span>
+                  {/* Circle Image Container */}
+                  <div className="relative w-36 h-36 md:w-44 md:h-44 rounded-full overflow-hidden bg-gradient-to-br from-pink-50 to-pink-200 flex items-center justify-center group-hover:shadow-lg transition-shadow duration-500 shadow-sm">
+                    {cat.image && (
+                      <Image
+                        src={cat.image}
+                        alt={cat.name}
+                        fill
+                        className="object-cover group-hover:scale-110 transition-transform duration-700 ease-out"
+                        sizes="(max-width: 768px) 144px, 176px"
+                      />
+                    )}
+                  </div>
+
+                  {/* Text Below */}
+                  <div className="flex flex-col items-center gap-1.5">
+                    <span className="font-serif text-[17px] md:text-lg font-bold text-slate-800 text-center leading-tight">
+                      {cat.name}
+                    </span>
+                    <span className="flex items-center gap-1 font-sans text-[13px] font-bold text-[#f52274] group-hover:text-[#d11059] transition-colors">
+                      View All <ArrowRight size={14} className="stroke-[3]" />
+                    </span>
+                  </div>
                 </Link>
               </AnimatedReveal>
-            ))}
-          </div>
-
-          {/* Mobile: horizontal scroll */}
-          <div className="md:hidden flex gap-4 overflow-x-auto snap-x snap-mandatory pb-6 no-scrollbar -mx-4 px-4">
-            {categories.slice(0, 6).map((cat) => (
-              <Link
-                key={cat.slug}
-                href={`/products?category=${cat.slug}`}
-                className="relative shrink-0 w-48 aspect-[3/4] snap-center rounded-2xl overflow-hidden bg-zinc-100 flex items-end p-5 shadow-sm"
-              >
-                {cat.image && (
-                  <Image src={cat.image} alt={cat.name} fill className="object-cover" sizes="200px" />
-                )}
-                <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent opacity-80" />
-                <span className="relative z-10 font-serif font-light italic text-white text-lg leading-tight tracking-wide">{cat.name}</span>
-              </Link>
             ))}
           </div>
         </section>
