@@ -110,13 +110,14 @@ export default function Footer() {
           </div>
           <div className="flex gap-8">
             <Link href="#" className="font-mono text-[11px] uppercase tracking-[0.1em] text-white hover:text-white/70 font-bold">Terms & Conditions</Link>
+
             <Link href="#" className="font-mono text-[11px] uppercase tracking-[0.1em] text-white hover:text-white/70 font-bold">Privacy Policy</Link>
           </div>
         </div>
 
         {/* Massive Text Overlay */}
         <div className="w-full flex justify-center pb-2">
-          <h1 className="font-sans font-black text-[12vw] sm:text-[12vw] text-white leading-none tracking-tighter m-0 p-0 text-center w-full">
+          <h1 className="font-sans font-black text-[12vw] sm:text-[12vw] text-white opacity-20 leading-none tracking-tighter m-0 p-0 text-center w-full">
             Labonnadhara
           </h1>
         </div>
