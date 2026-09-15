@@ -7,7 +7,7 @@ import AnimatedReveal from "@/components/ui/AnimatedReveal";
 import { FaApple, FaGooglePlay, FaGithub } from "react-icons/fa";
 
 export default function AppDownloadSection() {
-  return
+  return null;
 
 
 }

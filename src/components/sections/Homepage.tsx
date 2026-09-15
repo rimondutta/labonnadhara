@@ -113,7 +113,7 @@ export default function Homepage({
             <div data-hero-item className="flex items-center gap-4 flex-wrap">
               <Link
                 href="/products"
-                className="inline-flex items-center justify-center bg-[#D5AEFD] text-black font-body font-medium text-sm uppercase tracking-widest px-8 py-4 hover:bg-[#D5AEFD]/90 transition-colors"
+                className="inline-flex items-center justify-center bg-white text-black font-body font-medium text-sm uppercase tracking-widest px-8 py-4 hover:bg-black hover:text-white transition-colors"
               >
                 Shop Now
               </Link>

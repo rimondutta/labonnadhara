@@ -411,11 +411,11 @@ export default function ProductDetailsClient({ product: initialProduct, relatedP
             {/* Size guide link */}
             {sizeGuide?.enabled && sizeGuide.content && (
               <div className="flex items-center justify-end mb-4">
-                <button 
+                <button
                   onClick={() => setIsSizeGuideOpen(true)}
                   className="flex items-center gap-1.5 text-xs text-black uppercase tracking-widest underline underline-offset-4 hover:opacity-70 transition-opacity"
                 >
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M21 3H3v18h18V3z"/><path d="M9 3v4M12 3v2M15 3v4M3 9h4M3 12h2M3 15h4"/></svg>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M21 3H3v18h18V3z" /><path d="M9 3v4M12 3v2M15 3v4M3 9h4M3 12h2M3 15h4" /></svg>
                   Size Guide
                 </button>
               </div>
@@ -452,9 +452,9 @@ export default function ProductDetailsClient({ product: initialProduct, relatedP
             <button
               onClick={handleBuyNow}
               disabled={currentInventory <= 0}
-              className="w-full py-4 bg-black text-white font-medium text-sm uppercase tracking-widest border border-black hover:bg-gray-900 disabled:opacity-50 transition-colors mb-4"
+              className="w-full py-4 bg-white text-black font-medium text-sm uppercase tracking-widest border border-black hover:bg-gray-900 disabled:opacity-50 transition-colors mb-4"
             >
-              Buy it Now
+              Buy Now
             </button>
 
             {/* WhatsApp */}
@@ -467,7 +467,7 @@ export default function ProductDetailsClient({ product: initialProduct, relatedP
               <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
                 <path d="M13.601 2.326A7.854 7.854 0 0 0 7.994 0C3.627 0 .068 3.558.064 7.926c0 1.399.366 2.76 1.057 3.965L0 16l4.204-1.102a7.933 7.933 0 0 0 3.79.965h.004c4.368 0 7.926-3.558 7.93-7.93A7.898 7.898 0 0 0 13.6 2.326zM7.994 14.521a6.573 6.573 0 0 1-3.356-.92l-.24-.144-2.494.654.666-2.433-.156-.251a6.56 6.56 0 0 1-1.007-3.505c0-3.626 2.957-6.584 6.591-6.584a6.56 6.56 0 0 1 4.66 1.931 6.557 6.557 0 0 1 1.928 4.66c-.004 3.639-2.961 6.592-6.592 6.592zm3.615-4.934c-.197-.099-1.17-.578-1.353-.646-.182-.065-.315-.099-.445.099-.133.197-.513.646-.627.775-.114.133-.232.148-.43.05-.197-.1-.836-.308-1.592-.985-.59-.525-.985-1.175-1.103-1.372-.114-.198-.011-.304.088-.403.087-.088.197-.232.296-.346.1-.114.133-.198.198-.33.065-.134.034-.248-.015-.347-.05-.099-.445-1.076-.612-1.47-.16-.389-.323-.335-.445-.34-.114-.007-.247-.007-.38-.007a.729.729 0 0 0-.529.247c-.182.198-.691.677-.691 1.654 0 .977.71 1.916.81 2.049.098.133 1.394 2.132 3.383 2.992.47.205.84.326 1.129.418.475.152.904.129 1.246.08.38-.058 1.171-.48 1.338-.943.164-.464.164-.86.114-.943-.049-.084-.182-.133-.38-.232z" />
               </svg>
-              Chat with an Expert
+              Chat Now
             </a>
 
 
@@ -595,7 +595,7 @@ export default function ProductDetailsClient({ product: initialProduct, relatedP
                       </div>
                     </div>
                     <p className="text-sm text-gray-500 mb-8">Based on {product.reviewCount || 0} reviews</p>
-                    
+
                     {!isWritingReview && (
                       <button
                         onClick={() => setIsWritingReview(true)}
@@ -672,27 +672,27 @@ export default function ProductDetailsClient({ product: initialProduct, relatedP
                         .filter((r: any) => r.status !== 'pending')
                         .sort((a: any, b: any) => new Date(b.date).getTime() - new Date(a.date).getTime())
                         .map((review: any, i: number) => (
-                        <div key={i} className="border-b border-gray-100 pb-10 last:border-0">
-                          <div className="flex items-center gap-3 mb-3">
-                            <div className="flex">
-                              {[...Array(5)].map((_, idx) => (
-                                <Star
-                                  key={idx}
-                                  size={14}
-                                  className={idx < review.rating ? "fill-black text-black" : "fill-gray-200 text-gray-200"}
-                                />
-                              ))}
+                          <div key={i} className="border-b border-gray-100 pb-10 last:border-0">
+                            <div className="flex items-center gap-3 mb-3">
+                              <div className="flex">
+                                {[...Array(5)].map((_, idx) => (
+                                  <Star
+                                    key={idx}
+                                    size={14}
+                                    className={idx < review.rating ? "fill-black text-black" : "fill-gray-200 text-gray-200"}
+                                  />
+                                ))}
+                              </div>
+                              <h4 className="font-medium text-black">{review.title}</h4>
                             </div>
-                            <h4 className="font-medium text-black">{review.title}</h4>
+                            <span className="block text-xs text-gray-500 mb-4">
+                              {review.name} on {new Date(review.date).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
+                            </span>
+                            <p className="text-sm text-gray-700 leading-relaxed">
+                              {review.text}
+                            </p>
                           </div>
-                          <span className="block text-xs text-gray-500 mb-4">
-                            {review.name} on {new Date(review.date).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
-                          </span>
-                          <p className="text-sm text-gray-700 leading-relaxed">
-                            {review.text}
-                          </p>
-                        </div>
-                      ))}
+                        ))}
                     </div>
                   ) : (
                     !isWritingReview && (
@@ -746,7 +746,7 @@ export default function ProductDetailsClient({ product: initialProduct, relatedP
                   <h3 className="text-xl font-medium text-black mb-6 border-b border-gray-200 pb-4">
                     Size Guide
                   </h3>
-                  <div 
+                  <div
                     className="prose prose-sm max-w-none text-gray-700 font-mono"
                     dangerouslySetInnerHTML={{ __html: sizeGuide?.content || '' }}
                   />

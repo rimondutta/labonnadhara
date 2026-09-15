@@ -13,7 +13,7 @@ export interface SearchDrawerProps {
   onClose: () => void;
 }
 
-const quickTags = ["Kid Toy", "", "Sneakers", "Jackets", "Accessories"];
+const quickTags = ["jewelry", "bag", "keychain", "ring", "earring"];
 
 export default function SearchDrawer({ isOpen, onClose }: SearchDrawerProps) {
   const [query, setQuery] = useState("");
@@ -36,6 +36,7 @@ export default function SearchDrawer({ isOpen, onClose }: SearchDrawerProps) {
     }
     const timer = setTimeout(() => {
       fetch(`/api/store/products?search=${encodeURIComponent(query)}`)
+        .then((r) => r.json())
         .then((d) => {
           setResults(d.products || []);
           if (d.products?.length > 0) {
