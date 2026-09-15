@@ -109,26 +109,8 @@ export default function TopNavbar() {
         {/* Main row */}
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", maxWidth: 1400, margin: "0 auto", padding: "0 28px", height: 90, position: "relative" }}>
 
-          {/* ── LEFT nav links ── */}
+          {/* ── LEFT Logo ── */}
           <div style={{ display: "flex", alignItems: "center", flex: 1 }}>
-            <div className="lbn-links">
-              {navLinks.map((link) => {
-                const isActive = pathname === link.href;
-                return (
-                  <Link key={link.label} href={link.href} className={`lbn-link${isActive ? " lbn-link-active" : ""}`}>
-                    {link.label}
-                  </Link>
-                );
-              })}
-            </div>
-            {/* Mobile hamburger */}
-            <button onClick={openMobileMenu} className="lbn-icon-btn lbn-mobile-only" aria-label="Open menu">
-              <MenuIcon />
-            </button>
-          </div>
-
-          {/* ── CENTER brand ── */}
-          <div style={{ position: "absolute", left: "50%", transform: "translateX(-50%)", display: "flex", alignItems: "center", gap: 18, pointerEvents: "none" }}>
             <Link href="/" className="lbn-logo" aria-label="Labonnadhara home">
               <Image
                 src="/logo/labonnadhara-logo.png"
@@ -141,7 +123,21 @@ export default function TopNavbar() {
             </Link>
           </div>
 
-          {/* ── RIGHT icons ── */}
+          {/* ── CENTER Menu ── */}
+          <div style={{ position: "absolute", left: "50%", transform: "translateX(-50%)", display: "flex", alignItems: "center" }}>
+            <div className="lbn-links">
+              {navLinks.map((link) => {
+                const isActive = pathname === link.href;
+                return (
+                  <Link key={link.label} href={link.href} className={`lbn-link${isActive ? " lbn-link-active" : ""}`}>
+                    {link.label}
+                  </Link>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* ── RIGHT Icons ── */}
           <div style={{ display: "flex", alignItems: "center", gap: 2, flex: 1, justifyContent: "flex-end" }}>
             <button onClick={openSearch} className="lbn-icon-btn" aria-label="Search"><SearchIcon /></button>
             <Link href="/wishlist" className="lbn-icon-btn lbn-desktop-only" aria-label="Wishlist"><HeartIcon /></Link>
@@ -161,6 +157,10 @@ export default function TopNavbar() {
               )}
             </button>
             <Link href="/account" className="lbn-icon-btn lbn-desktop-only" aria-label="My account"><UserIcon /></Link>
+            {/* Mobile hamburger now on the right */}
+            <button onClick={openMobileMenu} className="lbn-icon-btn lbn-mobile-only" aria-label="Open menu">
+              <MenuIcon />
+            </button>
           </div>
         </div>
 
