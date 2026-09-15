@@ -95,16 +95,65 @@ export default function TopNavbar() {
           left: 0,
           right: 0,
           zIndex: 999,
-          backgroundColor: scrolled ? "#ffffffff" : "#ffffffff",
+          backgroundColor: scrolled ? "rgba(255,241,246,0.97)" : "rgba(255,241,246,0.97)",
           backdropFilter: scrolled ? "blur(12px)" : "none",
           WebkitBackdropFilter: scrolled ? "blur(12px)" : "none",
-          boxShadow: scrolled ? "0 4px 20px rgba(0,0,0,0.08)" : "0 2px 10px rgba(0,0,0,0.05)",
+          boxShadow: scrolled ? "0 4px 24px rgba(214,43,114,0.10)" : "0 2px 12px rgba(214,43,114,0.06)",
           transition: "box-shadow 0.3s ease, background-color 0.3s ease",
         }}
         suppressHydrationWarning
       >
+        {/* ── Announcement / Top Bar ── */}
+        <div className="bg-[#D62B72] text-white text-[11px] sm:text-[12px] font-semibold tracking-wide px-4 md:px-7 py-2 flex flex-row items-center justify-between gap-2">
+          {/* Left: Delivery info */}
+          <div className="flex items-center gap-1.5 md:gap-2">
+            <svg width="18" height="18" className="md:w-[22px] md:h-[22px]" viewBox="0 0 50 50" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M33 8H5a2 2 0 0 0-2 2v22h2" />
+              <path d="M3 32h30V10" />
+              <path d="M33 18h8l6 8v6h-4" />
+              <path d="M33 32h10" />
+              <circle cx="13" cy="35" r="4" />
+              <circle cx="39" cy="35" r="4" />
+              <path d="M9 32H3" />
+              <line x1="8" y1="14" x2="18" y2="14" />
+              <line x1="5" y1="20" x2="18" y2="20" />
+              <line x1="8" y1="26" x2="18" y2="26" />
+            </svg>
+            <span className="truncate max-w-[200px] sm:max-w-none">Fast Delivery: ঢাকা ও চট্টগ্রাম</span>
+          </div>
+
+          {/* Center: Features (Hidden on mobile to save space) */}
+          <div className="hidden lg:flex items-center gap-4 flex-1 justify-center">
+            <span className="flex items-center gap-1.5">
+              <span>✨</span> Premium Packaging
+            </span>
+            <span className="opacity-50">|</span>
+            <span className="flex items-center gap-1.5">
+              <span>🔒</span> Secure Payment
+            </span>
+            <span className="opacity-50">|</span>
+            <span className="flex items-center gap-1.5">
+              <span>🔄</span> Easy Exchange
+            </span>
+          </div>
+
+          {/* Right: Social links */}
+          <div className="flex items-center gap-2 md:gap-2.5 shrink-0">
+            <span className="hidden sm:inline">Follow Us:</span>
+            <a href="https://facebook.com" target="_blank" rel="noopener noreferrer" className="text-white/90 hover:text-white transition-colors" aria-label="Facebook">
+              <svg width="16" height="16" fill="currentColor" viewBox="0 0 24 24"><path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"/></svg>
+            </a>
+            <a href="https://instagram.com" target="_blank" rel="noopener noreferrer" className="text-white/90 hover:text-white transition-colors" aria-label="Instagram">
+              <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/></svg>
+            </a>
+            <a href="https://wa.me/8801616921965" target="_blank" rel="noopener noreferrer" className="text-white/90 hover:text-white transition-colors" aria-label="WhatsApp">
+              <svg width="16" height="16" fill="currentColor" viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 0 1-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 0 1-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 0 1 2.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0 0 12.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 0 0 5.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 0 0-3.48-8.413Z"/></svg>
+            </a>
+          </div>
+        </div>
+
         {/* Top accent line */}
-        <div style={{ height: 1, background: "linear-gradient(to right, transparent, rgba(180,150,120,0.3) 30%, rgba(180,150,120,0.3) 70%, transparent)" }} />
+        <div style={{ height: 2, background: "linear-gradient(to right, transparent, #E86A9B 30%, #D62B72 60%, #C9A24D 80%, transparent)" }} />
 
         {/* Main row */}
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", maxWidth: 1400, margin: "0 auto", padding: "0 28px", height: 90, position: "relative" }}>
@@ -146,11 +195,11 @@ export default function TopNavbar() {
               {mounted && cartCount > 0 && (
                 <span style={{
                   position: "absolute", top: 4, right: 4,
-                  background: "#1a1208", color: "#f9f5f0",
+                  background: "#D62B72", color: "#FFFFFF",
                   fontFamily: "'DM Sans', sans-serif", fontSize: 9, fontWeight: 700,
                   width: 15, height: 15, borderRadius: "50%",
                   display: "flex", alignItems: "center", justifyContent: "center",
-                  border: "1.5px solid #f9f5f0", lineHeight: 1,
+                  border: "1.5px solid #FFF1F6", lineHeight: 1,
                 }}>
                   {cartCount > 9 ? "9+" : cartCount}
                 </span>
@@ -206,13 +255,12 @@ export default function TopNavbar() {
           gap: 0;
         }
 
-        /* Individual nav link */
         .lbn-link {
           font-family: 'DM Sans', sans-serif;
           font-size: 10.5px;
-          font-weight: 500;
+          font-weight: 600;
           letter-spacing: 0.13em;
-          color: #6b5f52;
+          color: #4B5563;
           text-decoration: none;
           padding: 6px 10px;
           position: relative;
@@ -224,13 +272,13 @@ export default function TopNavbar() {
           bottom: 3px;
           left: 10px;
           right: 10px;
-          height: 1px;
-          background: currentColor;
+          height: 1.5px;
+          background: #D62B72;
           transform: scaleX(0);
           transform-origin: left;
           transition: transform 0.28s cubic-bezier(0.25,1,0.5,1);
         }
-        .lbn-link:hover, .lbn-link-active { color: #1a1208; }
+        .lbn-link:hover, .lbn-link-active { color: #D62B72; }
         .lbn-link:hover::after, .lbn-link-active::after { transform: scaleX(1); }
 
         /* Icon button */
@@ -243,15 +291,15 @@ export default function TopNavbar() {
           border-radius: 50%;
           border: none;
           background: transparent;
-          color: #6b5f52;
+          color: #4B5563;
           cursor: pointer;
           text-decoration: none;
           transition: color 0.2s ease, background 0.2s ease, transform 0.18s ease;
           flex-shrink: 0;
         }
         .lbn-icon-btn:hover {
-          color: #1a1208;
-          background: rgba(90,81,71,0.09);
+          color: #D62B72;
+          background: rgba(214,43,114,0.08);
           transform: translateY(-1px);
         }
         .lbn-icon-btn:active { transform: scale(0.94); }

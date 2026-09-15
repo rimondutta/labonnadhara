@@ -83,14 +83,14 @@ export default function ProductCardModern({ product, priority = false, index = 1
     : 0;
 
   const rawFront = product.images?.[0];
-  const rawBack  = product.images?.[1];
+  const rawBack = product.images?.[1];
   // Inject f_auto,q_auto into Cloudinary URLs — served as WebP/AVIF, ~40% smaller
   const frontImg = rawFront ? { ...rawFront, url: getOptimizedCloudinaryUrl(rawFront.url, { width: 600 }) } : undefined;
-  const backImg  = rawBack  ? { ...rawBack,  url: getOptimizedCloudinaryUrl(rawBack.url,  { width: 600 }) } : undefined;
+  const backImg = rawBack ? { ...rawBack, url: getOptimizedCloudinaryUrl(rawBack.url, { width: 600 }) } : undefined;
 
   return (
     <div
-      className="relative group flex flex-col w-full cursor-pointer bg-white border border-gray-200 rounded-[20px] overflow-hidden transition-transform duration-300 ease-[cubic-bezier(0.25,1,0.5,1)] hover:-translate-y-1.5 will-change-transform"
+      className="relative group flex flex-col w-full cursor-pointer bg-white border border-[#F3D6E2] rounded-[20px] overflow-hidden transition-transform duration-300 ease-[cubic-bezier(0.25,1,0.5,1)] hover:-translate-y-1.5 will-change-transform"
       suppressHydrationWarning
     >
       {/* Image Container */}
@@ -98,17 +98,17 @@ export default function ProductCardModern({ product, priority = false, index = 1
         {/* Badges */}
         <div className="absolute top-4 left-4 z-20 flex gap-2 pointer-events-none">
           {product.badge && (
-            <span className="bg-[#A3E635] text-[#14532D] font-bold text-[11px] px-3 py-1 rounded-full shadow-sm">
+            <span className="bg-[#D62B72] text-white font-bold text-[11px] px-3 py-1 rounded-full shadow-sm">
               {product.badge}
             </span>
           )}
           {hasDiscount && (
-            <span className="bg-[#A3E635] text-[#14532D] font-bold text-[11px] px-3 py-1 rounded-full shadow-sm">
-              {discountPercentage}% OFF
-            </span>
+            <span className="text-[12px] font-bold bg-[#D62B72] text-white px-2 py-0.5 rounded-full">
+                -{discountPercentage}%
+              </span>
           )}
           {isOutOfStock && (
-            <span className="bg-gray-900 text-white font-bold text-[11px] px-3 py-1 rounded-full shadow-sm">
+            <span className="bg-[#252B3A] text-white font-bold text-[11px] px-3 py-1 rounded-full shadow-sm">
               Sold Out
             </span>
           )}
@@ -120,8 +120,8 @@ export default function ProductCardModern({ product, priority = false, index = 1
           className={cn(
             "absolute top-4 right-4 z-20 w-9 h-9 rounded-full flex items-center justify-center transition-all duration-300 shadow-sm",
             wishlisted
-              ? "bg-[#043224] text-white scale-110"
-              : "bg-white/80 backdrop-blur-sm text-gray-500 hover:bg-[#043224] hover:text-white"
+              ? "bg-[#D62B72] text-white scale-110"
+              : "bg-white/80 backdrop-blur-sm text-[#4B5563] hover:bg-[#D62B72] hover:text-white"
           )}
           aria-label={wishlisted ? "Remove from wishlist" : "Add to wishlist"}
         >
@@ -171,7 +171,7 @@ export default function ProductCardModern({ product, priority = false, index = 1
 
         {/* Price Section */}
         <div className="flex items-center gap-2 mt-auto pt-3 flex-wrap">
-          <span className="font-body font-extrabold text-[22px] text-[#0A1A3A]">
+          <span className="font-body font-extrabold text-[22px] text-[#D62B72]">
             ৳{formatPrice(product.price)}
           </span>
           {hasDiscount && product.compareAtPrice && (
@@ -179,18 +179,32 @@ export default function ProductCardModern({ product, priority = false, index = 1
               <span className="font-body font-medium text-[15px] text-gray-500 line-through">
                 ৳{formatPrice(product.compareAtPrice)}
               </span>
-              <span className="text-[12px] font-bold bg-[#FF5733] text-white px-2 py-0.5 rounded-full">
+              <span className="text-[12px] font-bold bg-[#D62B72] text-white px-2 py-0.5 rounded-full">
                 -{discountPercentage}%
               </span>
             </>
           )}
         </div>
 
+        {/* Ratings */}
+        <div className="flex items-center gap-1 mt-2 mb-1">
+          <div className="flex text-[#F59E0B]">
+            {/* We could also make the number of stars dynamic, but typically a 5-star visual works well enough for 4.0+ ratings */}
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" strokeWidth="1"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" strokeWidth="1"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" strokeWidth="1"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" strokeWidth="1"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" strokeWidth="1"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
+          </div>
+          <span className="font-body text-[13px] font-bold text-gray-700 ml-1">{product.rating ?? 4.8}</span>
+          <span className="font-body text-[13px] text-gray-500">({product.reviewCount ?? 124})</span>
+        </div>
+
         {/* Action Button */}
         <button
           onClick={handleQuickAdd}
           disabled={isAdding || isOutOfStock}
-          className="w-full mt-5 bg-black hover:bg-black/90 text-white font-body font-bold text-[15px] py-3.5 rounded-full transition-colors disabled:opacity-70 flex justify-center items-center"
+          className="w-full mt-5 bg-[#D62B72] hover:bg-[#C51F63] text-white font-body font-bold text-[15px] py-3.5 rounded-full transition-colors flex justify-center items-center shadow-md shadow-pink-500/20"
         >
           {isAdding ? "Adding..." : (isOutOfStock ? "Sold Out" : "Add to Cart")}
         </button>

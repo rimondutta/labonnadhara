@@ -198,7 +198,7 @@ export default function ProductDetailsClient({ product: initialProduct, relatedP
   }) : [];
 
   return (
-    <div className="bg-white min-h-screen text-black font-sans pb-16">
+    <div className="bg-[#FFF1F6] min-h-screen text-[#252B3A] font-sans pb-16">
 
       {/* ═══ PRODUCT SHOWCASE ═══ */}
       <section className="max-w-[1400px] mx-auto px-4 sm:px-8 lg:px-12 pt-[88px]">
@@ -309,7 +309,7 @@ export default function ProductDetailsClient({ product: initialProduct, relatedP
             )}
 
             {/* Product title */}
-            <h1 className="text-3xl md:text-4xl text-black mb-4 tracking-tight font-medium">
+            <h1 className="text-3xl md:text-4xl text-[#252B3A] mb-4 tracking-tight font-semibold">
               {product.title}
             </h1>
 
@@ -321,11 +321,11 @@ export default function ProductDetailsClient({ product: initialProduct, relatedP
                     <Star
                       key={i}
                       size={14}
-                      className={i < Math.floor(product.rating || 0) ? "fill-black text-black" : "fill-gray-200 text-gray-200"}
+                      className={i < Math.floor(product.rating || 0) ? "fill-[#D62B72] text-[#D62B72]" : "fill-gray-200 text-gray-200"}
                     />
                   ))}
                 </div>
-                <a href="#reviews" className="text-sm text-gray-500 hover:text-black transition-colors underline underline-offset-4">
+                <a href="#reviews" className="text-sm text-[#4B5563] hover:text-[#D62B72] transition-colors underline underline-offset-4">
                   {product.reviewCount} reviews
                 </a>
               </div>
@@ -333,14 +333,14 @@ export default function ProductDetailsClient({ product: initialProduct, relatedP
 
             {/* Price */}
             <div className="flex items-center gap-3 mb-6">
-              <span className="text-2xl font-medium text-black">
+              <span className="text-2xl font-semibold text-[#D62B72]">
                 ৳{currentPrice.toLocaleString()}
               </span>
               {hasDiscount && effectiveComparePrice && (
                 <span className="text-lg text-gray-400 line-through">৳{effectiveComparePrice.toLocaleString()}</span>
               )}
               {hasDiscount && (
-                <span className="text-xs text-white bg-black font-semibold px-2.5 py-1 uppercase tracking-widest">
+                <span className="text-xs text-white bg-[#D62B72] font-semibold px-2.5 py-1 rounded-full uppercase tracking-widest">
                   Save {discountPercentage}%
                 </span>
               )}
@@ -392,10 +392,10 @@ export default function ProductDetailsClient({ product: initialProduct, relatedP
                             key={val._id}
                             onClick={() => setSelectedOptions(p => ({ ...p, [vt._id]: val._id }))}
                             className={cn(
-                              "px-5 py-2.5 text-sm border transition-all duration-200",
+                              "px-5 py-2.5 text-sm border rounded-full transition-all duration-200",
                               isSelected
-                                ? "bg-black text-white border-black"
-                                : "bg-white text-black border-gray-300 hover:border-black"
+                                ? "bg-[#D62B72] text-white border-[#D62B72]"
+                                : "bg-white text-[#252B3A] border-[#F3D6E2] hover:border-[#D62B72]"
                             )}
                           >
                             {val.value}
@@ -421,29 +421,28 @@ export default function ProductDetailsClient({ product: initialProduct, relatedP
               </div>
             )}
 
-            {/* Quantity selector */}
             <div className="mb-4">
-              <p className="text-xs uppercase tracking-widest text-gray-500 mb-2">Quantity</p>
-              <div className="flex items-center border border-black w-fit">
+              <p className="text-xs uppercase tracking-widest text-[#4B5563] mb-2">Quantity</p>
+              <div className="flex items-center border border-[#F3D6E2] rounded-full w-fit">
                 <button
                   onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                  className="px-5 py-3 text-lg text-black hover:bg-gray-100 transition-colors leading-none"
+                  className="px-5 py-3 text-lg text-[#252B3A] hover:bg-[#FFF1F6] transition-colors leading-none rounded-full"
                   aria-label="Decrease quantity"
                 >−</button>
-                <span className="w-12 text-center text-sm text-black font-medium">{quantity}</span>
+                <span className="w-12 text-center text-sm text-[#252B3A] font-medium">{quantity}</span>
                 <button
                   onClick={() => setQuantity(quantity + 1)}
-                  className="px-5 py-3 text-lg text-black hover:bg-gray-100 transition-colors leading-none"
+                  className="px-5 py-3 text-lg text-[#252B3A] hover:bg-[#FFF1F6] transition-colors leading-none rounded-full"
                   aria-label="Increase quantity"
                 >+</button>
               </div>
             </div>
 
-            {/* Add to Bag — full width dark green */}
+            {/* Add to Cart */}
             <button
               onClick={handleAddToCart}
               disabled={currentInventory <= 0}
-              className="w-full py-4 bg-black text-white font-medium text-sm uppercase tracking-widest hover:bg-gray-900 disabled:opacity-50 transition-colors mb-3"
+              className="w-full py-4 bg-[#D62B72] text-white font-semibold text-sm uppercase tracking-widest rounded-full hover:bg-[#C51F63] disabled:opacity-50 transition-colors mb-3 shadow-lg shadow-pink-500/20"
             >
               {currentInventory <= 0 ? "Out of Stock" : "Add to Cart"}
             </button>
@@ -452,7 +451,7 @@ export default function ProductDetailsClient({ product: initialProduct, relatedP
             <button
               onClick={handleBuyNow}
               disabled={currentInventory <= 0}
-              className="w-full py-4 bg-white text-black font-medium text-sm uppercase tracking-widest border border-black hover:bg-gray-900 disabled:opacity-50 transition-colors mb-4"
+              className="w-full py-4 bg-white text-[#D62B72] font-semibold text-sm uppercase tracking-widest rounded-full border-2 border-[#D62B72] hover:bg-[#FFF1F6] disabled:opacity-50 transition-colors mb-4"
             >
               Buy Now
             </button>

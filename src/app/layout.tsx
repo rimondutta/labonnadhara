@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Poppins, DM_Sans, Manrope } from "next/font/google";
+import { Poppins, DM_Sans, Manrope, Playfair_Display } from "next/font/google";
 import Script from "next/script";
 import "./globals.css";
 import { CartProvider } from "@/components/providers/CartProvider";
@@ -12,6 +12,14 @@ import FacebookPixel from "@/components/FacebookPixel";
 import ExtensionHydrationFix from "@/components/ExtensionHydrationFix";
 import LenisProvider from "@/components/providers/LenisProvider";
 import FramerMotionProvider from "@/components/providers/FramerMotionProvider";
+
+const playfair = Playfair_Display({
+  subsets: ["latin"],
+  weight: ["400", "500", "600", "700", "800", "900"],
+  style: ["normal", "italic"],
+  variable: "--font-playfair",
+  display: "swap",
+});
 
 const poppins = Poppins({
   subsets: ["latin"],
@@ -74,7 +82,7 @@ export default function RootLayout({
       lang="en"
       suppressHydrationWarning
       data-scroll-behavior="smooth"
-      className={`${poppins.variable} ${dmSans.variable} ${manrope.variable}`}
+      className={`${playfair.variable} ${poppins.variable} ${dmSans.variable} ${manrope.variable}`}
     >
       <head>
         <link rel="preconnect" href="https://res.cloudinary.com" />

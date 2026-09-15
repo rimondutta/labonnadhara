@@ -8,39 +8,58 @@
 @import "swiper/css/navigation";
 
 /* ═══════════════════════════════════════════════════
-   TOYHOURSE — Joy Lab Design System
-   "Premium toy brand. Tactile, colorful, confident."
+   LABONNADHARA — Jewelry Design System
+   "Elegant. Feminine. Timeless."
    ═══════════════════════════════════════════════════ */
 
 @theme {
-  /* ─── Monochrome Palette (Jewelry) ─── */
-  --color-joy-cream:   #FFFFFF; /* Base background — pure white */
-  --color-joy-navy:    #000000; /* Primary text + dark surfaces — pure black */
-  --color-joy-cobalt:  #111111; /* Primary brand color — off black */
-  --color-joy-coral:   #000000; /* CTAs, badges, urgency — black */
-  --color-joy-sun:     #333333; /* Stars, promos, warmth — dark grey */
-  --color-joy-mist:    #F5F5F5; /* Card surfaces, hover backgrounds — light grey */
-  --color-joy-rule:    #E5E5E5; /* Borders, dividers */
-  --color-joy-muted:   #737373; /* Secondary text */
+  /* ─── Brand Colors ─── */
+  --color-primary:        #D62B72; /* Hot pink — main CTA */
+  --color-primary-dark:   #C51F63; /* Darker pink — hover state */
+  --color-primary-light:  #FFF1F6; /* Lightest pink — page background */
+  --color-pink-soft:      #FFF8FB; /* Soft pink — card/section backgrounds */
+  --color-accent-pink:    #E86A9B; /* Medium pink — decorative accents */
+  --color-border:         #F3D6E2; /* Pink-tinted borders */
 
-  /* ─── Semantic aliases (used in components) ─── */
-  --color-ink-black:   #000000;
+  /* ─── Gold Accent ─── */
+  --color-gold:           #C9A24D; /* Warm gold — premium accent */
+  --color-gold-light:     #E5C77A; /* Light gold — highlights */
+
+  /* ─── Text ─── */
+  --color-text:           #252B3A; /* Primary text — deep navy */
+  --color-text-secondary: #4B5563; /* Secondary text — slate */
+  --color-text-muted:     #9CA3AF; /* Muted/placeholder text */
+
+  /* ─── Neutral ─── */
+  --color-white:          #FFFFFF;
+  --color-bg-section:     #FDE3ED; /* Section gradient end */
+
+  /* ─── Legacy aliases (keep for backward compat) ─── */
+  --color-joy-cream:   #FFF1F6;
+  --color-joy-navy:    #252B3A;
+  --color-joy-cobalt:  #D62B72;
+  --color-joy-coral:   #D62B72;
+  --color-joy-sun:     #C9A24D;
+  --color-joy-mist:    #FFF8FB;
+  --color-joy-rule:    #F3D6E2;
+  --color-joy-muted:   #4B5563;
+  --color-ink-black:   #252B3A;
   --color-paper-white: #FFFFFF;
-  --color-paper-grey:  #F5F5F5;
-  --color-rule-grey:   #E5E5E5;
-  --color-stamp-red:   #000000; /* re-mapped to black for CTAs */
-  --color-accent-yellow: #333333;
+  --color-paper-grey:  #FFF8FB;
+  --color-rule-grey:   #F3D6E2;
+  --color-stamp-red:   #D62B72;
+  --color-accent-yellow: #C9A24D;
 
   /* ─── Typography ─── */
-  --font-display: var(--font-poppins), 'Poppins', var(--font-manrope), 'Manrope', sans-serif;
-  --font-heading: var(--font-poppins), 'Poppins', var(--font-manrope), 'Manrope', sans-serif;
-  --font-serif:   var(--font-poppins), 'Poppins', var(--font-manrope), 'Manrope', sans-serif;
+  --font-display: var(--font-playfair), 'Playfair Display', Georgia, serif;
+  --font-heading: var(--font-playfair), 'Playfair Display', Georgia, serif;
+  --font-serif:   var(--font-playfair), 'Playfair Display', Georgia, serif;
   --font-poppins: var(--font-poppins), 'Poppins', var(--font-manrope), 'Manrope', sans-serif;
-  --font-body:    var(--font-dm-sans), 'DM Sans', var(--font-manrope), 'Manrope', sans-serif;
-  --font-sans:    var(--font-dm-sans), 'DM Sans', var(--font-manrope), 'Manrope', sans-serif;
+  --font-body:    var(--font-poppins), 'Poppins', var(--font-manrope), 'Manrope', sans-serif;
+  --font-sans:    var(--font-poppins), 'Poppins', var(--font-manrope), 'Manrope', sans-serif;
   --font-mono:    var(--font-dm-sans), 'DM Sans', sans-serif;
 
-  /* ─── Radii — rounded but not bubbly ─── */
+  /* ─── Radii ─── */
   --radius-none: 0px;
   --radius-sm:   4px;
   --radius-md:   8px;
@@ -51,7 +70,7 @@
   --radius:      8px;
 
   /* ─── Easing ─── */
-  --ease-joy:     cubic-bezier(0.34, 1.56, 0.64, 1); /* spring-like */
+  --ease-joy:     cubic-bezier(0.34, 1.56, 0.64, 1);
   --ease-smooth:  cubic-bezier(0.25, 1, 0.5, 1);
 }
 
@@ -62,13 +81,13 @@
 html {
   /* Do NOT set scroll-behavior: smooth here — Lenis owns scroll smoothing.
      Setting both causes double-smoothing jank on desktop. */
-  background-color: #FFFFFF;
+  background-color: #FFF1F6;
 }
 
 body {
-  background-color: #FFFFFF;
-  color: #000000;
-  font-family: var(--font-dm-sans), 'DM Sans', var(--font-manrope), 'Manrope', sans-serif;
+  background-color: #FFF1F6;
+  color: #252B3A;
+  font-family: var(--font-poppins), 'Poppins', var(--font-manrope), 'Manrope', sans-serif;
   font-weight: 400;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
@@ -92,22 +111,19 @@ img, video {
   will-change: transform;
 }
 
-/* Logo, Main Heading, Product Title, Price -> Poppins */
+/* Headings — Playfair Display */
 h1, h2, h3, h4, h5, h6,
 .font-display,
 .font-heading,
 .font-serif,
-.font-poppins,
 .font-logo,
-.font-price,
 .font-title,
 .logo-text,
-.product-title,
-.price-tag {
-  font-family: var(--font-poppins), 'Poppins', var(--font-manrope), 'Manrope', sans-serif;
+.product-title {
+  font-family: var(--font-playfair), 'Playfair Display', Georgia, serif;
 }
 
-/* Body text, Button, Nav text -> DM Sans */
+/* Body text, Button, Nav text — Poppins */
 p, span, li, td, th, input, select, textarea, label,
 button,
 nav,
@@ -116,14 +132,16 @@ nav a,
 .font-sans,
 .font-mono,
 .font-dm-sans,
+.font-poppins,
 .font-button,
-.font-nav {
-  font-family: var(--font-dm-sans), 'DM Sans', var(--font-manrope), 'Manrope', sans-serif;
+.font-nav,
+.price-tag {
+  font-family: var(--font-poppins), 'Poppins', var(--font-manrope), 'Manrope', sans-serif;
 }
 
 /* Explicit Button Font Override */
 button, input[type="button"], input[type="submit"], [role="button"], .btn {
-  font-family: var(--font-dm-sans), 'DM Sans', var(--font-manrope), 'Manrope', sans-serif !important;
+  font-family: var(--font-poppins), 'Poppins', var(--font-manrope), 'Manrope', sans-serif !important;
 }
 
 /* Explicit Logo & Product Title & Price Font Overrides */
@@ -132,7 +150,7 @@ button, input[type="button"], input[type="submit"], [role="button"], .btn {
 }
 
 ::selection {
-  background-color: #000000;
+  background-color: #D62B72;
   color: #FFFFFF;
 }
 
@@ -141,11 +159,11 @@ button, input[type="button"], input[type="submit"], [role="button"], .btn {
    ═══════════════════════════════════════ */
 
 .font-display {
-  font-family: var(--font-poppins), 'Poppins', var(--font-manrope), 'Manrope', sans-serif;
+  font-family: var(--font-playfair), 'Playfair Display', Georgia, serif;
 }
 
 .font-body {
-  font-family: var(--font-dm-sans), 'DM Sans', var(--font-manrope), 'Manrope', sans-serif;
+  font-family: var(--font-poppins), 'Poppins', var(--font-manrope), 'Manrope', sans-serif;
 }
 
 .font-mono {
@@ -153,7 +171,7 @@ button, input[type="button"], input[type="submit"], [role="button"], .btn {
 }
 
 .font-serif {
-  font-family: var(--font-poppins), 'Poppins', var(--font-manrope), 'Manrope', sans-serif;
+  font-family: var(--font-playfair), 'Playfair Display', Georgia, serif;
 }
 
 /* ═══════════════════════════════════════
@@ -161,7 +179,7 @@ button, input[type="button"], input[type="submit"], [role="button"], .btn {
    ═══════════════════════════════════════ */
 
 :focus-visible {
-  outline: 2px solid #000000;
+  outline: 2px solid #D62B72;
   outline-offset: 3px;
   border-radius: 4px;
 }
@@ -179,17 +197,17 @@ button, input[type="button"], input[type="submit"], [role="button"], .btn {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #E5E5E5;
+  background: #F3D6E2;
   border-radius: 99px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #333333;
+  background: #D62B72;
 }
 
 * {
   scrollbar-width: thin;
-  scrollbar-color: #E5E5E5 #F5F5F5;
+  scrollbar-color: #F3D6E2 #FFF1F6;
 }
 
 /* ═══════════════════════════════════════
