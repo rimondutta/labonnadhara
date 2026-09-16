@@ -48,7 +48,7 @@ export async function sendTelegramNotification(order: TelegramOrderData) {
     .map(item => `• ${escapeHtml(item.title)} x${item.quantity} (৳${item.price})`)
     .join('\n');
 
-const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || process.env.NEXTAUTH_URL || 'https://toyhourse.com';
+const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || process.env.NEXTAUTH_URL || 'https://labonnadhara.shop';
   const message = `
 📌 <b>New Order Received!</b>
 --------------------------------

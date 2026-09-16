@@ -115,7 +115,7 @@ export async function PUT(
         status: data.courierStatus || oldOrder.courierStatus || 'in_transit',
         title: data.timelineTitle || activeStep.title || 'Tracking Update',
         description: data.timelineNote || activeStep.description || 'Order status updated by delivery network.',
-        location: data.timelineLocation || 'Dhaka Hub',
+        location: data.timelineLocation || 'Chattogram Hub',
         timestamp: new Date(),
       };
 

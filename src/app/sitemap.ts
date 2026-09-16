@@ -6,7 +6,7 @@ import Category from '@/models/Category';
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   // Use a more robust way to get the base URL
-  let baseUrl = process.env.NEXT_PUBLIC_SITE_URL || process.env.NEXTAUTH_URL || 'https://toyhourse.com';
+  let baseUrl = process.env.NEXT_PUBLIC_SITE_URL || process.env.NEXTAUTH_URL || 'https://labonnadhara.shop';
   
   // Remove trailing slash if present to avoid double slashes in paths
   baseUrl = baseUrl.replace(/\/$/, '');

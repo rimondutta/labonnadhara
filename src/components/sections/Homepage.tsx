@@ -7,7 +7,7 @@ import Image from "next/image";
 const DynamicProductGridNike = dynamic(() => import("@/components/ui/product-grid-nike"));
 import AnimatedReveal from "@/components/ui/AnimatedReveal";
 import dynamic from "next/dynamic";
-const DynamicAppDownloadSection = dynamic(() => import("./AppDownloadSection"));
+
 import { ArrowRight, Truck, RotateCcw, Headphones } from "lucide-react";
 
 const DynamicInstagramSection = dynamic(() => import("./InstagramSection"), { ssr: false });
@@ -29,7 +29,7 @@ export default function Homepage({
   initialCategories?: Category[];
   initialBlogs?: any[];
 }) {
-  preload('/video/hero-bg.mp4', { as: 'video', fetchPriority: 'high' });
+
   const [trendingProducts] = useState<any[]>(initialTrendingProducts);
   const [categories] = useState<Category[]>(initialCategories);
   const [blogs] = useState<any[]>(initialBlogs);
@@ -72,22 +72,35 @@ export default function Homepage({
 
         <div className="absolute inset-0 z-0 bg-[#0a0a0a]">
           <div className="absolute inset-0 /40 z-10" />
+          
+          {/* Mobile Background Image */}
+          <Image
+            src="/images/hero-bg-mobile.png"
+            alt="Hero Background Mobile"
+            fill
+            sizes="(max-width: 640px) 100vw, 100vw"
+            priority
+            className="object-cover object-center z-0 block sm:hidden"
+          />
+          
+          {/* Desktop Background Image */}
           <Image
             src="/images/hero-bg.jpg"
-            alt="Hero Background"
+            alt="Hero Background Desktop"
             fill
+            sizes="(max-width: 1024px) 100vw, 100vw"
             priority
-            className="object-cover object-center z-0"
+            className="object-cover object-center z-0 hidden sm:block"
           />
         </div>
 
-        <div className="relative z-10 w-full px-4 sm:px-8 lg:px-[5vw] pt-32 pb-12 md:pb-20 flex flex-col justify-center h-full max-w-6xl">
+        <div className="relative z-10 w-full px-4 sm:px-8 lg:px-[5vw] pt-28 sm:pt-32 pb-12 md:pb-20 flex flex-col justify-center h-full max-w-6xl">
           <div ref={heroRef} className="flex flex-col ml-auto text-left">
             <p data-hero-item className="font-serif italic text-[#de2b6a] text-xl md:text-3xl mb-3 md:mb-5">
               Welcome to Labonnadhara
             </p>
 
-            <h1 data-hero-item className="font-serif  text-[50px] md:text-7xl lg:text-[85px] leading-[1.05] tracking-tight mb-6">
+            <h1 data-hero-item className="font-serif font-bold text-[50px] md:text-7xl lg:text-[85px] leading-[1.05] tracking-tight mb-6">
               <span className="text-[#2c3e50] block">Elegant Jewelry</span>
               <span className="text-[#de2b6a] block mt-1">for Every Moment</span>
             </h1>
@@ -276,6 +289,84 @@ export default function Homepage({
       </section>
 
       {/* ═══════════════════════════════════════════════
+          CUSTOMER REVIEWS
+          ═══════════════════════════════════════════════ */}
+      <section className="px-4 sm:px-8 lg:px-[5vw] pb-16 md:pb-24 bg-white">
+        <AnimatedReveal className="mb-12 relative">
+          <div className="flex flex-col items-center justify-center text-center">
+            <div className="flex items-center gap-3 mb-2">
+              <div className="h-[1px] w-8 md:w-12 bg-[#D62B72]/40 rounded-full" />
+              <div className="flex items-center gap-2 text-[#252B3A]">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="#D62B72" stroke="#D62B72" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
+                </svg>
+                <h2 className="font-serif font-bold text-3xl md:text-[32px] tracking-tight">
+                  What Our Customers Say
+                </h2>
+              </div>
+              <div className="h-[1px] w-8 md:w-12 bg-[#D62B72]/40 rounded-full" />
+            </div>
+            <p className="font-sans text-[15px] text-[#4B5563] font-medium">
+              Real stories. Real happiness.
+            </p>
+          </div>
+        </AnimatedReveal>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-[1200px] mx-auto">
+          {[
+            {
+              productImg: "/placeholder.jpg",
+              review: "জুয়েলারির কোয়ালিটি খুব ভালো। প্যাকেজিংও অসাধারণ ছিল। অবশ্যই আবার কিনবো।",
+              name: "Tasnim Akter",
+              location: "Chattogram",
+              avatarImg: "/placeholder.jpg"
+            },
+            {
+              productImg: "/placeholder.jpg",
+              review: "ডিজাইনগুলো খুবই সুন্দর এবং ইউনিক। দামও যেন রিজনেবল। Recommended!",
+              name: "Nusrat Jahan",
+              location: "Chattogram",
+              avatarImg: "/placeholder.jpg"
+            },
+            {
+              productImg: "/placeholder.jpg",
+              review: "আমি অনেক খুশি! পণ্যের মান এবং সার্ভিস দারুণ। ধন্যবাদ Labonnadhara 🤩",
+              name: "Rafiya Islam",
+              location: "Chattogram",
+              avatarImg: "/placeholder.jpg"
+            }
+          ].map((item, i) => (
+            <AnimatedReveal key={i} delay={i * 0.1}>
+              <div className="bg-[#FFF8FB] border border-[#F3D6E2] rounded-2xl p-5 sm:p-6 flex gap-5 items-center hover:shadow-md transition-shadow duration-300">
+                <div className="shrink-0 relative w-[80px] h-[80px] sm:w-[90px] sm:h-[90px] rounded-full overflow-hidden shadow-sm border-2 border-white">
+                  <Image src={item.productImg} alt="Customer product" fill sizes="90px" className="object-cover" />
+                </div>
+                <div className="flex flex-col flex-1">
+                  <div className="flex text-[#F59E0B] mb-2 gap-0.5">
+                    {[...Array(5)].map((_, idx) => (
+                      <svg key={idx} width="14" height="14" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" strokeWidth="1"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
+                    ))}
+                  </div>
+                  <p className="font-sans text-[13px] sm:text-[14px] font-medium text-[#4B5563] leading-relaxed mb-4 line-clamp-3">
+                    "{item.review}"
+                  </p>
+                  <div className="flex items-center gap-2.5">
+                    <div className="relative w-8 h-8 rounded-full overflow-hidden shadow-sm border border-white">
+                      <Image src={item.avatarImg} alt={item.name} fill sizes="32px" className="object-cover" />
+                    </div>
+                    <div className="flex flex-col">
+                      <span className="font-sans font-bold text-[13px] text-[#252B3A] leading-none mb-1">{item.name}</span>
+                      <span className="font-sans text-[11px] text-gray-500 leading-none">{item.location}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </AnimatedReveal>
+          ))}
+        </div>
+      </section>
+
+      {/* ═══════════════════════════════════════════════
           TRUST STRIP
           ═══════════════════════════════════════════════ */}
       <AnimatedReveal>
@@ -370,10 +461,7 @@ export default function Homepage({
         </section>
       )}
 
-      {/* ═══════════════════════════════════════════════
-          APP DOWNLOAD
-          ═══════════════════════════════════════════════ */}
-      <DynamicAppDownloadSection />
+
 
       {/* Instagram — lazy loaded */}
       <DynamicInstagramSection />

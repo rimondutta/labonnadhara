@@ -59,11 +59,11 @@ export default function CheckoutPage() {
   const [step, setStep] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [shippingConfig, setShippingConfig] = useState({
-    insideDhakaRate: 120,
-    outsideDhakaRate: 150,
+    insideChattogramRate: 70,
+    outsideChattogramRate: 150,
     freeShippingEnabled: false,
     freeShippingMinOrder: 0,
-    freeShippingZone: "all" as "all" | "inside_dhaka" | "outside_dhaka",
+    freeShippingZone: "all" as "all" | "inside_chattogram" | "outside_chattogram",
   });
   const [shippingConfigLoaded, setShippingConfigLoaded] = useState(false);
 
@@ -72,10 +72,10 @@ export default function CheckoutPage() {
       .then((r) => r.json())
       .then((data) => {
         setShippingConfig(data);
-        // If free shipping covers ALL zones, lock shippingZone to inside_dhaka
+        // If free shipping covers ALL zones, lock shippingZone to inside_chattogram
         // so the order is always submitted with a valid zone even when picker is hidden
         if (data.freeShippingEnabled && data.freeShippingZone === "all") {
-          setForm((prev) => ({ ...prev, shippingZone: "inside_dhaka" }));
+          setForm((prev) => ({ ...prev, shippingZone: "inside_chattogram" }));
         }
       })
       .catch(() => { })
@@ -98,7 +98,7 @@ export default function CheckoutPage() {
     city: "",
     zip: "",
     paymentMethod: "cod",
-    shippingZone: "inside_dhaka",
+    shippingZone: "inside_chattogram",
     notes: "",
   });
 
@@ -116,9 +116,9 @@ export default function CheckoutPage() {
 
   // --- Dynamic shipping cost with free shipping logic ---
   const baseShippingCost =
-    form.shippingZone === "outside_dhaka"
-      ? shippingConfig.outsideDhakaRate
-      : shippingConfig.insideDhakaRate;
+    form.shippingZone === "outside_chattogram"
+      ? shippingConfig.outsideChattogramRate
+      : shippingConfig.insideChattogramRate;
 
   const qualifiesForFreeShipping =
     shippingConfig.freeShippingEnabled &&
@@ -199,20 +199,20 @@ export default function CheckoutPage() {
 
   if (items.length === 0) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center gap-8 px-8 text-center bg-white">
-        <div className="w-24 h-24 rounded-2xl flex items-center justify-center bg-amber-50 border border-amber-200">
-          <ShoppingBag size={40} className="text-amber-400" strokeWidth={1.5} />
+      <div className="min-h-screen flex flex-col items-center justify-center gap-8 px-8 text-center bg-[#FFF1F6]">
+        <div className="w-24 h-24 rounded-2xl flex items-center justify-center bg-[#FFF1F6] border border-[#F3D6E2]">
+          <ShoppingBag size={40} className="text-[#D62B72]" strokeWidth={1.5} />
         </div>
         <div className="space-y-2">
-          <h1 className="text-3xl font-bold text-black">Your cart is empty</h1>
+          <h1 className="text-3xl font-bold text-[#252B3A]">Your cart is empty</h1>
           <p className="text-gray-500 text-base max-w-xs">
             Add some items to your cart before checking out.
           </p>
         </div>
         <Link
           href="/products"
-          className="inline-flex items-center gap-2 px-7 py-3.5 rounded-xl font-semibold text-sm text-black transition-all duration-200 hover:scale-[1.02] active:scale-[0.98]"
-          style={{ background: "linear-gradient(135deg, #DDBEFD 0%, #DDBEFD 100%)" }}
+          className="inline-flex items-center gap-2 px-7 py-3.5 rounded-full font-bold text-sm text-white transition-all duration-200 hover:opacity-90 hover:scale-[1.02] active:scale-[0.98]"
+          style={{ background: "linear-gradient(135deg, #D62B72 0%, #C51F63 100%)" }}
         >
           <Sparkles size={16} />
           Shop Now
@@ -222,18 +222,19 @@ export default function CheckoutPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 relative">
+    <div className="min-h-screen bg-[#FFF1F6] relative">
       <div className="relative z-10 max-w-6xl mx-auto px-5 md:px-8 py-12 md:py-16">
         {/* ── Header ── */}
         <div className="mb-10">
           <Link
             href="/products"
-            className="inline-flex items-center gap-2 text-sm text-gray-500 hover:text-black transition-colors mb-6 font-medium"
+            className="inline-flex items-center gap-2 text-sm text-[#D62B72] hover:text-[#C51F63] transition-colors mb-6 font-medium"
           >
             <ArrowLeft size={16} />
             Continue Shopping
           </Link>
-          <h1 className="text-4xl md:text-5xl font-bold text-black tracking-tight">
+          <p className="font-sans text-xs uppercase tracking-[0.2em] text-[#C9A24D] mb-2 font-semibold">Labonnadhara</p>
+          <h1 className="text-4xl md:text-5xl font-serif font-bold text-[#252B3A] tracking-tight">
             Checkout
           </h1>
         </div>
@@ -248,12 +249,12 @@ export default function CheckoutPage() {
               <div key={s.id} className="flex items-center gap-2 flex-1">
                 <div
                   className={cn(
-                    "flex items-center gap-2.5 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all duration-300 flex-1 justify-center",
+                    "flex items-center gap-2.5 px-4 py-2.5 rounded-full text-sm font-semibold transition-all duration-300 flex-1 justify-center",
                     isActive
-                      ? "bg-[#FFC93C] text-black shadow-[0_4px_14px_rgba(255,201,60,0.35)]"
+                      ? "bg-[#D62B72] text-white shadow-[0_4px_14px_rgba(214,43,114,0.35)]"
                       : isCompleted
-                        ? "bg-green-100 text-green-700 border border-green-200"
-                        : "bg-white text-gray-400 border border-gray-200"
+                        ? "bg-[#FFF1F6] text-[#D62B72] border border-[#F3D6E2]"
+                        : "bg-white text-gray-400 border border-[#F3D6E2]"
                   )}
                 >
                   {isCompleted ? (
@@ -269,7 +270,7 @@ export default function CheckoutPage() {
                     size={16}
                     className={cn(
                       "shrink-0 transition-colors",
-                      isCompleted ? "text-green-400" : "text-gray-300"
+                      isCompleted ? "text-[#D62B72]" : "text-[#F3D6E2]"
                     )}
                   />
                 )}
@@ -288,13 +289,13 @@ export default function CheckoutPage() {
                   initial={{ opacity: 0, x: 16 }}
                   animate={{ opacity: 1, x: 0 }}
                   exit={{ opacity: 0, x: -16 }}
-                  className="rounded-2xl border border-gray-200 bg-white shadow-sm p-7 md:p-9 space-y-6"
+                  className="rounded-2xl border border-[#F3D6E2] bg-white shadow-sm p-7 md:p-9 space-y-6"
                 >
                   <div className="flex items-center gap-3 mb-2">
-                    <div className="w-9 h-9 rounded-xl bg-amber-50 border border-amber-200 flex items-center justify-center">
-                      <Package size={18} className="text-amber-500" strokeWidth={1.8} />
+                    <div className="w-9 h-9 rounded-xl bg-[#FFF1F6] border border-[#F3D6E2] flex items-center justify-center">
+                      <Package size={18} className="text-[#D62B72]" strokeWidth={1.8} />
                     </div>
-                    <h2 className="text-xl font-bold text-black">
+                    <h2 className="text-xl font-serif font-bold text-[#252B3A]">
                       Shipping Details
                     </h2>
                   </div>
@@ -356,15 +357,15 @@ export default function CheckoutPage() {
                     // Normal zone picker
                     <div className="space-y-3">
                       <div className="flex items-center gap-2">
-                        <Truck size={15} className="text-amber-500" />
+                        <Truck size={15} className="text-[#D62B72]" />
                         <p className="text-xs font-bold text-gray-500 uppercase tracking-widest">
-                          Delivery Area <span className="text-amber-500">*</span>
+                          Delivery Area <span className="text-[#D62B72]">*</span>
                         </p>
                       </div>
                       <div className="grid grid-cols-2 gap-3">
                         {[
-                          { key: "inside_dhaka", label: "Inside Dhaka", charge: shippingConfig.insideDhakaRate, icon: "🏙️" },
-                          { key: "outside_dhaka", label: "Outside Dhaka", charge: shippingConfig.outsideDhakaRate, icon: "🚚" },
+                          { key: "inside_chattogram", label: "চট্টগ্রামের ভিতরে", charge: shippingConfig.insideChattogramRate, icon: "🏙️" },
+                          { key: "outside_chattogram", label: "চট্টগ্রামের বাইরে", charge: shippingConfig.outsideChattogramRate, icon: "🚚" },
                         ].map((zone) => {
                           const isSelected = form.shippingZone === zone.key;
                           const zoneFree =
@@ -377,21 +378,21 @@ export default function CheckoutPage() {
                               type="button"
                               onClick={() => updateField("shippingZone", zone.key)}
                               className={cn(
-                                "flex flex-col items-center gap-2 px-4 py-4 rounded-xl border-2 text-center transition-all duration-200",
+                                "flex flex-col items-center gap-2 px-4 py-4 rounded-2xl border-2 text-center transition-all duration-200",
                                 isSelected
-                                  ? "border-amber-400 bg-amber-50 shadow-sm"
-                                  : "border-gray-200 bg-white hover:border-gray-300 hover:bg-gray-50"
+                                  ? "border-[#D62B72] bg-[#FFF1F6] shadow-sm"
+                                  : "border-[#F3D6E2] bg-white hover:border-[#D62B72]/40 hover:bg-[#FFF8FB]"
                               )}
                             >
                               <span className="text-2xl">{zone.icon}</span>
-                              <p className="font-bold text-sm text-black leading-tight">{zone.label}</p>
+                              <p className="font-bold text-sm text-[#252B3A] leading-tight">{zone.label}</p>
                               {zoneFree ? (
                                 <span className="text-sm font-bold text-green-600 flex items-center gap-1">
                                   <span className="line-through text-gray-400 text-xs">৳{zone.charge}</span>
                                   Free
                                 </span>
                               ) : (
-                                <span className={cn("text-sm font-bold", isSelected ? "text-amber-600" : "text-gray-500")}>
+                                <span className={cn("text-sm font-bold", isSelected ? "text-[#D62B72]" : "text-gray-500")}>
                                   ৳{zone.charge}
                                 </span>
                               )}
@@ -410,13 +411,13 @@ export default function CheckoutPage() {
                   initial={{ opacity: 0, x: 16 }}
                   animate={{ opacity: 1, x: 0 }}
                   exit={{ opacity: 0, x: -16 }}
-                  className="rounded-2xl border border-gray-200 bg-white shadow-sm p-7 md:p-9 space-y-6"
+                  className="rounded-2xl border border-[#F3D6E2] bg-white shadow-sm p-7 md:p-9 space-y-6"
                 >
                   <div className="flex items-center gap-3 mb-2">
-                    <div className="w-9 h-9 rounded-xl bg-teal-50 border border-teal-200 flex items-center justify-center">
-                      <CreditCard size={18} className="text-teal-500" strokeWidth={1.8} />
+                    <div className="w-9 h-9 rounded-xl bg-[#FFF1F6] border border-[#F3D6E2] flex items-center justify-center">
+                      <CreditCard size={18} className="text-[#D62B72]" strokeWidth={1.8} />
                     </div>
-                    <h2 className="text-xl font-bold text-black">
+                    <h2 className="text-xl font-serif font-bold text-[#252B3A]">
                       Payment Method
                     </h2>
                   </div>
@@ -433,15 +434,15 @@ export default function CheckoutPage() {
                           key={method.key}
                           onClick={() => updateField("paymentMethod", method.key)}
                           className={cn(
-                            "w-full flex items-center gap-4 px-5 py-4 rounded-xl border text-left transition-all duration-200",
+                            "w-full flex items-center gap-4 px-5 py-4 rounded-2xl border text-left transition-all duration-200",
                             isSelected
-                              ? "border-amber-400 bg-amber-50 shadow-sm"
-                              : "border-gray-200 bg-white hover:border-gray-300 hover:bg-gray-50"
+                              ? "border-[#D62B72] bg-[#FFF1F6] shadow-sm"
+                              : "border-[#F3D6E2] bg-white hover:border-[#D62B72]/40 hover:bg-[#FFF8FB]"
                           )}
                         >
                           <span className="text-2xl">{method.icon}</span>
                           <div className="flex-1">
-                            <p className="font-semibold text-sm text-black">
+                            <p className="font-semibold text-sm text-[#252B3A]">
                               {method.label}
                             </p>
                             <p className="text-xs text-gray-500 mt-0.5">
@@ -452,7 +453,7 @@ export default function CheckoutPage() {
                             className={cn(
                               "w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 transition-all",
                               isSelected
-                                ? "border-amber-500 bg-amber-500"
+                                ? "border-[#D62B72] bg-[#D62B72]"
                                 : "border-gray-300"
                             )}
                           >
@@ -474,7 +475,7 @@ export default function CheckoutPage() {
                       value={form.notes}
                       onChange={(e) => updateField("notes", e.target.value)}
                       placeholder="Any special instructions for delivery…"
-                      className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3.5 text-sm text-black placeholder:text-gray-400 outline-none focus:border-amber-400 focus:ring-2 focus:ring-amber-100 transition-all resize-none"
+                      className="w-full bg-[#FFF8FB] border border-[#F3D6E2] rounded-xl px-4 py-3.5 text-sm text-[#252B3A] placeholder:text-gray-400 outline-none focus:border-[#D62B72] focus:ring-2 focus:ring-[#D62B72]/10 transition-all resize-none"
                     />
                   </div>
                 </m.div>
@@ -489,12 +490,12 @@ export default function CheckoutPage() {
                   className="space-y-5"
                 >
                   {/* Review summary */}
-                  <div className="rounded-2xl border border-gray-200 bg-white shadow-sm p-7 space-y-5">
+                  <div className="rounded-2xl border border-[#F3D6E2] bg-white shadow-sm p-7 space-y-5">
                     <div className="flex items-center gap-3">
-                      <div className="w-9 h-9 rounded-xl bg-purple-50 border border-purple-200 flex items-center justify-center">
-                        <CheckCircle2 size={18} className="text-purple-500" strokeWidth={1.8} />
+                      <div className="w-9 h-9 rounded-xl bg-[#FFF1F6] border border-[#F3D6E2] flex items-center justify-center">
+                        <CheckCircle2 size={18} className="text-[#D62B72]" strokeWidth={1.8} />
                       </div>
-                      <h2 className="text-xl font-bold text-black">
+                      <h2 className="text-xl font-serif font-bold text-[#252B3A]">
                         Review Order
                       </h2>
                     </div>
@@ -504,7 +505,7 @@ export default function CheckoutPage() {
                         ["আপনার নাম:", form.name],
                         ["মোবাইল নাম্বার", form.phone],
                         ["পেমেন্ট", form.paymentMethod === "cod" ? "Cash on Delivery" : form.paymentMethod === "bkash" ? "bKash" : "Card"],
-                        ["ডেলিভারি", form.shippingZone === "outside_dhaka" ? "Outside Dhaka" : "Inside Dhaka"],
+                        ["ডেলিভারি", form.shippingZone === "outside_chattogram" ? "চট্টগ্রামের বাইরে" : "চট্টগ্রামের ভিতরে"],
                         ["ঠিকানা:", `${form.address}, ${form.city}`],
                       ].map(([label, value]) => (
                         <div key={label} className="space-y-0.5">
@@ -520,7 +521,7 @@ export default function CheckoutPage() {
                   </div>
 
                   {/* Items */}
-                  <div className="rounded-2xl border border-gray-200 bg-white shadow-sm p-7 space-y-4">
+                  <div className="rounded-2xl border border-[#F3D6E2] bg-white shadow-sm p-7 space-y-4">
                     <h3 className="text-sm font-bold text-gray-500 uppercase tracking-widest">
                       Items ({items.length})
                     </h3>
@@ -528,7 +529,7 @@ export default function CheckoutPage() {
                       {items.map((item) => (
                         <div
                           key={`${item.id}-${JSON.stringify(item.variantOptions)}`}
-                          className="flex items-center gap-4 p-3 rounded-xl bg-gray-50 border border-gray-100"
+                          className="flex items-center gap-4 p-3 rounded-xl bg-[#FFF8FB] border border-[#F3D6E2]"
                         >
                           <div className="w-14 h-16 relative shrink-0 rounded-lg overflow-hidden bg-gray-100">
                             <Image
@@ -563,7 +564,7 @@ export default function CheckoutPage() {
               {step > 0 ? (
                 <button
                   onClick={() => setStep(step - 1)}
-                  className="flex items-center gap-2 px-5 py-3 rounded-xl text-sm font-semibold text-gray-600 hover:text-black border border-gray-200 hover:border-gray-300 bg-white hover:bg-gray-50 transition-all duration-200"
+                  className="flex items-center gap-2 px-5 py-3 rounded-full text-sm font-semibold text-[#D62B72] hover:text-[#C51F63] border border-[#F3D6E2] hover:border-[#D62B72]/40 bg-white hover:bg-[#FFF1F6] transition-all duration-200"
                 >
                   <ArrowLeft size={16} />
                   Back
@@ -577,12 +578,12 @@ export default function CheckoutPage() {
                   onClick={() => canProceed() && setStep(step + 1)}
                   disabled={!canProceed()}
                   className={cn(
-                    "flex items-center gap-2 px-7 py-3.5 rounded-xl text-sm font-semibold text-black transition-all duration-200",
+                    "flex items-center gap-2 px-7 py-3.5 rounded-full text-sm font-bold text-white transition-all duration-200",
                     canProceed()
-                      ? "hover:scale-[1.02] active:scale-[0.98] shadow-[0_4px_14px_rgba(255,201,60,0.35)]"
+                      ? "hover:opacity-90 hover:scale-[1.02] active:scale-[0.98] shadow-[0_4px_14px_rgba(214,43,114,0.35)]"
                       : "opacity-40 cursor-not-allowed"
                   )}
-                  style={{ background: "linear-gradient(135deg, #FFC93C 0%, #F5A623 100%)" }}
+                  style={{ background: "linear-gradient(135deg, #D62B72 0%, #C51F63 100%)" }}
                 >
                   Continue
                   <ChevronRight size={16} />
@@ -591,8 +592,8 @@ export default function CheckoutPage() {
                 <button
                   onClick={handleSubmit}
                   disabled={isSubmitting}
-                  className="flex items-center gap-2 px-8 py-3.5 rounded-xl text-sm font-bold text-black transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] shadow-[0_4px_18px_rgba(255,201,60,0.4)] disabled:opacity-70 disabled:cursor-not-allowed"
-                  style={{ background: "linear-gradient(135deg, #FFC93C 0%, #F5A623 100%)" }}
+                  className="flex items-center gap-2 px-8 py-3.5 rounded-full text-sm font-bold text-white transition-all duration-200 hover:opacity-90 hover:scale-[1.02] active:scale-[0.98] shadow-[0_4px_18px_rgba(214,43,114,0.4)] disabled:opacity-70 disabled:cursor-not-allowed"
+                  style={{ background: "linear-gradient(135deg, #D62B72 0%, #C51F63 100%)" }}
                 >
                   {isSubmitting ? (
                     <>
@@ -624,10 +625,10 @@ export default function CheckoutPage() {
 
           {/* ── Order Summary Sidebar ── */}
           <div className="lg:col-span-5 order-1 lg:order-2">
-            <div className="sticky top-24 rounded-2xl border border-gray-200 bg-white shadow-sm p-6 space-y-6">
+            <div className="sticky top-24 rounded-2xl border border-[#F3D6E2] bg-white shadow-sm p-6 space-y-6">
               <div className="flex items-center gap-3">
-                <ShoppingBag size={18} className="text-gray-400" strokeWidth={1.8} />
-                <h3 className="font-bold text-black text-base">
+                <ShoppingBag size={18} className="text-[#D62B72]" strokeWidth={1.8} />
+                <h3 className="font-serif font-bold text-[#252B3A] text-base">
                   Order Summary
                 </h3>
                 <span className="ml-auto text-xs text-gray-400 font-medium">
@@ -673,8 +674,8 @@ export default function CheckoutPage() {
 
               {/* Free Shipping Progress Banner */}
               {freeShippingAvailableForZone && !qualifiesForFreeShipping && shippingConfig.freeShippingMinOrder > 0 && (
-                <div className="bg-amber-50 border border-amber-200 rounded-xl px-4 py-3">
-                  <p className="text-xs text-amber-700 font-medium">
+                <div className="bg-[#FFF8FB] border border-[#F3D6E2] rounded-xl px-4 py-3">
+                  <p className="text-xs text-[#D62B72] font-medium">
                     🎁 Add <span className="font-bold">৳{Math.round(amountToFreeShipping).toLocaleString()}</span> more to get{" "}
                     <span className="font-bold">FREE shipping!</span>
                   </p>
@@ -702,7 +703,7 @@ export default function CheckoutPage() {
                   <span className="text-gray-500 font-medium">
                     Shipping
                     <span className="ml-1.5 text-[10px] text-gray-400">
-                      ({form.shippingZone === "outside_dhaka" ? "Outside Dhaka" : "Inside Dhaka"})
+                      ({form.shippingZone === "outside_chattogram" ? "চট্টগ্রামের বাইরে" : "চট্টগ্রামের ভিতরে"})
                     </span>
                   </span>
                   {qualifiesForFreeShipping ? (
@@ -718,12 +719,12 @@ export default function CheckoutPage() {
                 <div className="h-px bg-gray-100" />
 
                 <div className="flex justify-between items-center">
-                  <span className="font-bold text-black text-base">Total</span>
+                  <span className="font-bold text-[#252B3A] text-base">Total</span>
                   <span
                     className="text-2xl font-bold"
                     style={{
                       backgroundImage:
-                        "linear-gradient(135deg, #F59E0B 0%, #D97706 100%)",
+                        "linear-gradient(135deg, #D62B72 0%, #C9A24D 100%)",
                       WebkitBackgroundClip: "text",
                       WebkitTextFillColor: "transparent",
                     }}
@@ -759,7 +760,7 @@ function CheckoutField({
     <div className="space-y-1.5">
       <label className="block text-[11px] font-bold text-gray-500 uppercase tracking-widest">
         {label}
-        {required && <span className="text-amber-500 ml-0.5">*</span>}
+        {required && <span className="text-[#D62B72] ml-0.5">*</span>}
       </label>
       <input
         type={type}
@@ -767,7 +768,7 @@ function CheckoutField({
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
         required={required}
-        className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm text-black placeholder:text-gray-400 outline-none focus:border-amber-400 focus:ring-2 focus:ring-amber-100 transition-all"
+        className="w-full bg-[#FFF8FB] border border-[#F3D6E2] rounded-xl px-4 py-3 text-sm text-[#252B3A] placeholder:text-gray-400 outline-none focus:border-[#D62B72] focus:ring-2 focus:ring-[#D62B72]/10 transition-all"
       />
     </div>
   );

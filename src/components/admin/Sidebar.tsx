@@ -42,10 +42,10 @@ export default function Sidebar() {
       {/* Logo Area */}
       <div className="p-4 border-b border-gray-200 flex items-center gap-3">
         <div className="w-8 h-8 rounded overflow-hidden">
-          <img src="/logo/toyhourse-logo.png" alt="Toy Hourse" className="w-full h-full object-contain" />
+          <img src="/logo/labonnadhara-logo.png" alt="Labonnadhara" className="w-full h-full object-contain" />
         </div>
         <div className="flex flex-col">
-          <span className="text-base font-semibold text-gray-900 leading-tight">Toy Hourse</span>
+          <span className="text-base font-semibold text-gray-900 leading-tight">Labonnadhara</span>
           <span className="text-xs text-gray-500 font-medium">Store Admin</span>
         </div>
       </div>

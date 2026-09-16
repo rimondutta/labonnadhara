@@ -233,7 +233,7 @@ function ShopGridPure({
           ) : (
             <div className="flex flex-col items-center justify-center py-24 text-center gap-4">
               <div className="w-16 h-16 rounded-2xl bg-joy-mist flex items-center justify-center text-3xl">
-                🧸
+                ✨
               </div>
               <p className="font-display font-semibold text-xl text-joy-navy">
                 Nothing here yet.

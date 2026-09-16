@@ -62,7 +62,7 @@ export default function Chatbot() {
       {/* Chat Bubble Button */}
       <AnimatePresence>
         {!isOpen && (
-          <div className="fixed bottom-4 right-4 sm:bottom-6 sm:right-6 z-50 flex items-center gap-2">
+          <div className="fixed bottom-4 right-4 sm:bottom-6 sm:right-6 z-[1000] flex items-center gap-2">
             {/* Left label - hidden on mobile */}
             <m.div
               initial={{ opacity: 0, x: 20 }}
@@ -70,7 +70,7 @@ export default function Chatbot() {
               transition={{ delay: 0.3 }}
               className="hidden sm:block bg-white/20 backdrop-blur-lg border border-white/40 text-slate-800 text-sm font-semibold px-4 py-2 rounded-full shadow-[0_8px_32px_0_rgba(31,38,135,0.15)] whitespace-nowrap"
             >
-              Chat with AI 🤖
+              Chat with AI
             </m.div>
 
             {/* Lottie button */}
@@ -111,7 +111,7 @@ export default function Chatbot() {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 50, scale: 0.9 }}
             transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-            className="fixed inset-0 sm:inset-auto sm:bottom-6 sm:right-6 z-50 sm:w-[450px] sm:h-[600px] sm:max-h-[85vh] flex flex-col bg-white sm:rounded-[32px] shadow-2xl border border-slate-200 overflow-hidden"
+            className="fixed inset-0 sm:inset-auto sm:bottom-6 sm:right-6 z-[1000] sm:w-[450px] sm:h-[600px] sm:max-h-[85vh] flex flex-col bg-white sm:rounded-[32px] shadow-2xl border border-slate-200 overflow-hidden"
           >
             {/* Header */}
             <div className="flex items-center justify-between px-6 py-4 bg-white text-slate-700">
@@ -122,7 +122,7 @@ export default function Chatbot() {
                   autoplay
                   style={{ width: 18, height: 18 }}
                 />
-                <span className="font-semibold text-sm">New AI chat</span>
+                <span className="font-semibold text-sm">Powerd by Rimon Dutta</span>
                 <ChevronDown size={16} className="text-slate-400" />
               </div>
 
@@ -151,7 +151,7 @@ export default function Chatbot() {
                     style={{ width: 64, height: 64 }}
                   />
                   <p className="text-sm text-slate-500 max-w-[250px]">
-                    Hi! Ask me anything about our toys, stock, or prices.
+                    Hi! Ask me anything about our jewelry, stock, or prices.
                   </p>
                 </div>
               )}

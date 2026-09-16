@@ -7,13 +7,13 @@ const FacebookPixelSchema = new mongoose.Schema({
 });
 
 const ShippingSchema = new mongoose.Schema({
-  insideDhakaRate: { type: Number, default: 120 },
-  outsideDhakaRate: { type: Number, default: 150 },
+  insideChattogramRate: { type: Number, default: 120 },
+  outsideChattogramRate: { type: Number, default: 150 },
   freeShippingEnabled: { type: Boolean, default: false },
   freeShippingMinOrder: { type: Number, default: 0 },   // 0 = always free when enabled
   freeShippingZone: {
     type: String,
-    enum: ['all', 'inside_dhaka', 'outside_dhaka'],
+    enum: ['all', 'inside_chattogram', 'outside_chattogram'],
     default: 'all',
   },
 });

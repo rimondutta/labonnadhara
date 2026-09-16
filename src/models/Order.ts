@@ -28,7 +28,7 @@ const OrderSchema = new mongoose.Schema(
     },
     shippingZone: {
       type: String,
-      enum: ['inside_dhaka', 'outside_dhaka'],
+      enum: ['inside_chattogram', 'outside_chattogram'],
     },
     notes: {
       type: String,

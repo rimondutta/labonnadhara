@@ -13,8 +13,8 @@ const openrouter = createOpenAI({
   baseURL: 'https://openrouter.ai/api/v1',
   apiKey: process.env.OPENROUTER_API_KEY || '',
   headers: {
-    'HTTP-Referer': 'https://toyhourse.vercel.app',
-    'X-Title': 'Toy Hourse AI Assistant',
+    'HTTP-Referer': 'https://labonnadhara.shop',
+    'X-Title': 'Labonnadhara AI Assistant',
   },
 });
 
@@ -28,20 +28,20 @@ export async function POST(req: Request) {
 
     const result = streamText({
       model: openrouter(process.env.OPENROUTER_MODEL || 'google/gemini-flash-1.5'),
-      system: `You are a helpful, friendly customer support AI for "Toy Hourse", a premium toy and gear store in Bangladesh.
-      Made By Rimon Dutta
+      system: `You are a helpful, friendly customer support AI for "Labonnadhara", a premium premium jewelry and lifestyle brand in Bangladesh.
+      Made By Rimon Dutta, Rimon Dutta Created You
 Your goal is to help customers find products, check stock, and answer questions about toys.
 - Always use the 'searchProducts' tool when a user asks about product availability, prices, or if we have a specific toy.
 - If a product is out of stock (inventory <= 0), politely inform the customer.
 - Always provide the product link (e.g., [Product Name](/products/product-slug)) so they can click and buy it.
 - Format prices in BDT (৳).
-- Be concise and friendly. Use emojis occasionally (🧸, 🚗, ✨).
+- Be concise and friendly. Use emojis occasionally (✨, 🚗, ✨).
 - Do not make up products or prices. ONLY rely on the information returned by the searchProducts tool.`,
       messages: await convertToModelMessages(messages),
       stopWhen: isStepCount(5),
       tools: {
         searchProducts: tool({
-          description: 'Search for products in the Toy Hourse catalog by name, category, or keyword.',
+          description: 'Search for products in the Labonnadhara catalog by name, category, or keyword.',
           inputSchema: zodSchema(
             z.object({
               query: z.string().describe('The search keyword (e.g., "car", "lego", "doll").'),

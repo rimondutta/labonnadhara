@@ -1,8 +1,8 @@
-﻿import AboutClient from "@/components/sections/AboutClient";
+import AboutClient from "@/components/sections/AboutClient";
 
 export const metadata = {
-  title: "About Us | Toyhourse",
-  description: "Learn about Toyhourse — Bangladesh's most loved toy store, built by parents, for parents.",
+  title: "About Us | Labonnadhara",
+  description: "Learn about Labonnadhara — Bangladesh's most loved premium jewelry brand, crafting elegance for every special moment.",
 };
 
 export default function AboutPage() {

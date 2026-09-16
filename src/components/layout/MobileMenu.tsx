@@ -10,10 +10,9 @@ const navItems = [
   { num: "01", label: "SHOP", href: "/products" },
   { num: "02", label: "ABOUT", href: "/about" },
   { num: "03", label: "BLOG", href: "/blogs" },
-  { num: "04", label: "APP DOWNLOAD", href: "/download" },
-  { num: "05", label: "CONTACT", href: "/contact" },
-  { num: "06", label: "ACCOUNT", href: "/account" },
-  { num: "07", label: "WISHLIST", href: "/wishlist" },
+  { num: "04", label: "CONTACT", href: "/contact" },
+  { num: "05", label: "ACCOUNT", href: "/account" },
+  { num: "06", label: "WISHLIST", href: "/wishlist" },
 ];
 
 export default function MobileMenu() {

@@ -16,9 +16,9 @@ import connectToDatabase from '@/lib/db';
 import Order from '@/models/Order';
 
 const COMPANY = {
-  name: process.env.COMPANY_NAME || 'Toy Hourse',
-  address: process.env.COMPANY_ADDRESS || 'Dhaka, Bangladesh',
-  email: process.env.COMPANY_EMAIL || 'support@toyhourse.com',
+  name: process.env.COMPANY_NAME || 'Labonnadhara',
+  address: process.env.COMPANY_ADDRESS || 'Chattogram, Bangladesh',
+  email: process.env.COMPANY_EMAIL || 'support@labonnadhara.shop',
   phone: process.env.COMPANY_PHONE || '+880 000 000 0000',
 };
 

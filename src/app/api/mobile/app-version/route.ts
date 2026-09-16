@@ -30,10 +30,10 @@ export async function GET() {
     const latestVersion  = process.env.LATEST_APP_VERSION   ?? '1.0.0';
     const minimumVersion = process.env.MINIMUM_APP_VERSION  ?? '1.0.0';
     const forceUpdate    = process.env.FORCE_APP_UPDATE     === 'true';
-    const androidUrl     = process.env.ANDROID_UPDATE_URL   ?? 'https://toyhourse.vercel.app';
+    const androidUrl     = process.env.ANDROID_UPDATE_URL   ?? 'https://labonnadhara.shop';
     const updateMessage  =
       process.env.APP_UPDATE_MESSAGE ??
-      'A new version of Toy Hourse is available. Update now for the latest features and bug fixes.';
+      'A new version of Labonnadhara is available. Update now for the latest features and bug fixes.';
 
     // Basic sanity: versions must look like semver (x.y.z)
     const semverPattern = /^\d+\.\d+\.\d+$/;
@@ -75,7 +75,7 @@ export async function GET() {
         minimumVersion: '1.0.0',
         forceUpdate: false,
         updateMessage: '',
-        androidUrl: 'https://toyhourse.vercel.app',
+        androidUrl: 'https://labonnadhara.shop',
       },
       { status: 200 }
     );

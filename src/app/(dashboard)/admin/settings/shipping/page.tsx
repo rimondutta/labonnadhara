@@ -3,23 +3,23 @@
 import { useState, useEffect } from "react";
 
 interface ShippingConfig {
-  insideDhakaRate: number;
-  outsideDhakaRate: number;
+  insideChattogramRate: number;
+  outsideChattogramRate: number;
   freeShippingEnabled: boolean;
   freeShippingMinOrder: number;
-  freeShippingZone: "all" | "inside_dhaka" | "outside_dhaka";
+  freeShippingZone: "all" | "inside_chattogram" | "outside_chattogram";
 }
 
 const ZONE_OPTIONS = [
-  { value: "all", label: "All zones (Inside & Outside Dhaka)" },
-  { value: "inside_dhaka", label: "Inside Dhaka only" },
-  { value: "outside_dhaka", label: "Outside Dhaka only" },
+  { value: "all", label: "All zones (Inside & Outside Chattogram)" },
+  { value: "inside_chattogram", label: "Inside Chattogram only" },
+  { value: "outside_chattogram", label: "Outside Chattogram only" },
 ];
 
 export default function ShippingSettingsPage() {
   const [config, setConfig] = useState<ShippingConfig>({
-    insideDhakaRate: 120,
-    outsideDhakaRate: 150,
+    insideChattogramRate: 120,
+    outsideChattogramRate: 150,
     freeShippingEnabled: false,
     freeShippingMinOrder: 0,
     freeShippingZone: "all",
@@ -65,8 +65,8 @@ export default function ShippingSettingsPage() {
     }
   };
 
-  const preview = (zone: "inside_dhaka" | "outside_dhaka") => {
-    const base = zone === "inside_dhaka" ? config.insideDhakaRate : config.outsideDhakaRate;
+  const preview = (zone: "inside_chattogram" | "outside_chattogram") => {
+    const base = zone === "inside_chattogram" ? config.insideChattogramRate : config.outsideChattogramRate;
     if (!config.freeShippingEnabled) return `৳${base}`;
     const qualifies =
       config.freeShippingZone === "all" || config.freeShippingZone === zone;
@@ -98,28 +98,28 @@ export default function ShippingSettingsPage() {
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-1.5">
                 <label className="block text-xs font-medium text-gray-600">
-                  Inside Dhaka (৳)
+                  Inside Chattogram (৳)
                 </label>
                 <input
                   type="number"
                   min={0}
-                  value={config.insideDhakaRate}
+                  value={config.insideChattogramRate}
                   onChange={(e) =>
-                    setConfig((p) => ({ ...p, insideDhakaRate: Number(e.target.value) }))
+                    setConfig((p) => ({ ...p, insideChattogramRate: Number(e.target.value) }))
                   }
                   className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-900"
                 />
               </div>
               <div className="space-y-1.5">
                 <label className="block text-xs font-medium text-gray-600">
-                  Outside Dhaka (৳)
+                  Outside Chattogram (৳)
                 </label>
                 <input
                   type="number"
                   min={0}
-                  value={config.outsideDhakaRate}
+                  value={config.outsideChattogramRate}
                   onChange={(e) =>
-                    setConfig((p) => ({ ...p, outsideDhakaRate: Number(e.target.value) }))
+                    setConfig((p) => ({ ...p, outsideChattogramRate: Number(e.target.value) }))
                   }
                   className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-900"
                 />
@@ -161,13 +161,13 @@ export default function ShippingSettingsPage() {
               Live Preview (what customers see)
             </p>
             <div className="grid grid-cols-2 gap-3">
-              {(["inside_dhaka", "outside_dhaka"] as const).map((zone) => (
+              {(["inside_chattogram", "outside_chattogram"] as const).map((zone) => (
                 <div
                   key={zone}
                   className="flex flex-col gap-1 px-4 py-3 bg-gray-50 border border-gray-100 rounded-xl"
                 >
                   <span className="text-xs text-gray-500">
-                    {zone === "inside_dhaka" ? "Inside Dhaka" : "Outside Dhaka"}
+                    {zone === "inside_chattogram" ? "Inside Chattogram" : "Outside Chattogram"}
                   </span>
                   <span className="text-sm font-semibold text-gray-900">
                     {preview(zone)}

@@ -9,7 +9,7 @@ import AdminAuthProvider from "@/components/admin/AdminAuthProvider"
 export const dynamic = "force-dynamic"
 
 export const metadata: Metadata = {
-  title: "Admin Dashboard | Toy Hourse",
+  title: "Admin Dashboard | Labonnadhara",
   description: "E-Commerce Management Dashboard",
 }
 

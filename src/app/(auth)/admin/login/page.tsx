@@ -38,9 +38,9 @@ export default function AdminLogin() {
         {/* Logo & Title */}
         <div className="text-center mb-8">
           <div className="inline-flex items-center justify-center w-14 h-14 bg-gray-900 rounded-xl mb-4">
-            <img src="/logo/toyhourse-logo.png" alt="Toy Hourse" className="w-10 h-10 object-contain" />
+            <img src="/logo/labonnadhara-logo.png" alt="Labonnadhara" className="w-10 h-10 object-contain" />
           </div>
-          <h1 className="text-xl font-semibold text-gray-900">Toy Hourse Admin</h1>
+          <h1 className="text-xl font-semibold text-gray-900">Labonnadhara Admin</h1>
           <p className="text-sm text-gray-500 mt-1">Sign in to manage your store</p>
         </div>
 

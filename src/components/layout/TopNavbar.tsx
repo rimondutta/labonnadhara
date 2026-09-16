@@ -156,7 +156,7 @@ export default function TopNavbar() {
         <div style={{ height: 2, background: "linear-gradient(to right, transparent, #E86A9B 30%, #D62B72 60%, #C9A24D 80%, transparent)" }} />
 
         {/* Main row */}
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", maxWidth: 1400, margin: "0 auto", padding: "0 28px", height: 90, position: "relative" }}>
+        <div className="px-4 md:px-7" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", maxWidth: 1400, margin: "0 auto", height: 80, position: "relative" }}>
 
           {/* ── LEFT Logo ── */}
           <div style={{ display: "flex", alignItems: "center", flex: 1 }}>

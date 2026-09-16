@@ -380,7 +380,7 @@ export default function AdminOrderDetailsPage() {
                 <input
                   value={courierForm.timelineNote}
                   onChange={e => setCourierForm(p => ({ ...p, timelineNote: e.target.value }))}
-                  placeholder="e.g. Package arrived at Dhaka hub"
+                  placeholder="e.g. Package arrived at Chattogram hub"
                   className="w-full bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg p-2.5 focus:ring-indigo-500 focus:border-indigo-500"
                 />
               </div>
@@ -391,7 +391,7 @@ export default function AdminOrderDetailsPage() {
                 <input
                   value={courierForm.timelineLocation}
                   onChange={e => setCourierForm(p => ({ ...p, timelineLocation: e.target.value }))}
-                  placeholder="e.g. Dhaka Hub, Chittagong Branch"
+                  placeholder="e.g. Chattogram Hub, Chittagong Branch"
                   className="w-full bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg p-2.5 focus:ring-indigo-500 focus:border-indigo-500"
                 />
               </div>

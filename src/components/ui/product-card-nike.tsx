@@ -145,7 +145,7 @@ export default function ProductCardModern({ product, priority = false, index = 1
             />
           ) : (
             <div className="w-full h-full flex items-center justify-center bg-joy-mist">
-              <Image src="/placeholder.jpg" alt="Placeholder" fill className="object-cover opacity-40" />
+              <Image src="/placeholder.jpg" alt="Placeholder" fill sizes="(max-width: 768px) 100vw, 33vw" className="object-cover opacity-40" />
             </div>
           )}
 

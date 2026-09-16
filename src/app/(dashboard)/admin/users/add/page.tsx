@@ -3,7 +3,7 @@ import { Metadata } from "next"
 import { UserPlus } from "lucide-react"
 
 export const metadata: Metadata = {
-  title: "Add User | Toy Hourse Admin",
+  title: "Add User | Labonnadhara Admin",
 }
 
 export default function AddUserPage() {

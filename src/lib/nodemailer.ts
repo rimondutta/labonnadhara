@@ -56,7 +56,7 @@ export async function sendOrderConfirmationEmail(order: OrderData) {
   const html = `
     <div style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; max-width: 600px; margin: 0 auto; color: #333333; line-height: 1.6;">
       <div style="padding: 40px 20px; text-align: center; background-color: #000000; color: #ffffff;">
-        <h1 style="margin: 0; text-transform: uppercase; letter-spacing: 4px; font-size: 24px;">TOY HOURSE</h1>
+        <h1 style="margin: 0; text-transform: uppercase; letter-spacing: 4px; font-size: 24px;">LABONNADHARA</h1>
         <p style="margin: 10px 0 0; font-size: 12px; opacity: 0.7; letter-spacing: 2px;">ORDER CONFIRMED</p>
       </div>
 
@@ -120,7 +120,7 @@ export async function sendOrderConfirmationEmail(order: OrderData) {
       </div>
 
       <div style="padding: 20px; text-align: center; font-size: 12px; color: #999999; border-top: 1px solid #eeeeee;">
-        <p>&copy; ${new Date().getFullYear()} Toy Hourse. All rights reserved.</p>
+        <p>&copy; ${new Date().getFullYear()} Labonnadhara. All rights reserved.</p>
         <p>This is an automated message. Please do not reply to this email.</p>
       </div>
     </div>
@@ -143,7 +143,7 @@ export async function sendOrderConfirmationEmail(order: OrderData) {
           <h2 style="margin: 0; font-size: 20px;">New Order Alert!</h2>
         </div>
         <div style="padding: 30px 20px; background-color: #fff;">
-          <p style="font-size: 16px; margin-top: 0;">You have received a new order on <strong>Toy Hourse</strong>.</p>
+          <p style="font-size: 16px; margin-top: 0;">You have received a new order on <strong>Labonnadhara</strong>.</p>
           <div style="background-color: #f9f9f9; padding: 15px; border-radius: 6px; margin: 20px 0;">
             <p style="margin: 0 0 10px 0;"><strong>Order ID:</strong> #${order.orderId.slice(-8).toUpperCase()}</p>
             <p style="margin: 0 0 10px 0;"><strong>Customer:</strong> ${order.customerName} (${order.customerEmail})</p>
@@ -184,7 +184,7 @@ export async function sendOrderStatusUpdateEmail(order: any, statusType: 'paymen
   const html = `
     <div style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; max-width: 600px; margin: 0 auto; color: #333333; line-height: 1.6;">
       <div style="padding: 40px 20px; text-align: center; background-color: #000000; color: #ffffff;">
-        <h1 style="margin: 0; text-transform: uppercase; letter-spacing: 4px; font-size: 24px;">TOY HOURSE</h1>
+        <h1 style="margin: 0; text-transform: uppercase; letter-spacing: 4px; font-size: 24px;">LABONNADHARA</h1>
         <p style="margin: 10px 0 0; font-size: 12px; opacity: 0.7; letter-spacing: 2px;">STATUS UPDATE</p>
       </div>
 
@@ -205,7 +205,7 @@ export async function sendOrderStatusUpdateEmail(order: any, statusType: 'paymen
       </div>
 
       <div style="padding: 20px; text-align: center; font-size: 12px; color: #999999; border-top: 1px solid #eeeeee;">
-        <p>&copy; ${new Date().getFullYear()} Toy Hourse. All rights reserved.</p>
+        <p>&copy; ${new Date().getFullYear()} Labonnadhara. All rights reserved.</p>
         <p>This is an automated message. Please do not reply to this email.</p>
       </div>
     </div>
@@ -233,14 +233,14 @@ export async function sendPasswordResetOtpEmail(
   const html = `
     <div style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; max-width: 600px; margin: 0 auto; color: #333333; line-height: 1.6;">
       <div style="padding: 40px 20px; text-align: center; background-color: #000000; color: #ffffff;">
-        <h1 style="margin: 0; text-transform: uppercase; letter-spacing: 4px; font-size: 24px;">TOY HOURSE</h1>
+        <h1 style="margin: 0; text-transform: uppercase; letter-spacing: 4px; font-size: 24px;">LABONNADHARA</h1>
         <p style="margin: 10px 0 0; font-size: 12px; opacity: 0.7; letter-spacing: 2px;">PASSWORD RESET</p>
       </div>
 
       <div style="padding: 40px 20px; background-color: #ffffff;">
         <h2 style="font-size: 20px; font-weight: bold; margin-bottom: 20px; text-align: center;">Reset Your Password</h2>
         <p>Hi ${toName || 'there'},</p>
-        <p>We received a request to reset the password for your Toy Hourse account. Use the code below to proceed:</p>
+        <p>We received a request to reset the password for your Labonnadhara account. Use the code below to proceed:</p>
 
         <div style="margin: 36px 0; text-align: center;">
           <div style="display: inline-block; background-color: #f3f4f6; border-radius: 16px; padding: 24px 48px;">
@@ -257,7 +257,7 @@ export async function sendPasswordResetOtpEmail(
       </div>
 
       <div style="padding: 20px; text-align: center; font-size: 12px; color: #999999; border-top: 1px solid #eeeeee;">
-        <p>&copy; ${new Date().getFullYear()} Toy Hourse. All rights reserved.</p>
+        <p>&copy; ${new Date().getFullYear()} Labonnadhara. All rights reserved.</p>
         <p>This is an automated message. Please do not reply to this email.</p>
       </div>
     </div>
@@ -267,7 +267,7 @@ export async function sendPasswordResetOtpEmail(
     const info = await transporter.sendMail({
       from: DEFAULT_FROM,
       to: toEmail,
-      subject: 'Your Toy Hourse password reset code',
+      subject: 'Your Labonnadhara password reset code',
       html,
     });
     console.log('Password reset OTP email sent:', info.messageId);

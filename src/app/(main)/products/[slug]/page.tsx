@@ -51,7 +51,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   if (!product) return { title: "Product Not Found" };
 
   return {
-    title: `${(product as any).title} - Toy Hourse`,
+    title: `${(product as any).title} - Labonnadhara`,
     description: (product as any).description,
     openGraph: {
       title: (product as any).title,

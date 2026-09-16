@@ -221,7 +221,7 @@ function TrackOrderContent() {
               {orderData.shippingAddress?.addressLine1 && (
                 <p className="text-xs text-slate-500 flex items-center gap-1.5">
                   <FaMapMarkerAlt className="text-violet-600 w-3.5 h-3.5 shrink-0" />
-                  {orderData.shippingAddress.addressLine1}, {orderData.shippingAddress.city || 'Dhaka'}
+                  {orderData.shippingAddress.addressLine1}, {orderData.shippingAddress.city || 'Chattogram'}
                 </p>
               )}
             </div>

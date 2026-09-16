@@ -68,9 +68,9 @@ export default function AdminMobileSidebar({ isOpen, onClose }: AdminMobileSideb
             <div className="p-4 border-b border-gray-200 flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <div className="w-8 h-8 rounded overflow-hidden">
-                  <img src="/logo/toyhourse-logo.png" alt="Toy Hourse" className="w-full h-full object-contain" />
+                  <img src="/logo/labonnadhara-logo.png" alt="Labonnadhara" className="w-full h-full object-contain" />
                 </div>
-                <span className="text-base font-semibold text-gray-900 leading-none">Toy Hourse</span>
+                <span className="text-base font-semibold text-gray-900 leading-none">Labonnadhara</span>
               </div>
               <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-md transition-colors text-gray-500 hover:text-gray-900">
                 <X size={20} />

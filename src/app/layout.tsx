@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Poppins, DM_Sans, Manrope, Playfair_Display } from "next/font/google";
+import { Poppins, Playfair_Display } from "next/font/google";
 import Script from "next/script";
 import "./globals.css";
 import { CartProvider } from "@/components/providers/CartProvider";
@@ -29,40 +29,27 @@ const poppins = Poppins({
   display: "swap",
 });
 
-const dmSans = DM_Sans({
-  subsets: ["latin"],
-  weight: ["400", "500", "600", "700"],
-  style: ["normal"],
-  variable: "--font-dm-sans",
-  display: "swap",
-});
 
-const manrope = Manrope({
-  subsets: ["latin"],
-  weight: ["400", "600", "700"],
-  variable: "--font-manrope",
-  display: "swap",
-});
 
 export const metadata: Metadata = {
-  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || process.env.NEXTAUTH_URL || 'https://toyhourse.com'),
+  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || process.env.NEXTAUTH_URL || 'https://labonnadhara.com'),
   title: {
-    default: "Toy Hourse — Toys They'll Actually Play With Twice",
-    template: "%s | Toy Hourse",
+    default: "Labonnadhara — Premium Jewelry & Lifestyle",
+    template: "%s | Labonnadhara",
   },
   description:
-    "Endlessly fun, safety-tested toys for curious kids aged 0–10.",
+    "Elegant, timeless jewelry crafted for your everyday style and special moments.",
   openGraph: {
-    title: "Toy Hourse — Toys They'll Actually Play With Twice",
-    description: "Endlessly fun, safety-tested toys for curious kids aged 0–10.",
+    title: "Labonnadhara — Premium Jewelry & Lifestyle",
+    description: "Elegant, timeless jewelry crafted for your everyday style and special moments.",
     type: "website",
     locale: "en_US",
-    siteName: "Toy Hourse",
-    url: process.env.NEXT_PUBLIC_SITE_URL || process.env.NEXTAUTH_URL || 'https://toyhourse.com',
+    siteName: "Labonnadhara",
+    url: process.env.NEXT_PUBLIC_SITE_URL || process.env.NEXTAUTH_URL || 'https://labonnadhara.shop',
   },
   twitter: {
     card: "summary_large_image",
-    title: "Toy Hourse — Toys They'll Actually Play With Twice",
+    title: "Labonnadhara — Toys They'll Actually Play With Twice",
     description: "Endlessly fun, safety-tested toys for curious kids aged 0–10.",
   },
 };
@@ -82,7 +69,7 @@ export default function RootLayout({
       lang="en"
       suppressHydrationWarning
       data-scroll-behavior="smooth"
-      className={`${playfair.variable} ${poppins.variable} ${dmSans.variable} ${manrope.variable}`}
+      className={`${playfair.variable} ${poppins.variable}`}
     >
       <head>
         <link rel="preconnect" href="https://res.cloudinary.com" />

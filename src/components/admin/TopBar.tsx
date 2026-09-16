@@ -31,7 +31,7 @@ export default function TopBar() {
           >
             <Menu size={20} />
           </button>
-          <span className="font-semibold text-gray-900 text-base">Toy Hourse</span>
+          <span className="font-semibold text-gray-900 text-base">Labonnadhara</span>
         </div>
 
         <div className="flex items-center gap-2 sm:gap-4">

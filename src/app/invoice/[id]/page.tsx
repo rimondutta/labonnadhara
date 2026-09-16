@@ -36,7 +36,7 @@ export default async function InvoicePage({ params }: { params: Promise<{ id: st
       {/* ── Toolbar (Hidden in Print) ── */}
       <div className="max-w-4xl mx-auto mb-8 flex justify-between items-end print:hidden">
         <div>
-          <p className="text-xs font-bold tracking-widest text-slate-400 uppercase mb-1">Toy Hourse</p>
+          <p className="text-xs font-bold tracking-widest text-slate-400 uppercase mb-1">Labonnadhara</p>
           <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight">Invoice #{order.invoiceNumber || shortId}</h1>
         </div>
         <PrintButton orderId={order._id.toString()} invoiceNumber={order.invoiceNumber} />
@@ -53,7 +53,7 @@ export default async function InvoicePage({ params }: { params: Promise<{ id: st
           {/* ── Header ── */}
           <div className="flex flex-col sm:flex-row justify-between items-start border-b border-slate-100 pb-10 mb-10">
             <div>
-              <h2 className="text-3xl font-black text-slate-900 tracking-tighter uppercase">Toy Hourse</h2>
+              <h2 className="text-3xl font-black text-slate-900 tracking-tighter uppercase">Labonnadhara</h2>
               <p className="text-xs font-bold tracking-widest text-slate-400 uppercase mt-2">Professional Toys & Gear</p>
             </div>
             
@@ -191,7 +191,7 @@ export default async function InvoicePage({ params }: { params: Promise<{ id: st
 
         {/* ── Footer ── */}
         <div className="bg-slate-50 px-8 py-6 border-t border-slate-100 flex flex-col sm:flex-row justify-between items-center gap-4 text-xs text-slate-500">
-          <p>Thank you for shopping with Toy Hourse 🧸</p>
+          <p>Thank you for shopping with Labonnadhara ✨</p>
           <p className="font-mono tracking-wider">REF: {order._id.toString()}</p>
         </div>
 

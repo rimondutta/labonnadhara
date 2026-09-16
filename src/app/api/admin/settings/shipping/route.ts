@@ -34,8 +34,8 @@ export async function PUT(req: Request) {
 
     const body = await req.json();
     const {
-      insideDhakaRate,
-      outsideDhakaRate,
+      insideChattogramRate,
+      outsideChattogramRate,
       freeShippingEnabled,
       freeShippingMinOrder,
       freeShippingZone,
@@ -46,8 +46,8 @@ export async function PUT(req: Request) {
       { key: 'global' },
       {
         $set: {
-          'shipping.insideDhakaRate': Number(insideDhakaRate) || 120,
-          'shipping.outsideDhakaRate': Number(outsideDhakaRate) || 150,
+          'shipping.insideChattogramRate': Number(insideChattogramRate) || 120,
+          'shipping.outsideChattogramRate': Number(outsideChattogramRate) || 150,
           'shipping.freeShippingEnabled': Boolean(freeShippingEnabled),
           'shipping.freeShippingMinOrder': Number(freeShippingMinOrder) || 0,
           'shipping.freeShippingZone': freeShippingZone || 'all',

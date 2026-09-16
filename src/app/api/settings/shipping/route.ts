@@ -11,8 +11,8 @@ export async function GET() {
     const settings = await Settings.findOne({ key: 'global' }).lean();
 
     const defaults = {
-      insideDhakaRate: 120,
-      outsideDhakaRate: 150,
+      insideChattogramRate: 70,
+      outsideChattogramRate: 150,
       freeShippingEnabled: false,
       freeShippingMinOrder: 0,
       freeShippingZone: 'all',
@@ -25,8 +25,8 @@ export async function GET() {
     const shipping = (settings as any).shipping ?? {};
 
     return NextResponse.json({
-      insideDhakaRate: shipping.insideDhakaRate ?? defaults.insideDhakaRate,
-      outsideDhakaRate: shipping.outsideDhakaRate ?? defaults.outsideDhakaRate,
+      insideChattogramRate: shipping.insideChattogramRate ?? defaults.insideChattogramRate,
+      outsideChattogramRate: shipping.outsideChattogramRate ?? defaults.outsideChattogramRate,
       freeShippingEnabled: shipping.freeShippingEnabled ?? defaults.freeShippingEnabled,
       freeShippingMinOrder: shipping.freeShippingMinOrder ?? defaults.freeShippingMinOrder,
       freeShippingZone: shipping.freeShippingZone ?? defaults.freeShippingZone,
@@ -34,8 +34,8 @@ export async function GET() {
   } catch {
     // Fail gracefully — never break the checkout
     return NextResponse.json({
-      insideDhakaRate: 120,
-      outsideDhakaRate: 150,
+      insideChattogramRate: 70,
+      outsideChattogramRate: 150,
       freeShippingEnabled: false,
       freeShippingMinOrder: 0,
       freeShippingZone: 'all',
