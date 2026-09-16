@@ -76,7 +76,7 @@ export default function AccountPage() {
   return (
     <div className="min-h-screen bg-[#FFF1F6] font-body pb-24">
       {/* Header */}
-      <div className="bg-[#FFF8FB] border-b border-[#F3D6E2]">
+      <div className="bg-[#FFF8FB] border-b border-[#F3D6E2] pt-24 md:pt-32">
         <div className="max-w-[1440px] mx-auto px-6 md:px-12 py-8 md:py-12">
           <h1 className="text-3xl md:text-4xl font-bold font-serif text-[#252B3A] tracking-tight">My Account</h1>
           <p className="text-[#4B5563] mt-2">Welcome back, {session.user?.name || "Customer"}</p>

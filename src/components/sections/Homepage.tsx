@@ -1,17 +1,14 @@
-"use client";
-
-import React, { useEffect, useRef, useState } from "react";
-import { preload } from "react-dom";
+import React from "react";
 import Link from "next/link";
 import Image from "next/image";
+import dynamic from "next/dynamic";
+import { ArrowRight, Truck, RotateCcw, Headphones } from "lucide-react";
+import HeroAnimationWrapper from "@/components/ui/HeroAnimationWrapper";
+
 const DynamicProductGridRimon = dynamic(() => import("@/components/ui/product-grid-rimon"));
 import AnimatedReveal from "@/components/ui/AnimatedReveal";
-import dynamic from "next/dynamic";
 
-import { ArrowRight, Truck, RotateCcw, Headphones } from "lucide-react";
-
-const DynamicInstagramSection = dynamic(() => import("./InstagramSection"), { ssr: false });
-
+const DynamicInstagramSection = dynamic(() => import("./InstagramSection"));
 
 interface Product {
   _id: string; title: string; slug: string; price: number;
@@ -29,37 +26,10 @@ export default function Homepage({
   initialCategories?: Category[];
   initialBlogs?: any[];
 }) {
-
-  const [trendingProducts] = useState<any[]>(initialTrendingProducts);
-  const [categories] = useState<Category[]>(initialCategories);
-  const [blogs] = useState<any[]>(initialBlogs);
-  const heroRef = useRef<HTMLDivElement>(null);
-
-  // GSAP hero entrance — enhances visibility, does NOT gate it
-  // Hero items are visible by default (no opacity:0); GSAP adds a subtle slide-up
-  useEffect(() => {
-    const ctx = (async () => {
-      const { gsap } = await import("@/lib/gsap");
-      const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-      const hero = heroRef.current;
-      if (!hero || reduced) return null;
-
-      const items = hero.querySelectorAll<HTMLElement>("[data-hero-item]");
-      gsap.set(items, { y: 20, force3D: true });
-      const tl = gsap.timeline();
-      tl.to(items, {
-        y: 0,
-        duration: 0.65,
-        stagger: 0.08,
-        ease: "power3.out",
-        clearProps: "will-change,transform",
-      });
-      return tl;
-    })();
-
-    return () => { ctx.then(tl => tl?.kill()); };
-  }, []);
-
+  // Use props directly instead of useState for Server Component performance
+  const trendingProducts = initialTrendingProducts;
+  const categories = initialCategories;
+  const blogs = initialBlogs;
 
   return (
     <div className="bg-white min-h-screen font-body" suppressHydrationWarning>
@@ -94,34 +64,34 @@ export default function Homepage({
           />
         </div>
 
-        <div className="relative z-10 w-full px-4 sm:px-8 lg:px-[5vw] pt-28 sm:pt-32 pb-12 md:pb-20 flex flex-col justify-center h-full max-w-6xl">
-          <div ref={heroRef} className="flex flex-col ml-auto text-left">
-            <p data-hero-item className="font-serif italic text-[#de2b6a] text-xl md:text-3xl mb-3 md:mb-5">
+        <div className="relative z-10 w-full px-4 sm:px-8 lg:px-[8vw] pt-28 sm:pt-32 pb-12 md:pb-20 flex flex-col justify-center h-full max-w-[1440px] mx-auto">
+          <HeroAnimationWrapper className="max-w-lg md:max-w-xl lg:max-w-2xl flex flex-col items-center text-center md:items-start md:text-left mx-auto md:mx-0">
+            <p data-hero-item className="font-serif italic text-[#de2b6a] text-lg sm:text-xl md:text-2xl lg:text-3xl mb-3 md:mb-5">
               Welcome to Labonnadhara
             </p>
 
-            <h1 data-hero-item className="font-serif font-bold text-[50px] md:text-7xl lg:text-[85px] leading-[1.05] tracking-tight mb-6">
-              <span className="text-[#2c3e50] block">Elegant Jewelry</span>
-              <span className="text-[#de2b6a] block mt-1">for Every Moment</span>
+            <h1 data-hero-item className="font-serif font-bold text-4xl sm:text-5xl md:text-6xl lg:text-7xl leading-[1.1] tracking-tight mb-4 sm:mb-6">
+              <span className="text-[#2c3e50] block drop-shadow-sm">Elegant Jewelry</span>
+              <span className="text-[#de2b6a] block mt-1 drop-shadow-sm">for Every Moment</span>
             </h1>
 
-            <p data-hero-item className="font-sans text-lg md:text-[22px] text-[#334155] mb-2 font-medium tracking-wide">
+            <p data-hero-item className="font-sans text-base sm:text-lg md:text-xl lg:text-[22px] text-[#334155] mb-2 font-medium tracking-wide drop-shadow-sm">
               Beautiful. Trendy. Timeless.
             </p>
 
-            <p data-hero-item className="font-sans text-base md:text-lg text-[#475569] mb-10 max-w-2xl leading-relaxed">
+            <p data-hero-item className="font-sans text-sm sm:text-base md:text-lg text-[#475569] mb-8 sm:mb-10 max-w-lg leading-relaxed">
               আপনার প্রতিদিনের লুককে আরও আকর্ষণীয় করে তুলুন<br className="hidden md:block" /> আমাদের অনন্য জুয়েলারির সাথে।
             </p>
 
-            <div data-hero-item className="flex items-center gap-4 flex-wrap">
+            <div data-hero-item className="flex items-center gap-4 flex-wrap justify-center md:justify-start">
               <Link
                 href="/products"
-                className="inline-flex items-center justify-center bg-[#de2b6a] text-white font-sans font-semibold text-sm md:text-base px-10 py-4 rounded-full hover:bg-[#c4205a] transition-colors shadow-lg shadow-pink-500/30"
+                className="inline-flex items-center justify-center bg-[#de2b6a] text-white font-sans font-semibold text-sm md:text-base px-8 sm:px-10 py-3.5 sm:py-4 rounded-full hover:bg-[#c4205a] transition-all duration-300 shadow-[0_8px_20px_rgba(222,43,106,0.3)] hover:shadow-[0_12px_25px_rgba(222,43,106,0.4)] hover:-translate-y-1"
               >
                 Shop Now
               </Link>
             </div>
-          </div>
+          </HeroAnimationWrapper>
         </div>
       </section>
 
