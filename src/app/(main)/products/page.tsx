@@ -18,7 +18,7 @@ export default async function ShopPage() {
   const products = await withCache('products:isr:list', 60, async () => {
     return await Product.find({ isPublished: true })
       .populate('category')
-      .select('title price compareAtPrice slug images category badge ageRange createdAt rating reviewCount')
+      .select('title price compareAtPrice slug images category badge ageRange createdAt rating reviewCount inventory hasVariations variants')
       .sort({ createdAt: -1 })
       .limit(200)
       .lean();

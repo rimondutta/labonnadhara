@@ -4,7 +4,7 @@ import { useState, useMemo, Suspense, useTransition } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { m, AnimatePresence, useReducedMotion } from "framer-motion";
 import { X, ChevronDown } from "lucide-react";
-import ProductCardNike from "@/components/ui/product-card-nike";
+import ProductCardNike from "@/components/ui/product-card-rimon";
 import { cn } from "@/lib/utils";
 
 function FilterPill({
@@ -53,12 +53,12 @@ function SidebarFilterItem({ label, selected, onClick }: { label: string; select
 function ShopGridPure({
   initialProducts,
   categoryParam,
-  ageParam,
+  budgetParam,
   searchParam
 }: {
   initialProducts: any[],
   categoryParam: string | null,
-  ageParam: string | null,
+  budgetParam: string | null,
   searchParam: string | null
 }) {
   const router = useRouter();
@@ -71,7 +71,7 @@ function ShopGridPure({
   const updateFilters = (key: string, value: string | null) => {
     const currentParams = new URLSearchParams();
     if (categoryParam) currentParams.set("category", categoryParam);
-    if (ageParam) currentParams.set("age", ageParam);
+    if (budgetParam) currentParams.set("budget", budgetParam);
     if (searchParam) currentParams.set("search", searchParam);
 
     if (value === null) currentParams.delete(key);
@@ -90,20 +90,28 @@ function ShopGridPure({
     return Array.from(m.entries()).map(([slug, name]) => ({ slug, name }));
   }, [initialProducts]);
 
-  const ageRanges = ["0-1", "1-3", "3-5", "5-8", "8+"];
+  const budgetRanges = ["Under ৳500", "৳500 - ৳1000", "৳1000 - ৳2000", "Above ৳2000"];
 
   const filteredProducts = useMemo(() => {
     let result = initialProducts.filter((p: any) => {
       const catMatch = !categoryParam || p.category?.slug === categoryParam || p.category?.name === categoryParam;
-      const ageMatch = !ageParam || p.ageRange === ageParam;
+      
+      let budgetMatch = true;
+      if (budgetParam) {
+        if (budgetParam === "Under ৳500") budgetMatch = p.price < 500;
+        else if (budgetParam === "৳500 - ৳1000") budgetMatch = p.price >= 500 && p.price <= 1000;
+        else if (budgetParam === "৳1000 - ৳2000") budgetMatch = p.price > 1000 && p.price <= 2000;
+        else if (budgetParam === "Above ৳2000") budgetMatch = p.price > 2000;
+      }
+
       const searchMatch = !searchParam || p.title.toLowerCase().includes(searchParam.toLowerCase());
-      return catMatch && ageMatch && searchMatch;
+      return catMatch && budgetMatch && searchMatch;
     });
     if (sortBy === "price-low") result.sort((a: any, b: any) => a.price - b.price);
     if (sortBy === "price-high") result.sort((a: any, b: any) => b.price - a.price);
     if (sortBy === "newest") result.sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
     return result;
-  }, [initialProducts, categoryParam, ageParam, sortBy, searchParam]);
+  }, [initialProducts, categoryParam, budgetParam, sortBy, searchParam]);
 
   const clearFilters = () => {
     startTransition(() => {
@@ -111,7 +119,7 @@ function ShopGridPure({
     });
   };
 
-  const activeFilterCount = [categoryParam, ageParam].filter(Boolean).length;
+  const activeFilterCount = [categoryParam, budgetParam].filter(Boolean).length;
 
   return (
     <div suppressHydrationWarning className="flex-1 bg-joy-cream min-h-screen text-joy-navy font-body">
@@ -171,7 +179,7 @@ function ShopGridPure({
             </div>
           </div>
 
-          {(categoryParam || ageParam) && (
+          {(categoryParam || budgetParam) && (
             <button
               onClick={clearFilters}
               className="hidden lg:flex items-center gap-1 font-display font-semibold text-sm text-joy-coral hover:text-joy-coral/70 ml-2"
@@ -203,14 +211,14 @@ function ShopGridPure({
             <div className="border-t border-joy-rule" />
 
             <div className="space-y-3">
-              <h4 className="font-display font-bold text-joy-navy text-sm uppercase tracking-wide">Age Range</h4>
+              <h4 className="font-display font-bold text-joy-navy text-sm uppercase tracking-wide">Budget</h4>
               <div className="space-y-1">
-                {ageRanges.map((age) => (
+                {budgetRanges.map((budget) => (
                   <SidebarFilterItem
-                    key={age}
-                    label={`${age} Years`}
-                    selected={ageParam === age}
-                    onClick={() => updateFilters("age", ageParam === age ? null : age)}
+                    key={budget}
+                    label={budget}
+                    selected={budgetParam === budget}
+                    onClick={() => updateFilters("budget", budgetParam === budget ? null : budget)}
                   />
                 ))}
               </div>
@@ -310,14 +318,14 @@ function ShopGridPure({
                 </div>
 
                 <div className="space-y-4">
-                  <h3 className="font-body text-sm font-medium text-ink-black">Age Range</h3>
+                  <h3 className="font-body text-sm font-medium text-ink-black">Budget</h3>
                   <div className="flex flex-wrap gap-2">
-                    {ageRanges.map((age) => (
+                    {budgetRanges.map((budget) => (
                       <FilterPill
-                        key={age}
-                        label={`${age} yrs`}
-                        selected={ageParam === age}
-                        onClick={() => updateFilters("age", ageParam === age ? null : age)}
+                        key={budget}
+                        label={budget}
+                        selected={budgetParam === budget}
+                        onClick={() => updateFilters("budget", budgetParam === budget ? null : budget)}
                       />
                     ))}
                   </div>
@@ -331,7 +339,7 @@ function ShopGridPure({
                 >
                   View {filteredProducts.length} {filteredProducts.length === 1 ? "Product" : "Products"}
                 </button>
-                {(categoryParam || ageParam) && (
+                {(categoryParam || budgetParam) && (
                   <button
                     onClick={() => { clearFilters(); setIsMobileFiltersOpen(false); }}
                     className="w-full py-2 font-display font-semibold text-sm text-joy-coral hover:opacity-70 transition-opacity"
@@ -355,7 +363,7 @@ function ShopContent({ initialProducts }: { initialProducts: any[] }) {
     <ShopGridPure
       initialProducts={initialProducts}
       categoryParam={searchParams.get("category")}
-      ageParam={searchParams.get("age")}
+      budgetParam={searchParams.get("budget")}
       searchParam={searchParams.get("search")}
     />
   );
@@ -368,7 +376,7 @@ export default function ShopClient({ initialProducts }: { initialProducts: any[]
         <ShopGridPure
           initialProducts={initialProducts}
           categoryParam={null}
-          ageParam={null}
+          budgetParam={null}
           searchParam={null}
         />
       }

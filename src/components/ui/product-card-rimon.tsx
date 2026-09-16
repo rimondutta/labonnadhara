@@ -25,6 +25,8 @@ interface Product {
   sizes?: any[];
   category?: any;
   inventory?: number;
+  hasVariations?: boolean;
+  variants?: any[];
 }
 
 interface Props {
@@ -43,7 +45,9 @@ export default function ProductCardModern({ product, priority = false, index = 1
   const [isAdding, setIsAdding] = useState(false);
 
   const wishlisted = isWishlisted(product._id);
-  const isOutOfStock = product.inventory !== undefined && product.inventory <= 0;
+  const isOutOfStock = product.hasVariations && product.variants && product.variants.length > 0
+    ? product.variants.every((v: any) => !v.isActive || v.stock <= 0)
+    : product.inventory !== undefined && product.inventory <= 0;
 
   const handleWishlistClick = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -204,7 +208,12 @@ export default function ProductCardModern({ product, priority = false, index = 1
         <button
           onClick={handleQuickAdd}
           disabled={isAdding || isOutOfStock}
-          className="w-full mt-5 bg-[#D62B72] hover:bg-[#C51F63] text-white font-body font-bold text-[15px] py-3.5 rounded-full transition-colors flex justify-center items-center shadow-md shadow-pink-500/20"
+          className={cn(
+            "w-full mt-5 font-body font-bold text-[15px] py-3.5 rounded-full transition-colors flex justify-center items-center shadow-md",
+            isOutOfStock 
+              ? "bg-gray-200 text-gray-500 cursor-not-allowed shadow-none"
+              : "bg-[#D62B72] hover:bg-[#C51F63] text-white shadow-pink-500/20"
+          )}
         >
           {isAdding ? "Adding..." : (isOutOfStock ? "Sold Out" : "Add to Cart")}
         </button>

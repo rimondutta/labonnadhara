@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import ProductCardAwwwards from "./product-card-nike";
+import ProductCardAwwwards from "./product-card-rimon";
 import Link from "next/link";
 
 export interface Product {
@@ -17,6 +17,8 @@ export interface Product {
   reviewCount?: number;
   category?: any;
   inventory?: number;
+  hasVariations?: boolean;
+  variants?: any[];
 }
 
 interface ProductGridProps {

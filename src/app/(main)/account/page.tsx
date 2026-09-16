@@ -6,7 +6,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useWishlist } from "@/components/providers/WishlistProvider";
 import { PageLoader } from "@/components/ui/Loader";
-import ProductCardNike from "@/components/ui/product-card-nike";
+import ProductCardNike from "@/components/ui/product-card-rimon";
 import { m, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { 
