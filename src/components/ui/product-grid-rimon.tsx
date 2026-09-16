@@ -28,7 +28,7 @@ interface ProductGridProps {
   theme?: "dark" | "light";
 }
 
-export default function ProductGridNike({
+export default function ProductGridRimon({
   products,
   title,
   subtitle,

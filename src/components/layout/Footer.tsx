@@ -2,6 +2,7 @@
 
 import React from "react";
 import Link from "next/link";
+import Image from "next/image";
 
 const companyLinks = [
   { label: "About Us", href: "/about" },
@@ -36,16 +37,20 @@ export default function Footer() {
           {/* Brand & Newsletter */}
           <div className="lg:col-span-4 xl:col-span-5 flex flex-col gap-6">
             <Link href="/" className="inline-block">
-              <h2 className="font-serif font-bold text-3xl md:text-4xl text-[#D62B72] tracking-tight">
-                Labonnadhara
-              </h2>
+              <Image
+                src="/logo/labonnadhara-logo.png"
+                alt="Labonnadhara"
+                width={160}
+                height={80}
+                className="object-contain w-auto h-auto"
+              />
             </Link>
             <p className="font-sans text-[14px] md:text-[15px] text-[#4B5563] leading-relaxed max-w-sm">
               Discover the finest collection of premium jewelry. Elegant designs crafted for your unforgettable moments.
             </p>
             
             <div className="flex gap-3 mt-2">
-              <a href="#" className="w-10 h-10 rounded-full bg-white flex items-center justify-center text-[#D62B72] hover:bg-[#D62B72] hover:text-white transition-colors shadow-sm">
+              <a href="https://www.facebook.com/labonnadhara" target="_blank" rel="noopener noreferrer" className="w-10 h-10 rounded-full bg-white flex items-center justify-center text-[#D62B72] hover:bg-[#D62B72] hover:text-white transition-colors shadow-sm">
                 <svg width="18" height="18" fill="currentColor" viewBox="0 0 24 24"><path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"/></svg>
               </a>
               <a href="#" className="w-10 h-10 rounded-full bg-white flex items-center justify-center text-[#D62B72] hover:bg-[#D62B72] hover:text-white transition-colors shadow-sm">

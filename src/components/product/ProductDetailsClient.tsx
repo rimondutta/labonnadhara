@@ -9,7 +9,7 @@ import { Dialog, DialogPanel, Transition, TransitionChild } from "@headlessui/re
 import { useCart } from "@/components/providers/CartProvider";
 import { useWishlist } from "@/store/wishlistStore";
 import { useToast } from "@/components/playshelf/Toast";
-import ProductGridNike from "@/components/ui/product-grid-nike";
+import ProductGridRimon from "@/components/ui/product-grid-rimon";
 import { Star, Truck, RefreshCcw, ChevronLeft, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { trackViewContent, trackAddToCart, trackAddToWishlist } from "@/lib/fbPixel";
@@ -157,7 +157,7 @@ export default function ProductDetailsClient({ product: initialProduct, relatedP
     router.push("/checkout");
   };
 
-  const WHATSAPP_NUMBER = "8801616921965";
+  const WHATSAPP_NUMBER = "8801863230150";
   const whatsappUrl = `https://wa.me/${WHATSAPP_NUMBER}?text=Hi! I'm interested in the ${encodeURIComponent(product.title)}. Is it available?`;
 
   // Determine final price and static discount based on database fields
@@ -201,7 +201,7 @@ export default function ProductDetailsClient({ product: initialProduct, relatedP
     <div className="bg-[#FFF1F6] min-h-screen text-[#252B3A] font-sans pb-16">
 
       {/* ═══ PRODUCT SHOWCASE ═══ */}
-      <section className="max-w-[1400px] mx-auto px-4 sm:px-8 lg:px-12 pt-[88px]">
+      <section className="max-w-[1400px] mx-auto px-4 sm:px-8 lg:px-12 pt-[140px] md:pt-[160px]">
 
         {/* Breadcrumb */}
         <nav className="flex items-center gap-2 py-4 mb-4 text-xs tracking-widest text-gray-500 uppercase">
@@ -707,6 +707,20 @@ export default function ProductDetailsClient({ product: initialProduct, relatedP
           </div>
         </div>
       </section>
+
+      {/* ═══ RELATED PRODUCTS ═══ */}
+      {relatedProducts && relatedProducts.length > 0 && (
+        <section className="max-w-[1400px] mx-auto px-4 sm:px-8 lg:px-12 py-16 border-t border-[#F3D6E2] mt-16">
+          <ProductGridRimon 
+            products={relatedProducts} 
+            title={
+              <span className="font-serif text-3xl font-bold text-[#252B3A]">
+                You Might Also Like
+              </span>
+            } 
+          />
+        </section>
+      )}
 
       {/* Size Guide Modal */}
       <Transition show={isSizeGuideOpen} as={Fragment}>

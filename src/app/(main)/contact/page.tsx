@@ -11,7 +11,7 @@ const contactInfo = [
     label: "WhatsApp / Call",
     value: "+880 1616-921965",
     detail: "Sat – Thu, 10am – 8pm",
-    href: "https://wa.me/8801616921965",
+    href: "https://wa.me/8801863230150",
   },
   {
     icon: Mail,
@@ -273,7 +273,7 @@ export default function ContactPage() {
                   Instagram
                 </a>
                 <a
-                  href="https://wa.me/8801616921965"
+                  href="https://wa.me/8801863230150"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="flex items-center gap-2 px-4 py-2.5 rounded-full border border-[#F3D6E2] bg-[#FFF0F5] hover:bg-[#D62B72] hover:border-[#D62B72] hover:text-white text-[#D62B72] text-[13px] font-sans font-bold transition-all duration-200"

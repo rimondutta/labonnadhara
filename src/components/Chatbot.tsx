@@ -235,7 +235,7 @@ export default function Chatbot() {
             <div className="p-4 bg-white">
               <form
                 onSubmit={handleSubmit}
-                className="flex flex-col gap-2 bg-blue-50/30 border border-blue-100 rounded-[24px] focus-within:ring-1 focus-within:ring-blue-200 transition-all shadow-[0_2px_12px_rgba(0,0,0,0.03)]"
+                className="flex flex-col gap-2 bg-[#FFF8FB] rounded-[24px] transition-all shadow-[0_2px_12px_rgba(0,0,0,0.03)]"
               >
                 <div className="flex items-center px-4 pt-3 pb-1">
                   <input

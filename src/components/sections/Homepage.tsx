@@ -4,7 +4,7 @@ import React, { useEffect, useRef, useState } from "react";
 import { preload } from "react-dom";
 import Link from "next/link";
 import Image from "next/image";
-const DynamicProductGridNike = dynamic(() => import("@/components/ui/product-grid-nike"));
+const DynamicProductGridRimon = dynamic(() => import("@/components/ui/product-grid-rimon"));
 import AnimatedReveal from "@/components/ui/AnimatedReveal";
 import dynamic from "next/dynamic";
 
@@ -280,7 +280,7 @@ export default function Homepage({
           </div>
         </AnimatedReveal>
 
-        <DynamicProductGridNike
+        <DynamicProductGridRimon
           title={undefined}
           viewAllLink="/products"
           products={trendingProducts}
