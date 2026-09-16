@@ -11,6 +11,7 @@ const OrderSchema = new mongoose.Schema(
         quantity: { type: Number, required: true },
         price: { type: Number, required: true },
         title: { type: String },
+        image: { type: String },
         variantOptions: { type: Map, of: String },
       },
     ],

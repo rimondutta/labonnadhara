@@ -315,11 +315,11 @@ export default function Homepage({
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-[1200px] mx-auto">
           {[
             {
-              productImg: "/placeholder.jpg",
+              productImg: "https://scontent.fcgp3-2.fna.fbcdn.net/v/t39.30808-6/788705149_1095884756115913_6096616204972118746_n.jpg?stp=dst-jpg_tt6&cstp=mx2048x2046&ctp=s2048x2046&_nc_cat=109&ccb=1-7&_nc_sid=6ee11a&_nc_eui2=AeHfewiS2FKAkuFYXynS1aabgJRSS139fyyAlFJLXf1_LOW9S-acBR9eI_LKKL3px4g_HIIh8y7CIjzx_nMAjzKr&_nc_ohc=lxmauW6-nrIQ7kNvwGbaydU&_nc_oc=Ado0TbnAdw-iRnSzxIJKAn1-DGtuSyjbEarRP7OikskplDfkbFPikOupUaeG_TZJwvM&_nc_zt=23&_nc_ht=scontent.fcgp3-2.fna&_nc_gid=GbM5w5pNLefC5ehA7GU_iQ&_nc_ss=7b2a8&oh=00_AQIwAPU9esUXsmiZAp9SsEm4b0T5K_L_LfchknP1AZxpmQ&oe=6AB09B30",
               review: "জুয়েলারির কোয়ালিটি খুব ভালো। প্যাকেজিংও অসাধারণ ছিল। অবশ্যই আবার কিনবো।",
-              name: "Tasnim Akter",
+              name: "Trishna Das",
               location: "Chattogram",
-              avatarImg: "/placeholder.jpg"
+              avatarImg: "https://scontent.fcgp3-2.fna.fbcdn.net/v/t39.30808-6/788705149_1095884756115913_6096616204972118746_n.jpg?stp=dst-jpg_tt6&cstp=mx2048x2046&ctp=s2048x2046&_nc_cat=109&ccb=1-7&_nc_sid=6ee11a&_nc_eui2=AeHfewiS2FKAkuFYXynS1aabgJRSS139fyyAlFJLXf1_LOW9S-acBR9eI_LKKL3px4g_HIIh8y7CIjzx_nMAjzKr&_nc_ohc=lxmauW6-nrIQ7kNvwGbaydU&_nc_oc=Ado0TbnAdw-iRnSzxIJKAn1-DGtuSyjbEarRP7OikskplDfkbFPikOupUaeG_TZJwvM&_nc_zt=23&_nc_ht=scontent.fcgp3-2.fna&_nc_gid=GbM5w5pNLefC5ehA7GU_iQ&_nc_ss=7b2a8&oh=00_AQIwAPU9esUXsmiZAp9SsEm4b0T5K_L_LfchknP1AZxpmQ&oe=6AB09B30"
             },
             {
               productImg: "/placeholder.jpg",

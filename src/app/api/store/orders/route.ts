@@ -37,11 +37,21 @@ export async function POST(req: Request) {
     }
 
     await connectToDatabase();
+    // Map client items to schema fields (productId → product, keep image)
+    const mappedItems = (items || []).map((item: any) => ({
+      product: item.productId || item.product,
+      variantId: item.variantId,
+      quantity: item.quantity,
+      price: item.price,
+      title: item.title,
+      image: item.image || null,
+      variantOptions: item.variantOptions,
+    }));
 
     // Create the order
     const orderData: any = {
       customerName: String(customerName || '').trim(),
-      items,
+      items: mappedItems,
       totalAmount,
       shippingCost: shippingCost || 0,
       shippingZone,

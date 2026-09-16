@@ -43,7 +43,7 @@ const styles = StyleSheet.create({
   container: {
     padding: 40,
   },
-  
+
   // Header
   headerContainer: {
     flexDirection: 'row',
@@ -74,7 +74,7 @@ const styles = StyleSheet.create({
     letterSpacing: 2,
     textAlign: 'right',
   },
-  
+
   // Meta Details Grid
   metaGrid: {
     flexDirection: 'row',
@@ -166,7 +166,7 @@ const styles = StyleSheet.create({
   colQty: { width: '15%', textAlign: 'center' },
   colPrice: { width: '20%', textAlign: 'right' },
   colTotal: { width: '20%', textAlign: 'right' },
-  
+
   itemTitle: {
     fontSize: 10,
     fontFamily: 'Roboto',
@@ -343,16 +343,16 @@ export function InvoiceDocument({
 }: InvoiceDocumentProps) {
   const shortId = orderId.slice(-8).toUpperCase();
   const isPaid = paymentStatus === 'paid';
-  
+
   const variantText = (item: InvoiceItem) =>
     [
-    ...(item.variantOptions 
-      ? Object.values(item.variantOptions) 
-      : [
+      ...(item.variantOptions
+        ? Object.values(item.variantOptions)
+        : [
           item.color && item.color !== 'Default' ? item.color : null,
           item.size && item.size !== 'Default' ? item.size : null,
         ]
-    ),
+      ),
     ]
       .filter(Boolean)
       .join(' / ');
@@ -364,13 +364,13 @@ export function InvoiceDocument({
     >
       <Page size="A4" style={styles.page}>
         <View style={styles.topAccent} />
-        
+
         <View style={styles.container}>
           {/* Header */}
           <View style={styles.headerContainer}>
             <View>
               <Text style={styles.brandName}>{company.name.toUpperCase()}</Text>
-              <Text style={styles.brandTagline}>Professional Toys & Gear</Text>
+              <Text style={styles.brandTagline}>Premium Jewelry</Text>
             </View>
             <View>
               <Text style={styles.invoiceTitle}>INVOICE</Text>
@@ -401,7 +401,7 @@ export function InvoiceDocument({
               {customer.email ? <Text style={styles.addressText}>{customer.email}</Text> : null}
               {customer.phone ? <Text style={styles.addressText}>{customer.phone}</Text> : null}
             </View>
-            
+
             <View style={styles.addressBox}>
               <Text style={styles.metaLabel}>Shipped To</Text>
               {shippingAddress ? (

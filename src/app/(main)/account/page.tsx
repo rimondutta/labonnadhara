@@ -74,12 +74,12 @@ export default function AccountPage() {
   ];
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-24">
+    <div className="min-h-screen bg-[#FFF1F6] font-body pb-24">
       {/* Header */}
-      <div className="bg-white border-b border-gray-200">
+      <div className="bg-[#FFF8FB] border-b border-[#F3D6E2]">
         <div className="max-w-[1440px] mx-auto px-6 md:px-12 py-8 md:py-12">
-          <h1 className="text-3xl md:text-4xl font-semibold text-gray-900 tracking-tight">My Account</h1>
-          <p className="text-gray-500 mt-2">Welcome back, {session.user?.name || "Customer"}</p>
+          <h1 className="text-3xl md:text-4xl font-bold font-serif text-[#252B3A] tracking-tight">My Account</h1>
+          <p className="text-[#4B5563] mt-2">Welcome back, {session.user?.name || "Customer"}</p>
         </div>
       </div>
 
@@ -96,16 +96,16 @@ export default function AccountPage() {
                   className={cn(
                     "flex items-center justify-between px-4 py-3 text-sm font-medium rounded-lg transition-colors",
                     activeTab === tab.id
-                      ? "bg-gray-100 text-gray-900"
-                      : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
+                      ? "bg-[#D62B72]/10 text-[#D62B72]"
+                      : "text-[#4B5563] hover:bg-[#FFF8FB] hover:text-[#D62B72]"
                   )}
                 >
                   <div className="flex items-center gap-3">
-                    <Icon size={18} className={activeTab === tab.id ? "text-gray-900" : "text-gray-400"} />
+                    <Icon size={18} className={activeTab === tab.id ? "text-[#D62B72]" : "text-[#9CA3AF]"} />
                     {tab.label}
                   </div>
                   {tab.count !== undefined && tab.count > 0 && (
-                    <span className="bg-gray-200 text-gray-700 py-0.5 px-2 rounded-full text-xs">
+                    <span className="bg-[#D62B72] text-white py-0.5 px-2 rounded-full text-xs">
                       {tab.count}
                     </span>
                   )}
@@ -113,7 +113,7 @@ export default function AccountPage() {
               );
             })}
             
-            <hr className="my-4 border-gray-200" />
+            <hr className="my-4 border-[#F3D6E2]" />
             
             <button
               onClick={() => signOut()}
@@ -146,12 +146,12 @@ export default function AccountPage() {
                   ].map((stat) => {
                     const Icon = stat.icon;
                     return (
-                      <div key={stat.label} className="bg-white rounded-xl border border-gray-200 p-6 flex flex-col shadow-sm">
-                        <div className="flex items-center gap-3 text-gray-500 mb-4">
-                          <Icon size={20} />
+                      <div key={stat.label} className="bg-white rounded-xl border border-[#F3D6E2] p-6 flex flex-col shadow-sm shadow-pink-500/5">
+                        <div className="flex items-center gap-3 text-[#4B5563] mb-4">
+                          <Icon size={20} className="text-[#C9A24D]" />
                           <span className="text-sm font-medium">{stat.label}</span>
                         </div>
-                        <div className="text-2xl font-semibold text-gray-900 mt-auto">
+                        <div className="text-2xl font-bold text-[#252B3A] mt-auto">
                           {stat.value}
                         </div>
                       </div>
@@ -161,12 +161,12 @@ export default function AccountPage() {
 
                 {/* Recent Order Panel */}
                 {orders.length > 0 && (
-                  <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
-                    <div className="border-b border-gray-200 p-6 flex items-center justify-between">
-                       <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
-                         <Clock size={20} className="text-gray-400" /> Recent Order
+                  <div className="bg-white rounded-xl border border-[#F3D6E2] shadow-sm shadow-pink-500/5 overflow-hidden">
+                    <div className="border-b border-[#F3D6E2] p-6 flex items-center justify-between">
+                       <h3 className="text-lg font-bold text-[#252B3A] flex items-center gap-2">
+                         <Clock size={20} className="text-[#9CA3AF]" /> Recent Order
                        </h3>
-                       <button onClick={() => setActiveTab("orders")} className="text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors flex items-center gap-1">
+                       <button onClick={() => setActiveTab("orders")} className="text-sm font-medium text-[#D62B72] hover:text-[#C51F63] transition-colors flex items-center gap-1">
                          View all <ChevronRight size={16} />
                        </button>
                     </div>
@@ -179,8 +179,8 @@ export default function AccountPage() {
                           ["Items", `${orders[0].items?.length || 0}`],
                         ].map(([label, value]) => (
                           <div key={label} className="space-y-1">
-                            <span className="text-sm font-medium text-gray-500">{label}</span>
-                            <span className="block font-medium text-gray-900">{value}</span>
+                            <span className="text-sm font-medium text-[#4B5563]">{label}</span>
+                            <span className="block font-medium text-[#252B3A]">{value}</span>
                           </div>
                         ))}
                       </div>
@@ -200,32 +200,32 @@ export default function AccountPage() {
                 className="space-y-6"
               >
                 <div className="flex items-center justify-between">
-                  <h2 className="text-2xl font-semibold text-gray-900 tracking-tight">Order History</h2>
+                  <h2 className="text-2xl font-bold font-serif text-[#252B3A] tracking-tight">Order History</h2>
                 </div>
 
                 {loading ? <PageLoader /> : orders.length === 0 ? (
-                  <div className="bg-white rounded-xl border border-gray-200 p-12 text-center shadow-sm">
-                    <Package className="w-12 h-12 text-gray-300 mx-auto mb-4" />
-                    <h3 className="text-lg font-medium text-gray-900 mb-2">No orders yet</h3>
-                    <p className="text-gray-500 mb-6 max-w-sm mx-auto">When you place an order, it will appear here so you can track its status.</p>
-                    <Link href="/products" className="inline-flex items-center justify-center rounded-lg bg-gray-900 px-6 py-2.5 text-sm font-medium text-white shadow-sm hover:bg-black transition-colors">
+                  <div className="bg-white rounded-xl border border-[#F3D6E2] p-12 text-center shadow-sm">
+                    <Package className="w-12 h-12 text-[#9CA3AF] mx-auto mb-4" />
+                    <h3 className="text-lg font-medium text-[#252B3A] mb-2">No orders yet</h3>
+                    <p className="text-[#4B5563] mb-6 max-w-sm mx-auto">When you place an order, it will appear here so you can track its status.</p>
+                    <Link href="/products" className="inline-flex items-center justify-center rounded-lg bg-[#D62B72] hover:bg-[#C51F63] px-6 py-2.5 text-sm font-bold text-white shadow-md shadow-pink-500/20 transition-colors">
                       Start shopping
                     </Link>
                   </div>
                 ) : (
                   <div className="space-y-4">
                     {orders.map((order) => (
-                      <div key={order._id} className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-6 hover:shadow-md transition-shadow">
+                      <div key={order._id} className="bg-white rounded-xl border border-[#F3D6E2] p-6 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-6 hover:shadow-md hover:border-[#D62B72]/30 transition-all">
                         <div className="flex flex-col gap-2">
                            <div className="flex items-center gap-3">
-                             <span className="font-semibold text-gray-900">#{order._id.slice(-8).toUpperCase()}</span>
-                             <span className="w-1.5 h-1.5 rounded-full bg-gray-300" />
-                             <span className="text-sm text-gray-500">{new Date(order.createdAt).toLocaleDateString()}</span>
+                             <span className="font-bold text-[#252B3A]">#{order._id.slice(-8).toUpperCase()}</span>
+                             <span className="w-1.5 h-1.5 rounded-full bg-[#F3D6E2]" />
+                             <span className="text-sm text-[#4B5563]">{new Date(order.createdAt).toLocaleDateString()}</span>
                            </div>
                            <div className="flex items-center gap-2 mt-1">
                              <span className={cn(
                                "inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium",
-                               order.paymentStatus === "paid" ? "bg-green-100 text-green-800" : "bg-yellow-100 text-yellow-800"
+                               order.paymentStatus === "paid" ? "bg-[#C9A24D]/10 text-[#C9A24D]" : "bg-yellow-100 text-yellow-800"
                              )}>
                                {order.paymentStatus?.charAt(0).toUpperCase() + order.paymentStatus?.slice(1)}
                              </span>
@@ -233,13 +233,13 @@ export default function AccountPage() {
                         </div>
                         
                         <div className="flex flex-col md:items-end gap-3">
-                           <span className="font-semibold text-gray-900">Tk. {order.totalAmount?.toLocaleString()}</span>
+                           <span className="font-bold text-[#252B3A]">Tk. {order.totalAmount?.toLocaleString()}</span>
                            <div className="flex -space-x-2 overflow-hidden">
                              {order.items?.slice(0, 4).map((item: any, i: number) => (
-                               <img key={i} src={item.image || "/placeholder.jpg"} alt="" className="inline-block h-8 w-8 rounded-full ring-2 ring-white object-cover bg-gray-100" />
+                               <img key={i} src={item.image || "/placeholder-product.jpg"} alt={item.title || ""} onError={(e) => { (e.target as HTMLImageElement).src = "/placeholder-product.jpg"; }} className="inline-block h-10 w-10 rounded-full ring-2 ring-white object-cover bg-[#FFF8FB]" />
                              ))}
                              {order.items?.length > 4 && (
-                               <div className="inline-flex items-center justify-center h-8 w-8 rounded-full ring-2 ring-white bg-gray-100 text-xs font-medium text-gray-600">
+                               <div className="inline-flex items-center justify-center h-8 w-8 rounded-full ring-2 ring-white bg-[#FFF8FB] text-xs font-medium text-[#D62B72]">
                                  +{order.items.length - 4}
                                </div>
                              )}
@@ -247,7 +247,7 @@ export default function AccountPage() {
                            <div className="flex items-center gap-2">
                              <Link
                                href={`/track-order?id=${order.invoiceNumber || order._id}`}
-                               className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-violet-700 bg-violet-50 hover:bg-violet-100 rounded-lg transition-colors border border-violet-200"
+                               className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-[#D62B72] bg-[#D62B72]/10 hover:bg-[#D62B72] hover:text-white rounded-lg transition-colors border border-[#F3D6E2]"
                                title="Live Track Package"
                              >
                                <Truck size={12} />
@@ -258,7 +258,7 @@ export default function AccountPage() {
                                target="_blank"
                                rel="noopener noreferrer"
                                download={`Invoice-${order.invoiceNumber || order._id}.pdf`}
-                               className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
+                               className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-[#4B5563] bg-[#FFF8FB] hover:bg-[#F3D6E2] rounded-lg transition-colors border border-[#F3D6E2]"
                                title="Download Invoice PDF"
                              >
                                <Download size={12} />
@@ -283,15 +283,15 @@ export default function AccountPage() {
                 className="space-y-6"
               >
                 <div className="flex items-center justify-between">
-                  <h2 className="text-2xl font-semibold text-gray-900 tracking-tight">Wishlist</h2>
+                  <h2 className="text-2xl font-bold font-serif text-[#252B3A] tracking-tight">Wishlist</h2>
                 </div>
 
                 {wishlistLoading ? <PageLoader /> : wishlistProducts.length === 0 ? (
-                  <div className="bg-white rounded-xl border border-gray-200 p-12 text-center shadow-sm">
-                    <Heart className="w-12 h-12 text-gray-300 mx-auto mb-4" />
-                    <h3 className="text-lg font-medium text-gray-900 mb-2">Your wishlist is empty</h3>
-                    <p className="text-gray-500 mb-6 max-w-sm mx-auto">Save items you love to your wishlist to buy them later.</p>
-                    <Link href="/products" className="inline-flex items-center justify-center rounded-lg bg-gray-900 px-6 py-2.5 text-sm font-medium text-white shadow-sm hover:bg-black transition-colors">
+                  <div className="bg-white rounded-xl border border-[#F3D6E2] p-12 text-center shadow-sm">
+                    <Heart className="w-12 h-12 text-[#9CA3AF] mx-auto mb-4" />
+                    <h3 className="text-lg font-medium text-[#252B3A] mb-2">Your wishlist is empty</h3>
+                    <p className="text-[#4B5563] mb-6 max-w-sm mx-auto">Save items you love to your wishlist to buy them later.</p>
+                    <Link href="/products" className="inline-flex items-center justify-center rounded-lg bg-[#D62B72] hover:bg-[#C51F63] px-6 py-2.5 text-sm font-bold text-white shadow-md shadow-pink-500/20 transition-colors">
                       Explore products
                     </Link>
                   </div>
@@ -317,34 +317,34 @@ export default function AccountPage() {
                 className="space-y-6"
               >
                 <div className="flex items-center justify-between">
-                  <h2 className="text-2xl font-semibold text-gray-900 tracking-tight">Account Settings</h2>
+                  <h2 className="text-2xl font-bold font-serif text-[#252B3A] tracking-tight">Account Settings</h2>
                 </div>
 
-                <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+                <div className="bg-white rounded-xl border border-[#F3D6E2] shadow-sm overflow-hidden">
                   <div className="p-6 md:p-8 space-y-8">
                      
                      <div className="space-y-4">
-                       <h3 className="text-lg font-medium text-gray-900">Profile Information</h3>
+                       <h3 className="text-lg font-medium text-[#252B3A]">Profile Information</h3>
                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                          <div className="space-y-1.5">
-                           <label className="block text-sm font-medium text-gray-700">Name</label>
-                           <input type="text" disabled value={session.user?.name || ""} className="w-full bg-gray-50 text-gray-500 rounded-lg border border-gray-300 px-3 py-2.5 text-sm cursor-not-allowed" />
+                           <label className="block text-sm font-medium text-[#4B5563]">Name</label>
+                           <input type="text" disabled value={session.user?.name || ""} className="w-full bg-[#FFF8FB] text-[#9CA3AF] rounded-lg border border-[#F3D6E2] px-3 py-2.5 text-sm cursor-not-allowed" />
                          </div>
                          <div className="space-y-1.5">
-                           <label className="block text-sm font-medium text-gray-700">Email address</label>
-                           <input type="email" disabled value={session.user?.email || ""} className="w-full bg-gray-50 text-gray-500 rounded-lg border border-gray-300 px-3 py-2.5 text-sm cursor-not-allowed" />
+                           <label className="block text-sm font-medium text-[#4B5563]">Email address</label>
+                           <input type="email" disabled value={session.user?.email || ""} className="w-full bg-[#FFF8FB] text-[#9CA3AF] rounded-lg border border-[#F3D6E2] px-3 py-2.5 text-sm cursor-not-allowed" />
                          </div>
                        </div>
                      </div>
 
-                     <hr className="border-gray-200" />
+                     <hr className="border-[#F3D6E2]" />
 
                      <div className="space-y-4">
-                       <h3 className="text-lg font-medium text-gray-900">Security</h3>
-                       <p className="text-sm text-gray-500 max-w-xl">
+                       <h3 className="text-lg font-medium text-[#252B3A]">Security</h3>
+                       <p className="text-sm text-[#4B5563] max-w-xl">
                          To update your password or change other security settings, please contact support.
                        </p>
-                       <button disabled className="inline-flex items-center justify-center rounded-lg bg-gray-100 px-4 py-2.5 text-sm font-medium text-gray-400 shadow-sm cursor-not-allowed">
+                       <button disabled className="inline-flex items-center justify-center rounded-lg bg-[#FFF8FB] border border-[#F3D6E2] px-4 py-2.5 text-sm font-medium text-[#9CA3AF] shadow-sm cursor-not-allowed">
                          Update password
                        </button>
                      </div>
