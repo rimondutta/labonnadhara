@@ -235,7 +235,7 @@ export default function SearchDrawer({ isOpen, onClose }: SearchDrawerProps) {
             {/* Footer */}
             <div className="p-6 border-t border-gray-100 bg-gray-50/50">
               <Link href="/products" onClick={onClose} className="block">
-                <Button className="w-full bg-black text-white hover:bg-gray-800 rounded-xl py-6 font-medium">
+                <Button className="w-full bg-[#D62B72] text-white hover:bg-[#D62B72]/90 rounded-xl py-6 font-semibold">
                   Browse All Products
                 </Button>
               </Link>

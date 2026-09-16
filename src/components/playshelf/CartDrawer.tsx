@@ -89,7 +89,7 @@ export default function CartDrawer() {
                   <p className="font-body text-[14px] text-[#043224]">Your cart is empty.</p>
                   <button
                     onClick={closeCart}
-                    className="font-mono text-[11px] uppercase tracking-[0.1em] text-[#043224] border border-[#043224] px-5 py-2.5 hover:bg-[#043224]/90 hover:text-white transition-colors cursor-pointer"
+                    className="font-mono text-[11px] uppercase tracking-[0.1em] text-[#D62B72] border border-[#D62B72] px-5 py-2.5 hover:bg-[#D62B72]/90 hover:text-black transition-colors cursor-pointer"
                   >
                     Continue Shopping
                   </button>
