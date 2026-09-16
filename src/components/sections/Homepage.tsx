@@ -72,17 +72,17 @@ export default function Homepage({
 
         <div className="absolute inset-0 z-0 bg-[#0a0a0a]">
           <div className="absolute inset-0 /40 z-10" />
-          
+
           {/* Mobile Background Image */}
           <Image
-            src="/images/hero-bg-mobile.png"
+            src="/images/mobile-hero-bg.jpg"
             alt="Hero Background Mobile"
             fill
             sizes="(max-width: 640px) 100vw, 100vw"
             priority
             className="object-cover object-center z-0 block sm:hidden"
           />
-          
+
           {/* Desktop Background Image */}
           <Image
             src="/images/hero-bg.jpg"
@@ -135,9 +135,9 @@ export default function Homepage({
               {
                 icon: (
                   <svg width="32" height="32" viewBox="0 0 50 50" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M33 8H5a2 2 0 0 0-2 2v22h2"/><path d="M3 32h30V10"/><path d="M33 18h8l6 8v6h-4"/><path d="M33 32h10"/>
-                    <circle cx="13" cy="35" r="4"/><circle cx="39" cy="35" r="4"/>
-                    <line x1="8" y1="14" x2="18" y2="14"/><line x1="5" y1="20" x2="18" y2="20"/><line x1="8" y1="26" x2="18" y2="26"/>
+                    <path d="M33 8H5a2 2 0 0 0-2 2v22h2" /><path d="M3 32h30V10" /><path d="M33 18h8l6 8v6h-4" /><path d="M33 32h10" />
+                    <circle cx="13" cy="35" r="4" /><circle cx="39" cy="35" r="4" />
+                    <line x1="8" y1="14" x2="18" y2="14" /><line x1="5" y1="20" x2="18" y2="20" /><line x1="8" y1="26" x2="18" y2="26" />
                   </svg>
                 ),
                 title: "Fast Delivery",
@@ -146,7 +146,7 @@ export default function Homepage({
               {
                 icon: (
                   <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><polyline points="9 12 11 14 15 10"/>
+                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" /><polyline points="9 12 11 14 15 10" />
                   </svg>
                 ),
                 title: "Secure Payment",
@@ -155,8 +155,8 @@ export default function Homepage({
               {
                 icon: (
                   <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M20 12V22H4V12"/><path d="M22 7H2v5h20V7z"/><path d="M12 22V7"/>
-                    <path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z"/><path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"/>
+                    <path d="M20 12V22H4V12" /><path d="M22 7H2v5h20V7z" /><path d="M12 22V7" />
+                    <path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z" /><path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z" />
                   </svg>
                 ),
                 title: "Premium Packaging",
@@ -165,8 +165,8 @@ export default function Homepage({
               {
                 icon: (
                   <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M23 4v6h-6"/><path d="M1 20v-6h6"/>
-                    <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10"/><path d="M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>
+                    <path d="M23 4v6h-6" /><path d="M1 20v-6h6" />
+                    <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10" /><path d="M1 14l4.64 4.36A9 9 0 0 0 20.49 15" />
                   </svg>
                 ),
                 title: "Easy Exchange",
@@ -254,7 +254,7 @@ export default function Homepage({
               <div className="h-[1px] w-8 md:w-12 bg-[#D62B72]/40 rounded-full" />
               <div className="flex items-center gap-2 text-[#252B3A]">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#D62B72" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="m2 4 3 12h14l3-12-6 7-4-7-4 7-6-7zm3 16h14"/>
+                  <path d="m2 4 3 12h14l3-12-6 7-4-7-4 7-6-7zm3 16h14" />
                 </svg>
                 <h2 className="font-serif font-bold text-3xl md:text-[32px] tracking-tight">
                   Bestsellers
@@ -266,7 +266,7 @@ export default function Homepage({
               Our most loved pieces
             </p>
           </div>
-          
+
           <div className="absolute right-0 bottom-0 hidden md:block">
             <Link
               href="/products"
@@ -274,7 +274,7 @@ export default function Homepage({
             >
               View All Products
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M5 12h14"/><path d="m12 5 7 7-7 7"/>
+                <path d="M5 12h14" /><path d="m12 5 7 7-7 7" />
               </svg>
             </Link>
           </div>
