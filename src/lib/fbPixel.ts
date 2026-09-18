@@ -25,42 +25,44 @@ declare global {
 
 /**
  * Fires `action` directly. 
- * The Facebook Pixel inline snippet defines `window.fbq` immediately and queues 
- * events natively until the fbevents.js script finishes loading.
+ * If the Facebook Pixel inline snippet hasn't executed yet, we create the native
+ * queue stub so events are preserved and flushed once fbevents.js loads.
  */
 function fireWhenReady(action: () => void) {
   if (typeof window === 'undefined') return;
   
-  if (typeof window.fbq === 'function') {
-    try {
-      action();
-    } catch {
-      // Pixel failures must never crash the page
-    }
-  } else {
-    // If not injected yet, wait briefly and try once
-    setTimeout(() => {
-      if (typeof window.fbq === 'function') {
-        try {
-          action();
-        } catch {}
+  if (typeof window.fbq !== 'function') {
+    window.fbq = function() {
+      if (window.fbq!.callMethod) {
+        window.fbq!.callMethod.apply(window.fbq, arguments as any);
+      } else {
+        window.fbq!.queue = window.fbq!.queue || [];
+        window.fbq!.queue.push(arguments as any);
       }
-    }, 500);
+    } as any;
+  }
+  
+  try {
+    action();
+  } catch {
+    // Pixel failures must never crash the page
   }
 }
 
 /** ViewContent — fired when a customer views a product detail page. */
 export function trackViewContent(product: {
-  _id: string;
+  _id?: string;
+  id?: string;
   title?: string;
   price?: number;
   category?: { title?: string };
 }) {
   try {
-    if (!product?._id) return;
+    const id = product?._id || product?.id;
+    if (!id) return;
     fireWhenReady(() => {
       window.fbq!('track', 'ViewContent', {
-        content_ids: [product._id],
+        content_ids: [id],
         content_type: 'product',
         content_name: product.title ?? '',
         content_category: product.category?.title ?? '',
@@ -75,14 +77,15 @@ export function trackViewContent(product: {
 
 /** AddToCart — fired when a customer adds a product to their cart. */
 export function trackAddToCart(
-  product: { _id: string; title?: string; price?: number },
+  product: { _id?: string; id?: string; title?: string; price?: number },
   quantity: number
 ) {
   try {
-    if (!product?._id) return;
+    const id = product?._id || product?.id;
+    if (!id) return;
     fireWhenReady(() => {
       window.fbq!('track', 'AddToCart', {
-        content_ids: [product._id],
+        content_ids: [id],
         content_type: 'product',
         content_name: product.title ?? '',
         value: Math.max(0.01, Number((product.price ?? 0) * quantity)),
