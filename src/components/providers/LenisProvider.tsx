@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect } from "react";
-import Lenis from "lenis";
 
 export default function LenisProvider({
   children,
@@ -9,42 +8,44 @@ export default function LenisProvider({
   children: React.ReactNode;
 }) {
   useEffect(() => {
-    const lenis = new Lenis({
-      duration: 1.1,
-      easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
-      orientation: "vertical",
-      gestureOrientation: "vertical",
-      smoothWheel: true,
-      wheelMultiplier: 1,
-      touchMultiplier: 1.5,
-    });
+    let cleanup: (() => void) | null = null;
 
-    let rafCallback: ((time: number) => void) | null = null;
-    let gsapInstance: any = null;
+    // Fully deferred: Lenis + GSAP are dynamically imported so they never
+    // appear in the initial bundle — eliminating their TBT contribution.
+    Promise.all([
+      import("lenis"),
+      import("@/lib/gsap"),
+    ]).then(([{ default: Lenis }, { gsap, ScrollTrigger }]) => {
+      const lenis = new Lenis({
+        duration: 1.1,
+        easing: (t: number) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
+        orientation: "vertical" as const,
+        gestureOrientation: "vertical" as const,
+        smoothWheel: true,
+        wheelMultiplier: 1,
+        touchMultiplier: 1.5,
+      });
 
-    // Dynamically import GSAP to prevent it from blocking the main thread on page load
-    import("@/lib/gsap").then(({ gsap, ScrollTrigger }) => {
-      gsapInstance = gsap;
-      
       // Keep ScrollTrigger in sync with Lenis scroll position
       lenis.on("scroll", ScrollTrigger.update);
 
-      // Single RAF source: GSAP ticker drives Lenis (no autoRaf)
-      rafCallback = (time: number) => {
+      // Single RAF source: GSAP ticker drives Lenis
+      const rafCallback = (time: number) => {
         lenis.raf(time * 1000);
       };
       gsap.ticker.add(rafCallback);
       gsap.ticker.lagSmoothing(0);
+
+      cleanup = () => {
+        gsap.ticker.remove(rafCallback);
+        lenis.destroy();
+      };
     });
 
     return () => {
-      if (gsapInstance && rafCallback) {
-        gsapInstance.ticker.remove(rafCallback);
-      }
-      lenis.destroy();
+      cleanup?.();
     };
   }, []);
 
   return <>{children}</>;
 }
-
