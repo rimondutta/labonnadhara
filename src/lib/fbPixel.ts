@@ -186,3 +186,34 @@ export function trackContact() {
     });
   } catch {}
 }
+
+/**
+ * AddPaymentInfo — fired when a customer selects a payment method
+ * and proceeds to the review/confirm step.
+ *
+ * This fills the gap in Meta's standard checkout funnel:
+ * InitiateCheckout → AddPaymentInfo → Purchase
+ * Enables better ROAS measurement and payment-intent retargeting.
+ */
+export function trackAddPaymentInfo(params: {
+  paymentMethod: string;
+  cartItems: Array<{ id: string; price?: number; quantity?: number }>;
+  totalValue: number;
+}) {
+  try {
+    if (!params.cartItems?.length) return;
+    fireWhenReady(() => {
+      window.fbq!('track', 'AddPaymentInfo', {
+        content_ids: params.cartItems.map((i) => i.id),
+        content_type: 'product',
+        num_items: params.cartItems.reduce((sum, i) => sum + (i.quantity ?? 1), 0),
+        value: Math.max(0.01, Number(params.totalValue || 0)),
+        currency: 'BDT',
+        // Custom param — helps segment by payment method in Meta reporting
+        payment_type: params.paymentMethod,
+      });
+    });
+  } catch {
+    // Pixel failures must never crash the page
+  }
+}

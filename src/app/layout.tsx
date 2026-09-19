@@ -52,6 +52,9 @@ export const metadata: Metadata = {
     title: "Labonnadhara — Toys They'll Actually Play With Twice",
     description: "Endlessly fun, safety-tested toys for curious kids aged 0–10.",
   },
+  verification: {
+    google: "cN9MpMpdVbMEnDhHrc7E670jqvrh4tO5U9bj3zUg1EY",
+  },
 };
 
 export const links = [
@@ -72,6 +75,23 @@ export default function RootLayout({
       className={`${playfair.variable} ${poppins.variable}`}
     >
       <head>
+        {/* Preload LCP hero images — browser discovers them during HTML parse, before JS hydration */}
+        <link
+          rel="preload"
+          as="image"
+          href="/images/hero-bg.jpg"
+          // @ts-ignore — fetchpriority is valid HTML5 but not yet in all TS typings
+          fetchPriority="high"
+          media="(min-width: 641px)"
+        />
+        <link
+          rel="preload"
+          as="image"
+          href="/images/mobile-hero-bg.jpg"
+          // @ts-ignore
+          fetchPriority="high"
+          media="(max-width: 640px)"
+        />
         <link rel="preconnect" href="https://res.cloudinary.com" />
         <link rel="dns-prefetch" href="https://connect.facebook.net" />
         <Script

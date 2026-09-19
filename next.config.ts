@@ -25,6 +25,10 @@ const nextConfig: NextConfig = {
     formats: ['image/avif', 'image/webp'],
     // Cache optimized images for 1 year at the CDN edge.
     minimumCacheTTL: 31536000,
+    // Mobile-first device breakpoints — smaller steps at mobile end for better srcset matching.
+    deviceSizes: [390, 640, 750, 828, 1080, 1200, 1920],
+    // Thumbnail / icon sizes used in product cards, avatars, category circles.
+    imageSizes: [16, 32, 48, 64, 96, 128, 176, 256],
     remotePatterns: [
       { protocol: "https", hostname: "picsum.photos" },
       { protocol: "https", hostname: "fastly.picsum.photos" },
@@ -36,6 +40,7 @@ const nextConfig: NextConfig = {
       { protocol: "https", hostname: "**.facebook.com" },
     ],
   },
+
 
   experimental: {
     // Tree-shake these large packages to only import what is actually used.

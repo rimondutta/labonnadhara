@@ -8,7 +8,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useToast } from "@/components/playshelf/Toast";
 import { cn } from "@/lib/utils";
-import { trackInitiateCheckout, trackPurchase } from "@/lib/fbPixel";
+import { trackInitiateCheckout, trackPurchase, trackAddPaymentInfo } from "@/lib/fbPixel";
 import { m, AnimatePresence } from "framer-motion";
 import {
   ShoppingBag,
@@ -575,7 +575,20 @@ export default function CheckoutPage() {
 
               {step < 2 ? (
                 <button
-                  onClick={() => canProceed() && setStep(step + 1)}
+                  onClick={() => {
+                    if (!canProceed()) return;
+                    // Fire AddPaymentInfo when leaving the Payment step (step 1 → step 2)
+                    if (step === 1) {
+                      try {
+                        trackAddPaymentInfo({
+                          paymentMethod: form.paymentMethod,
+                          cartItems: items.map((i) => ({ id: i.id, price: i.price, quantity: i.quantity })),
+                          totalValue: grandTotal,
+                        });
+                      } catch { /* noop */ }
+                    }
+                    setStep(step + 1);
+                  }}
                   disabled={!canProceed()}
                   className={cn(
                     "flex items-center gap-2 px-7 py-3.5 rounded-full text-sm font-bold text-white transition-all duration-200",

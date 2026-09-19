@@ -46,20 +46,22 @@ export default function Homepage({
           {/* Mobile Background Image */}
           <Image
             src="/images/mobile-hero-bg.jpg"
-            alt="Hero Background Mobile"
+            alt="Elegant jewelry hero background"
             fill
-            sizes="(max-width: 640px) 100vw, 100vw"
+            sizes="(max-width: 640px) 100vw, 0vw"
             priority
+            fetchPriority="high"
             className="object-cover object-center z-0 block sm:hidden"
           />
 
           {/* Desktop Background Image */}
           <Image
             src="/images/hero-bg.jpg"
-            alt="Hero Background Desktop"
+            alt="Elegant jewelry hero background"
             fill
-            sizes="(max-width: 1024px) 100vw, 100vw"
+            sizes="(max-width: 640px) 0vw, 100vw"
             priority
+            fetchPriority="high"
             className="object-cover object-center z-0 hidden sm:block"
           />
         </div>
@@ -192,6 +194,7 @@ export default function Homepage({
                         src={cat.image}
                         alt={cat.name}
                         fill
+                        loading="lazy"
                         className="object-cover group-hover:scale-110 transition-transform duration-700 ease-out"
                         sizes="(max-width: 768px) 144px, 176px"
                       />
@@ -309,7 +312,7 @@ export default function Homepage({
             <AnimatedReveal key={i} delay={i * 0.1}>
               <div className="bg-[#FFF8FB] border border-[#F3D6E2] rounded-2xl p-5 sm:p-6 flex gap-5 items-center hover:shadow-md transition-shadow duration-300">
                 <div className="shrink-0 relative w-[80px] h-[80px] sm:w-[90px] sm:h-[90px] rounded-full overflow-hidden shadow-sm border-2 border-white">
-                  <Image src={item.productImg} alt="Customer product" fill sizes="90px" className="object-cover" />
+                  <Image src={item.productImg} alt="Customer product" fill loading="lazy" sizes="90px" className="object-cover" />
                 </div>
                 <div className="flex flex-col flex-1">
                   <div className="flex text-[#F59E0B] mb-2 gap-0.5">
@@ -322,7 +325,7 @@ export default function Homepage({
                   </p>
                   <div className="flex items-center gap-2.5">
                     <div className="relative w-8 h-8 rounded-full overflow-hidden shadow-sm border border-white">
-                      <Image src={item.avatarImg} alt={item.name} fill sizes="32px" className="object-cover" />
+                      <Image src={item.avatarImg} alt={item.name} fill loading="lazy" sizes="32px" className="object-cover" />
                     </div>
                     <div className="flex flex-col">
                       <span className="font-sans font-bold text-[13px] text-[#252B3A] leading-none mb-1">{item.name}</span>

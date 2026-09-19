@@ -88,13 +88,18 @@ export default function TopNavbar() {
 
   return (
     <>
+      {/* ── Skip-to-content — required for Agentic Browsing & keyboard accessibility ── */}
+      <a
+        href="#main-content"
+        className="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-[9999] focus:px-4 focus:py-2 focus:bg-[#D62B72] focus:text-white focus:rounded-lg focus:font-sans focus:text-sm focus:font-semibold focus:shadow-lg"
+      >
+        Skip to main content
+      </a>
+
+      <header role="banner" style={{ position: 'fixed', top: 0, left: 0, right: 0, zIndex: 999 }}>
       <nav
+        aria-label="Main navigation"
         style={{
-          position: "fixed",
-          top: 0,
-          left: 0,
-          right: 0,
-          zIndex: 999,
           backgroundColor: scrolled ? "rgba(255,241,246,0.97)" : "rgba(255,241,246,0.97)",
           backdropFilter: scrolled ? "blur(12px)" : "none",
           WebkitBackdropFilter: scrolled ? "blur(12px)" : "none",
@@ -215,11 +220,11 @@ export default function TopNavbar() {
 
 
       </nav>
+      </header>
 
       {/* ── Scoped styles ── */}
+      {/* Note: Google Fonts are loaded by next/font in layout.tsx — no @import needed here */}
       <style>{`
-        /* Google Fonts import */
-        @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400;1,700&display=swap');
 
         /* Logo */
         .lbn-logo {
