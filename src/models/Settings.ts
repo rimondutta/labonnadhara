@@ -2,6 +2,7 @@ import mongoose from 'mongoose';
 
 const FacebookPixelSchema = new mongoose.Schema({
   pixelId: { type: String, default: '' },
+  accessToken: { type: String, default: '' },
   enabled: { type: Boolean, default: false },
   testEventCode: { type: String, default: '' },
 });

@@ -38,7 +38,7 @@ export async function PUT(req: Request) {
     }
 
     const body = await req.json();
-    const { pixelId, enabled, testEventCode } = body;
+    const { pixelId, accessToken, enabled, testEventCode } = body;
 
     // Validate: Meta Pixel IDs are numeric-only strings (typically 15-16 digits)
     if (pixelId && !/^\d+$/.test(pixelId.trim())) {
@@ -54,6 +54,7 @@ export async function PUT(req: Request) {
       {
         $set: {
           'facebookPixel.pixelId': pixelId?.trim() ?? '',
+          'facebookPixel.accessToken': accessToken?.trim() ?? '',
           'facebookPixel.enabled': Boolean(enabled),
           'facebookPixel.testEventCode': testEventCode?.trim() ?? '',
         },

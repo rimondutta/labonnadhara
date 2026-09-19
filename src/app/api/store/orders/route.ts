@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { cookies } from 'next/headers';
 import connectToDatabase from '@/lib/db';
 import Order from '@/models/Order';
 import Product from '@/models/Product';
@@ -111,6 +112,10 @@ export async function POST(req: Request) {
       shippingCost: shippingCost || 0
     };
 
+    const cookieStore = await cookies();
+    const fbp = cookieStore.get('_fbp')?.value;
+    const fbc = cookieStore.get('_fbc')?.value;
+
     await Promise.allSettled([
       import('@/lib/invoice/generateInvoicePdf').then(({ generateInvoiceForOrder }) => generateInvoiceForOrder(order._id.toString())),
       customerEmail ? import('@/lib/nodemailer').then(({ sendOrderConfirmationEmail }) => sendOrderConfirmationEmail(notificationPayload)) : Promise.resolve(),
@@ -128,6 +133,30 @@ export async function POST(req: Request) {
           shippingCost: shippingCost || 0,
           totalAmount,
           fulfillmentStatus: 'unfulfilled',
+        })
+      ),
+      import('@/lib/capi').then(({ sendCapiEvent }) =>
+        sendCapiEvent({
+          eventName: 'Purchase',
+          eventTime: Math.floor(Date.now() / 1000),
+          actionSource: 'website',
+          eventSourceUrl: req.headers.get('referer') || '',
+          userData: {
+            em: customerEmail,
+            ph: shippingAddress?.phone,
+            client_ip_address: ip,
+            client_user_agent: req.headers.get('user-agent') || undefined,
+            fbp,
+            fbc,
+            external_id: customerEmail || shippingAddress?.phone || undefined,
+          },
+          customData: {
+            value: totalAmount,
+            currency: 'BDT',
+            order_id: order._id.toString(),
+            content_ids: items.map((i: any) => i.productId),
+            content_type: 'product',
+          }
         })
       )
     ]).catch(err => console.error('Background tasks error:', err));

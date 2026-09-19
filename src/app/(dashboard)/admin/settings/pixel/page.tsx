@@ -5,6 +5,7 @@ import { useState, useEffect } from "react";
 
 interface PixelConfig {
   pixelId: string;
+  accessToken: string;
   enabled: boolean;
   testEventCode: string;
 }
@@ -12,6 +13,7 @@ interface PixelConfig {
 export default function PixelSettingsPage() {
   const [config, setConfig] = useState<PixelConfig>({
     pixelId: "",
+    accessToken: "",
     enabled: false,
     testEventCode: "",
   });
@@ -129,7 +131,7 @@ export default function PixelSettingsPage() {
           </div>
 
           {/* Pixel ID */}
-          <div className="px-6 py-5 space-y-2">
+          <div className="px-6 py-5 space-y-2 border-b border-gray-100">
             <label htmlFor="pixelId" className="block text-sm font-medium text-gray-900">
               Pixel ID
             </label>
@@ -158,6 +160,24 @@ export default function PixelSettingsPage() {
                 </a>
               </p>
             )}
+          </div>
+
+          {/* Conversions API Access Token */}
+          <div className="px-6 py-5 space-y-2 border-b border-gray-100">
+            <label htmlFor="accessToken" className="block text-sm font-medium text-gray-900">
+              Conversions API Access Token
+            </label>
+            <input
+              id="accessToken"
+              type="text"
+              value={config.accessToken}
+              onChange={(e) => setConfig((p) => ({ ...p, accessToken: e.target.value }))}
+              placeholder="e.g. EAA..."
+              className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg bg-white text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-900 transition"
+            />
+            <p className="text-xs text-gray-400">
+              Required for Server-Side Tracking. Generate this in Meta Events Manager → Settings → Generate access token.
+            </p>
           </div>
 
           {/* Test Event Code */}
