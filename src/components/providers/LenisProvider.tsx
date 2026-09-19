@@ -2,7 +2,6 @@
 
 import { useEffect } from "react";
 import Lenis from "lenis";
-import { gsap, ScrollTrigger } from "@/lib/gsap";
 
 export default function LenisProvider({
   children,
@@ -20,18 +19,28 @@ export default function LenisProvider({
       touchMultiplier: 1.5,
     });
 
-    // Keep ScrollTrigger in sync with Lenis scroll position
-    lenis.on("scroll", ScrollTrigger.update);
+    let rafCallback: ((time: number) => void) | null = null;
+    let gsapInstance: any = null;
 
-    // Single RAF source: GSAP ticker drives Lenis (no autoRaf)
-    const rafCallback = (time: number) => {
-      lenis.raf(time * 1000);
-    };
-    gsap.ticker.add(rafCallback);
-    gsap.ticker.lagSmoothing(0);
+    // Dynamically import GSAP to prevent it from blocking the main thread on page load
+    import("@/lib/gsap").then(({ gsap, ScrollTrigger }) => {
+      gsapInstance = gsap;
+      
+      // Keep ScrollTrigger in sync with Lenis scroll position
+      lenis.on("scroll", ScrollTrigger.update);
+
+      // Single RAF source: GSAP ticker drives Lenis (no autoRaf)
+      rafCallback = (time: number) => {
+        lenis.raf(time * 1000);
+      };
+      gsap.ticker.add(rafCallback);
+      gsap.ticker.lagSmoothing(0);
+    });
 
     return () => {
-      gsap.ticker.remove(rafCallback);
+      if (gsapInstance && rafCallback) {
+        gsapInstance.ticker.remove(rafCallback);
+      }
       lenis.destroy();
     };
   }, []);
