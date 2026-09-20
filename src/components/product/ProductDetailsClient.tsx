@@ -228,7 +228,7 @@ export default function ProductDetailsClient({ product: initialProduct, relatedP
                     className={cn(
                       "relative w-[72px] h-[90px] overflow-hidden transition-all duration-300",
                       activeImage === idx
-                        ? "ring-1 ring-black ring-offset-2"
+                        ? "ring-1 ring-[#D62B72] ring-offset-2"
                         : "opacity-60 hover:opacity-100"
                     )}
                   >
