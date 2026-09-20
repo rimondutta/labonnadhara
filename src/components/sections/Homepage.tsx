@@ -1,6 +1,6 @@
 import React from "react";
 import Link from "next/link";
-import Image from "next/image";
+import Image, { getImageProps } from "next/image";
 import dynamic from "next/dynamic";
 import { ArrowRight, Truck, RotateCcw, Headphones } from "lucide-react";
 import HeroAnimationWrapper from "@/components/ui/HeroAnimationWrapper";
@@ -31,6 +31,11 @@ export default function Homepage({
   const categories = initialCategories;
   const blogs = initialBlogs;
 
+  // Generate responsive image props for hero background
+  const commonHeroProps = { alt: "Elegant jewelry hero background", fill: true, priority: true, fetchPriority: "high" as const, sizes: "100vw" };
+  const { props: desktopHeroProps } = getImageProps({ ...commonHeroProps, src: "/images/hero-bg.jpg" });
+  const { props: mobileHeroProps } = getImageProps({ ...commonHeroProps, src: "/images/mobile-hero-bg.jpg" });
+
   return (
     <div className="bg-white min-h-screen font-body" suppressHydrationWarning>
 
@@ -43,27 +48,15 @@ export default function Homepage({
         <div className="absolute inset-0 z-0 bg-[#0a0a0a]">
           <div className="absolute inset-0 /40 z-10" />
 
-          {/* Mobile Background Image */}
-          <Image
-            src="/images/mobile-hero-bg.jpg"
-            alt="Elegant jewelry hero background"
-            fill
-            sizes="(max-width: 640px) 100vw, 0vw"
-            priority
-            fetchPriority="high"
-            className="object-cover object-center z-0 block sm:hidden"
-          />
-
-          {/* Desktop Background Image */}
-          <Image
-            src="/images/hero-bg.jpg"
-            alt="Elegant jewelry hero background"
-            fill
-            sizes="(max-width: 640px) 0vw, 100vw"
-            priority
-            fetchPriority="high"
-            className="object-cover object-center z-0 hidden sm:block"
-          />
+          {/* Art Direction for Hero Image to fix preload warnings */}
+          <picture>
+            <source media="(max-width: 640px)" srcSet={mobileHeroProps.srcSet} />
+            <source media="(min-width: 641px)" srcSet={desktopHeroProps.srcSet} />
+            <img 
+              {...desktopHeroProps} 
+              className="object-cover object-center w-full h-full"
+            />
+          </picture>
         </div>
 
         <div className="relative z-10 w-full px-4 sm:px-8 lg:px-[8vw] pt-28 sm:pt-32 pb-12 md:pb-20 flex flex-col justify-center h-full max-w-[1440px] mx-auto">

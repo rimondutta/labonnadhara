@@ -204,41 +204,57 @@ export default function PixelSettingsPage() {
 
 
 
-          {/* Save button + toast */}
-          <div className="px-6 py-4 flex items-center gap-4">
-            <button
-              id="save-pixel-settings"
-              onClick={handleSave}
-              disabled={saving || !!pixelIdError}
-              className="inline-flex items-center gap-2 px-5 py-2 bg-gray-900 text-white text-sm font-medium rounded-lg hover:bg-gray-800 transition disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {saving ? (
-                <>
-                  <span className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />
-                  Saving…
-                </>
-              ) : (
-                "Save Settings"
-              )}
-            </button>
+          {/* Save button + CAPI test */}
+          <div className="px-6 py-5 space-y-3">
+            <div className="flex items-center gap-3 flex-wrap">
+              <button
+                id="save-pixel-settings"
+                onClick={handleSave}
+                disabled={saving || !!pixelIdError}
+                className="inline-flex items-center gap-2 px-5 py-2 bg-gray-900 text-white text-sm font-medium rounded-lg hover:bg-gray-800 transition disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {saving ? (
+                  <>
+                    <span className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />
+                    Saving…
+                  </>
+                ) : (
+                  "Save Settings"
+                )}
+              </button>
 
-            <button
-              onClick={() => {
-                if (typeof window !== "undefined" && (window as any).fbq) {
-                  (window as any).fbq("trackCustom", "AdminTestEvent", {
-                    verified_at: new Date().toISOString(),
-                  });
-                  setStatus({ type: "success", message: "Test event sent! Check Meta Events Manager." });
-                } else {
-                  setStatus({ type: "error", message: "Pixel not loaded. Save settings and refresh first." });
-                }
-                setTimeout(() => setStatus(null), 4000);
-              }}
-              disabled={saving}
-              className="inline-flex items-center gap-2 px-5 py-2 border border-gray-300 bg-white text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-50 transition"
-            >
-              Verify Pixel
-            </button>
+              <button
+                id="test-capi-event"
+                onClick={async () => {
+                  setStatus(null);
+                  setSaving(true);
+                  try {
+                    const res = await fetch("/api/admin/settings/pixel/test-capi", {
+                      method: "POST",
+                    });
+                    const data = await res.json();
+                    if (!res.ok) throw new Error(data.error || "Failed");
+                    setStatus({
+                      type: "success",
+                      message: `✅ CAPI test event sent! events_received: ${data.data?.events_received ?? 1}. Check Meta Events Manager → Test Events.`,
+                    });
+                  } catch (err: any) {
+                    setStatus({ type: "error", message: `❌ CAPI Error: ${err.message}` });
+                  } finally {
+                    setSaving(false);
+                    setTimeout(() => setStatus(null), 8000);
+                  }
+                }}
+                disabled={saving || !config.enabled || !config.pixelId}
+                className="inline-flex items-center gap-2 px-5 py-2 border border-blue-300 bg-blue-50 text-blue-700 text-sm font-medium rounded-lg hover:bg-blue-100 transition disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                🔌 Send CAPI Test Event
+              </button>
+            </div>
+
+            <p className="text-xs text-gray-400">
+              <strong>Send CAPI Test Event</strong> fires a server-side Purchase event directly to Meta. Make sure you have a <strong>Test Event Code</strong> saved above so it shows instantly in Events Manager.
+            </p>
 
             {status && (
               <p
