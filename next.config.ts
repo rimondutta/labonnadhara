@@ -20,6 +20,13 @@ const nextConfig: NextConfig = {
     ignoreBuildErrors: true,
   },
 
+  // Compiler optimizations for production performance
+  compiler: {
+    removeConsole: process.env.NODE_ENV === "production" ? {
+      exclude: ["error", "warn"],
+    } : false,
+  },
+
   images: {
     // Serve AVIF first (smallest), fallback to WebP — ~30-40% smaller than JPEG/PNG.
     formats: ['image/avif', 'image/webp'],

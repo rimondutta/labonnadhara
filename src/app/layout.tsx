@@ -91,46 +91,7 @@ export default function RootLayout({
             gtag('config', 'G-NWR9G1FPB6');
           `}
         </Script>
-        <Script
-          id="extension-attribute-cleaner"
-          strategy="lazyOnload"
-          dangerouslySetInnerHTML={{
-            __html: `
-              (function() {
-                if (typeof window === 'undefined') return;
-                var clean = function(node) {
-                  if (node && node.removeAttribute) {
-                    if (node.hasAttribute('bis_skin_checked')) node.removeAttribute('bis_skin_checked');
-                    if (node.hasAttribute('bis_status')) node.removeAttribute('bis_status');
-                  }
-                };
-                var observer = new MutationObserver(function(mutations) {
-                  for (var i = 0; i < mutations.length; i++) {
-                    var m = mutations[i];
-                    if (m.type === 'attributes') {
-                      clean(m.target);
-                    } else if (m.type === 'childList') {
-                      for (var j = 0; j < m.addedNodes.length; j++) {
-                        var node = m.addedNodes[j];
-                        clean(node);
-                        if (node.querySelectorAll) {
-                          var children = node.querySelectorAll('[bis_skin_checked],[bis_status]');
-                          for (var k = 0; k < children.length; k++) clean(children[k]);
-                        }
-                      }
-                    }
-                  }
-                });
-                observer.observe(document.documentElement, {
-                  attributes: true,
-                  subtree: true,
-                  childList: true,
-                  attributeFilter: ['bis_skin_checked', 'bis_status']
-                });
-              })();
-            `,
-          }}
-        />
+
       </head>
       <body
         suppressHydrationWarning
