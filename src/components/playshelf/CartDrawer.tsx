@@ -64,20 +64,7 @@ export default function CartDrawer() {
               </button>
             </div>
 
-            {/* ─── Free shipping progress ─── */}
-            {remaining > 0 && (
-              <div className="px-6 py-4 border-b border-rule-grey">
-                <p className="font-mono text-[10px] text-ink-black uppercase tracking-[0.1em] mb-2">
-                  Add <strong className="text-stamp-red">৳{remaining.toLocaleString()}</strong> for free shipping
-                </p>
-                <div className="h-[1px] w-full bg-rule-grey relative overflow-hidden">
-                  <div
-                    className="absolute inset-y-0 left-0 bg-ink-black transition-all duration-700"
-                    style={{ width: `${pct}%` }}
-                  />
-                </div>
-              </div>
-            )}
+
 
             {/* ─── Cart Items — "receipt" rows ─── */}
             <div className="flex-1 overflow-y-auto">

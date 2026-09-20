@@ -492,8 +492,8 @@ export default function ProductDetailsClient({ product: initialProduct, relatedP
                 <div className="flex items-start gap-3">
                   <Truck className="w-5 h-5 text-black shrink-0" />
                   <div>
-                    <p className="text-sm font-medium text-black">Free Shipping</p>
-                    <p className="text-sm text-gray-500">On all orders over ৳1,500.</p>
+                    <p className="text-sm font-medium text-black">Safe & Secure Delivery to Your Doorstep</p>
+                    <p className="text-sm text-gray-500">We carefully pack and deliver your order safely to your doorstep.</p>
                   </div>
                 </div>
                 <div className="flex items-start gap-3">
@@ -711,13 +711,13 @@ export default function ProductDetailsClient({ product: initialProduct, relatedP
       {/* ═══ RELATED PRODUCTS ═══ */}
       {relatedProducts && relatedProducts.length > 0 && (
         <section className="max-w-[1400px] mx-auto px-4 sm:px-8 lg:px-12 py-16 border-t border-[#F3D6E2] mt-16">
-          <ProductGridRimon 
-            products={relatedProducts} 
+          <ProductGridRimon
+            products={relatedProducts}
             title={
               <span className="font-serif text-3xl font-bold text-[#252B3A]">
                 You Might Also Like
               </span>
-            } 
+            }
           />
         </section>
       )}

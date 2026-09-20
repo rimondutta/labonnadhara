@@ -3,6 +3,7 @@
 import React from "react";
 import Link from "next/link";
 import Image from "next/image";
+import AnimatedReveal from "@/components/ui/AnimatedReveal";
 
 const companyLinks = [
   { label: "About Us", href: "/about" },
@@ -129,11 +130,16 @@ export default function Footer() {
       </div>
 
       {/* Background Watermark */}
-      <div className="absolute bottom-0 left-0 w-full overflow-hidden pointer-events-none select-none flex justify-center opacity-30 z-0">
-        <h1 className="font-serif font-black text-[18vw] text-[#F3D6E2] whitespace-nowrap m-0 p-0 leading-[0.75]">
-          Labonnadhara
-        </h1>
-      </div>
+      <AnimatedReveal direction="none" delay={0.2}>
+        <div 
+          className="absolute bottom-0 left-0 w-full overflow-hidden pointer-events-none select-none flex justify-center opacity-10 z-0"
+          aria-hidden="true"
+        >
+          <div className="font-serif font-black text-[18vw] text-[#F3D6E2] whitespace-nowrap m-0 p-0 leading-[0.75]">
+            Labonnadhara
+          </div>
+        </div>
+      </AnimatedReveal>
     </footer>
   );
 }
