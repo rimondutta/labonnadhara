@@ -65,7 +65,7 @@ export async function POST(req: Request) {
         },
         $set: { image: picture },
       },
-      { upsert: true, new: true }
+      { upsert: true, returnDocument: 'after' }
     );
 
     // Issue our custom mobile JWT (same format as email/password login)

@@ -51,7 +51,7 @@ export async function PUT(req: NextRequest) {
     const user = await User.findByIdAndUpdate(
       session.user.id,
       { $set: allowedUpdates },
-      { new: true, select: '-password' }
+      { returnDocument: 'after', select: '-password' }
     ).lean();
 
     if (!user) {

@@ -101,7 +101,7 @@ export async function DELETE(req: Request) {
     const product = await Product.findByIdAndUpdate(
       productId,
       { $pull: { reviews: { _id: id } } },
-      { new: true }
+      { returnDocument: 'after' }
     );
 
     if (!product) {

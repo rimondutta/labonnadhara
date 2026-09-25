@@ -58,7 +58,7 @@ export async function PUT(
     }
     if (displayType) updates.displayType = displayType;
 
-    const variationType = await VariationType.findByIdAndUpdate(id, updates, { new: true }).lean();
+    const variationType = await VariationType.findByIdAndUpdate(id, updates, { returnDocument: 'after' }).lean();
 
     if (!variationType) {
       return NextResponse.json({ error: 'Not found' }, { status: 404 });

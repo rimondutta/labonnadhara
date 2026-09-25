@@ -16,7 +16,7 @@ export async function GET() {
     const settings = await Settings.findOneAndUpdate(
       { key: 'global' },
       { $setOnInsert: { key: 'global' } },
-      { upsert: true, new: true, setDefaultsOnInsert: true }
+      { upsert: true, returnDocument: 'after', setDefaultsOnInsert: true }
     );
 
     return NextResponse.json({ shipping: settings.shipping });
@@ -53,7 +53,7 @@ export async function PUT(req: Request) {
           'shipping.freeShippingZone': freeShippingZone || 'all',
         },
       },
-      { upsert: true, new: true, setDefaultsOnInsert: true }
+      { upsert: true, returnDocument: 'after', setDefaultsOnInsert: true }
     );
 
     return NextResponse.json({ shipping: settings.shipping });

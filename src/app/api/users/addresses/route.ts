@@ -70,7 +70,7 @@ export async function POST(req: NextRequest) {
     const user = await User.findByIdAndUpdate(
       session.user.id,
       { $push: { addresses: newAddress } },
-      { new: true }
+      { returnDocument: 'after' }
     ).select('addresses').lean() as any;
 
     return NextResponse.json(

@@ -16,7 +16,7 @@ export async function GET() {
     const settings = await Settings.findOneAndUpdate(
       { key: 'global' },
       { $setOnInsert: { key: 'global' } },
-      { upsert: true, new: true, setDefaultsOnInsert: true }
+      { upsert: true, returnDocument: 'after', setDefaultsOnInsert: true }
     );
 
     return NextResponse.json({ couriers: settings.couriers ?? [] });
@@ -55,7 +55,7 @@ export async function POST(req: Request) {
           couriers: { name, code, apiKey: apiKey || '', apiSecret: apiSecret || '', webhookSecret: webhookSecret || '', trackingUrlPattern: trackingUrlPattern || '', enabled: Boolean(enabled), notes: notes || '' },
         },
       },
-      { upsert: true, new: true, setDefaultsOnInsert: true }
+      { upsert: true, returnDocument: 'after', setDefaultsOnInsert: true }
     );
 
     return NextResponse.json({ couriers: settings.couriers });
@@ -93,7 +93,7 @@ export async function PUT(req: Request) {
     const settings = await Settings.findOneAndUpdate(
       { key: 'global', 'couriers.code': code },
       { $set: update },
-      { new: true }
+      { returnDocument: 'after' }
     );
 
     if (!settings) {
@@ -126,7 +126,7 @@ export async function DELETE(req: Request) {
     const settings = await Settings.findOneAndUpdate(
       { key: 'global' },
       { $pull: { couriers: { code } } },
-      { new: true }
+      { returnDocument: 'after' }
     );
 
     return NextResponse.json({ couriers: settings?.couriers ?? [] });

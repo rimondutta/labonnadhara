@@ -34,7 +34,7 @@ export async function PATCH(
     const notification = await Notification.findOneAndUpdate(
       { _id: id, user: session.user.id },
       { $set: { read: true } },
-      { new: true }
+      { returnDocument: 'after' }
     );
 
     if (!notification) {

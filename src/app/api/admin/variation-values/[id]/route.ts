@@ -29,7 +29,7 @@ export async function PUT(
     if (colorHex !== undefined) updates.colorHex = colorHex;
     if (sortOrder !== undefined) updates.sortOrder = sortOrder;
 
-    const variationValue = await VariationValue.findByIdAndUpdate(id, updates, { new: true }).lean();
+    const variationValue = await VariationValue.findByIdAndUpdate(id, updates, { returnDocument: 'after' }).lean();
 
     if (!variationValue) {
       return NextResponse.json({ error: 'Not found' }, { status: 404 });

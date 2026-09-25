@@ -54,7 +54,7 @@ export async function PATCH(
         isPublished,
         ...(isPublished ? { publishedAt: new Date() } : {}),
       },
-      { new: true }
+      { returnDocument: 'after' }
     );
 
     if (!post) {

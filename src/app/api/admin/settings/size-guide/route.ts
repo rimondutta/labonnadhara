@@ -9,7 +9,7 @@ async function getSettings() {
   return Settings.findOneAndUpdate(
     { key: 'global' },
     { $setOnInsert: { key: 'global' } },
-    { upsert: true, new: true, setDefaultsOnInsert: true }
+    { upsert: true, returnDocument: 'after', setDefaultsOnInsert: true }
   );
 }
 
@@ -48,7 +48,7 @@ export async function PUT(req: Request) {
           'sizeGuide.content': content ?? '',
         },
       },
-      { upsert: true, new: true, setDefaultsOnInsert: true }
+      { upsert: true, returnDocument: 'after', setDefaultsOnInsert: true }
     );
 
     await invalidateSettings();

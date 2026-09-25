@@ -44,7 +44,7 @@ export async function PUT(
     await connectToDatabase();
     const { id } = await params;
     const category = await Category.findByIdAndUpdate(id, data, {
-      new: true,
+      returnDocument: 'after',
       runValidators: true,
     });
 

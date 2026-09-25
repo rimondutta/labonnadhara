@@ -36,7 +36,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ addr
     const user = await User.findOneAndUpdate(
       { _id: session.user.id, 'addresses._id': addressId },
       { $set: updateFields },
-      { new: true }
+      { returnDocument: 'after' }
     ).select('addresses').lean() as any;
 
     if (!user) {
@@ -66,7 +66,7 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ a
     const user = await User.findByIdAndUpdate(
       session.user.id,
       { $pull: { addresses: { _id: addressId } } },
-      { new: true }
+      { returnDocument: 'after' }
     ).select('addresses').lean() as any;
 
     if (!user) {

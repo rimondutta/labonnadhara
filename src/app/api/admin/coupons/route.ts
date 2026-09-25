@@ -89,7 +89,7 @@ export async function PATCH(req: NextRequest) {
 
     if (!id) return NextResponse.json({ error: "ID required" }, { status: 400 });
 
-    const coupon = await Coupon.findByIdAndUpdate(id, updates, { new: true });
+    const coupon = await Coupon.findByIdAndUpdate(id, updates, { returnDocument: 'after' });
     if (!coupon) return NextResponse.json({ error: "Coupon not found" }, { status: 404 });
 
     return NextResponse.json(coupon);

@@ -72,7 +72,7 @@ export const authOptions: NextAuthOptions = {
               // Always refresh their profile photo from Google
               $set: { image: user.image },
             },
-            { upsert: true, new: true }
+            { upsert: true, returnDocument: 'after' }
           );
           // Attach DB fields so jwt callback can access them
           (user as any).id = dbUser._id.toString();
