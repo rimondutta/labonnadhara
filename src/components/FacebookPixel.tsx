@@ -37,9 +37,21 @@ export default function FacebookPixel() {
   const initialPathnameRef = useRef<string | null>(null);
 
   useEffect(() => {
-    // Set initial path once when component mounts
     if (typeof window !== "undefined") {
+      // Set initial path once when component mounts
       initialPathnameRef.current = window.location.pathname;
+
+      // Instantly capture fbclid from URL before Next.js routing can strip it or before lazyOnload pixel fires.
+      const urlParams = new URLSearchParams(window.location.search);
+      const fbclid = urlParams.get("fbclid");
+      if (fbclid) {
+        // Meta _fbc format: fb.<subdomainIndex>.<creationTime>.<fbclid>
+        // Use 1 for subdomain index as standard.
+        const creationTime = Date.now();
+        const fbcValue = `fb.1.${creationTime}.${fbclid}`;
+        // Store for 90 days (Meta standard)
+        document.cookie = `_fbc=${fbcValue}; path=/; max-age=${90 * 24 * 60 * 60}; SameSite=Lax`;
+      }
     }
 
     fetch("/api/settings/pixel")

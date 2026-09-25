@@ -139,6 +139,7 @@ export async function POST(req: Request) {
         sendCapiEvent({
           eventName: 'Purchase',
           eventTime: Math.floor(Date.now() / 1000),
+          eventId: order._id.toString(),
           actionSource: 'website',
           eventSourceUrl: req.headers.get('referer') || '',
           userData: {

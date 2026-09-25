@@ -171,7 +171,7 @@ export default function CheckoutPage() {
           paymentMethod: form.paymentMethod,
           shippingZone: form.shippingZone,
           notes: form.notes,
-          totalAmount: total,
+          totalAmount: grandTotal,
           shippingCost: shippingCost,
         }),
       });

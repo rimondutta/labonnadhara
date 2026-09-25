@@ -142,7 +142,7 @@ export function trackPurchase(order: {
         value: Number(value.toFixed(2)),
         currency: 'BDT',
         order_id: orderId,
-      });
+      }, { eventID: orderId });
     });
   } catch {
     // Pixel failures must never crash the page

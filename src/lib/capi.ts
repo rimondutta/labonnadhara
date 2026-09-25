@@ -5,6 +5,7 @@ import Settings from '@/models/Settings';
 export interface CapiEventData {
   eventName: string;
   eventTime: number;
+  eventId?: string;
   eventSourceUrl?: string;
   actionSource: 'website' | 'app' | 'physical_store' | 'system_generated' | 'chat' | 'other';
   userData: {
@@ -57,6 +58,7 @@ export async function sendCapiEvent(eventData: CapiEventData) {
         {
           event_name: eventData.eventName,
           event_time: eventData.eventTime,
+          event_id: eventData.eventId,
           action_source: eventData.actionSource,
           event_source_url: eventData.eventSourceUrl,
           user_data: {
