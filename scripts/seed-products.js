@@ -47,7 +47,7 @@ async function seed() {
     console.log('Connected.');
 
     for (const product of DUMMY_PRODUCTS) {
-      await Product.findOneAndUpdate({ slug: product.slug }, product, { upsert: true, new: true });
+      await Product.findOneAndUpdate({ slug: product.slug }, product, { upsert: true, returnDocument: 'after' });
       console.log(`Seeded: ${product.title}`);
     }
 
