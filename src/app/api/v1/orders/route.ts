@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
+import { cookies } from 'next/headers';
 import connectToDatabase from '@/lib/db';
 import Order from '@/models/Order';
 import Product from '@/models/Product';
@@ -154,7 +155,48 @@ export async function POST(req: Request) {
           fulfillmentStatus: 'unfulfilled',
         })
       ),
-    ]).catch(err => console.error('Background tasks error:', err));
+    ]);
+
+    // ── Meta Conversions API — Purchase ──
+    // Separate await so failures are always logged, never silently swallowed.
+    // event_id uses the MongoDB order ID to match the browser Pixel eventID.
+    try {
+      const cookieStore = await cookies();
+      const fbp = cookieStore.get('_fbp')?.value;
+      const fbc = cookieStore.get('_fbc')?.value;
+      const forwarded2 = req.headers.get('x-forwarded-for');
+      const clientIp = forwarded2?.split(',')[0]?.trim() || ip;
+      const { sendCapiEvent } = await import('@/lib/capi');
+      const capiResult = await sendCapiEvent({
+        eventName: 'Purchase',
+        eventTime: Math.floor(Date.now() / 1000),
+        eventId: order._id.toString(),
+        actionSource: 'website',
+        eventSourceUrl: req.headers.get('referer') || '',
+        userData: {
+          em: orderData.customerEmail,
+          ph: orderData.shippingAddress.phone,
+          client_ip_address: clientIp,
+          client_user_agent: req.headers.get('user-agent') || undefined,
+          fbp,
+          fbc,
+          external_id: orderData.customerEmail || orderData.shippingAddress.phone || undefined,
+        },
+        customData: {
+          value: verifiedTotal,
+          currency: 'BDT',
+          order_id: order._id.toString(),
+          content_ids: verifiedItems.map(i => i.product).filter(Boolean),
+          content_type: 'product',
+          num_items: verifiedItems.reduce((sum, i) => sum + (i.quantity || 1), 0),
+        },
+      });
+      if (!capiResult.success) {
+        console.error('[CAPI Purchase v1] Meta rejected the event:', capiResult.error);
+      }
+    } catch (capiErr) {
+      console.error('[CAPI Purchase v1] Failed to send Meta Conversions API event:', capiErr);
+    }
 
     // Inventory Bulk Write (use verifiedItems which has correct product references)
     const inventoryOps = verifiedItems.map(item => {

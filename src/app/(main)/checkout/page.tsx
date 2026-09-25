@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useCart } from "@/components/providers/CartProvider";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
@@ -58,6 +58,17 @@ export default function CheckoutPage() {
 
   const [step, setStep] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  // A stable UUID generated once per checkout session.
+  // Survives re-renders and intentional retries so the server can detect
+  // duplicate submissions and return the existing orderId instead of creating
+  // a second order. Cleared after a confirmed success so a future checkout
+  // (e.g. user shops again after cart is cleared) gets a fresh key.
+  const idempotencyKeyRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (!idempotencyKeyRef.current) {
+      idempotencyKeyRef.current = crypto.randomUUID();
+    }
+  }, []);
   const [shippingConfig, setShippingConfig] = useState({
     insideChattogramRate: 70,
     outsideChattogramRate: 150,
@@ -173,10 +184,13 @@ export default function CheckoutPage() {
           notes: form.notes,
           totalAmount: grandTotal,
           shippingCost: shippingCost,
+          idempotencyKey: idempotencyKeyRef.current,
         }),
       });
       const data = await res.json();
       if (data.success) {
+        // Invalidate the idempotency key so a future checkout generates a fresh one
+        idempotencyKeyRef.current = null;
         try {
           trackPurchase({
             _id: data.orderId,
