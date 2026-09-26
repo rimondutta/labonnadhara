@@ -106,7 +106,7 @@ const nextConfig: NextConfig = {
               "child-src 'self' blob: https://www.facebook.com",
               "frame-src 'self' https://www.facebook.com",
               "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
-              "font-src 'self' https://fonts.gstatic.com",
+              "font-src 'self' data: https://fonts.gstatic.com",
               "img-src 'self' data: blob: https://res.cloudinary.com https://images.unsplash.com https://picsum.photos https://fastly.picsum.photos https://www.facebook.com https://lh3.googleusercontent.com https://i.pravatar.cc https://*.fbcdn.net https://*.facebook.com https://www.google-analytics.com https://www.googletagmanager.com",
               "connect-src 'self' https://api.telegram.org https://www.facebook.com https://res.cloudinary.com https://api.cloudinary.com https://www.google-analytics.com https://region1.google-analytics.com https://api.openai.com https://analytics.google.com https://*.on.aws https://*.run.app https://cloudflareinsights.com",
               "frame-ancestors 'none'",
