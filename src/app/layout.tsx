@@ -76,7 +76,15 @@ export default function RootLayout({
     >
       <head>
         <link rel="preconnect" href="https://res.cloudinary.com" />
+        <link rel="preconnect" href="https://images.unsplash.com" />
         <link rel="dns-prefetch" href="https://connect.facebook.net" />
+        {/* Preload the hero first frame immediately at HTML level */}
+        <link
+          rel="preload"
+          as="image"
+          href="/images/hero-bg_frames/hero-bg_frames/frame_001.jpg"
+          fetchPriority="high"
+        />
 
         {/* Google Analytics */}
         <Script

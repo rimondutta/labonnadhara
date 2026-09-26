@@ -104,6 +104,8 @@ export default function LuxuryHero() {
   const imagesRef = useRef<HTMLImageElement[]>([]);
   const loadedRef = useRef<boolean[]>(new Array(TOTAL_FRAMES).fill(false));
   const currentIdxRef = useRef(0);
+  const ctxRef = useRef<CanvasRenderingContext2D | null>(null); // cached context
+  const rafRef = useRef<number | null>(null); // pending rAF id
 
   /* ── Draw a frame onto the canvas ───────────────────────── */
   const drawFrame = useCallback((idx: number) => {
@@ -121,8 +123,11 @@ export default function LuxuryHero() {
       return;
     }
     currentIdxRef.current = i;
-    // Optimization: { alpha: false } stops the browser from compositing transparency, saving massive mobile GPU cycles.
-    const ctx = canvas.getContext("2d", { alpha: false }) as CanvasRenderingContext2D | null;
+    // Lazy-init context once and cache it to avoid expensive re-creation
+    if (!ctxRef.current) {
+      ctxRef.current = canvas.getContext("2d", { alpha: false, willReadFrequently: false }) as CanvasRenderingContext2D | null;
+    }
+    const ctx = ctxRef.current;
     if (!ctx) return;
     const cw = canvas.width, ch = canvas.height;
     const iw = img.naturalWidth || img.width;
@@ -140,6 +145,8 @@ export default function LuxuryHero() {
   const fitCanvas = useCallback(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
+    // Reset cached context when canvas dimensions change (required by canvas spec)
+    ctxRef.current = null;
     canvas.width = window.innerWidth;
     canvas.height = window.innerHeight;
     drawFrame(currentIdxRef.current);
@@ -226,18 +233,26 @@ export default function LuxuryHero() {
       const cta = ctaRef.current;
       const metas = [metaRef0.current, metaRef1.current, metaRef2.current].filter(Boolean) as HTMLElement[];
 
-      /* ─ Entrance animation ─ */
-      if (!reduced) {
-        gsap.set(lines, { yPercent: 108, opacity: 0 });
-        gsap.set([overline, subtitle, cta], { y: 30, opacity: 0 });
-        gsap.set(metas, { y: 12, opacity: 0 });
+      /* ─ Entrance animation — wrapped in rIC so it never blocks LCP/FID ─ */
+      const runEntrance = () => {
+        if (!reduced) {
+          gsap.set(lines, { yPercent: 108, opacity: 0 });
+          gsap.set([overline, subtitle, cta], { y: 30, opacity: 0 });
+          gsap.set(metas, { y: 12, opacity: 0 });
 
-        const tl = gsap.timeline({ defaults: { ease: "power4.out" } });
-        tl.to(overline, { opacity: 1, y: 0, duration: 0.9 }, 0.1)
-          .to(lines, { yPercent: 0, opacity: 1, duration: 1.1, stagger: 0.1 }, 0.3)
-          .to(subtitle, { opacity: 1, y: 0, duration: 0.85 }, 0.75)
-          .to(cta, { opacity: 1, y: 0, duration: 0.8 }, 0.95)
-          .to(metas, { opacity: 1, y: 0, duration: 0.65, stagger: 0.1 }, 1.05);
+          const tl = gsap.timeline({ defaults: { ease: "power4.out" } });
+          tl.to(overline, { opacity: 1, y: 0, duration: 0.9 }, 0.1)
+            .to(lines, { yPercent: 0, opacity: 1, duration: 1.1, stagger: 0.1 }, 0.3)
+            .to(subtitle, { opacity: 1, y: 0, duration: 0.85 }, 0.75)
+            .to(cta, { opacity: 1, y: 0, duration: 0.8 }, 0.95)
+            .to(metas, { opacity: 1, y: 0, duration: 0.65, stagger: 0.1 }, 1.05);
+        }
+      };
+      // requestIdleCallback runs after LCP & FCP are captured — massively reduces TBT
+      if ("requestIdleCallback" in window) {
+        (window as any).requestIdleCallback(runEntrance, { timeout: 600 });
+      } else {
+        setTimeout(runEntrance, 100);
       }
 
       /* ─ Scroll-scrub frame sequence ─

@@ -67,6 +67,16 @@ const nextConfig: NextConfig = {
   async headers() {
     return [
       {
+        // Aggressive caching for hero frame images — 1 year immutable
+        source: "/images/:path*",
+        headers: [
+          {
+            key: "Cache-Control",
+            value: "public, max-age=31536000, immutable",
+          },
+        ],
+      },
+      {
         source: "/api/:path*",
         headers: [
           { key: "Access-Control-Allow-Origin", value: process.env.MOBILE_ORIGIN || "*" },
