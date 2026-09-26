@@ -152,19 +152,48 @@ export default function LuxuryHero() {
     fitCanvas();
     window.addEventListener("resize", fitCanvas, { passive: true });
 
-    /* 2 ─ Preload ALL frames. Draw frame 0 as soon as it's ready. */
+    /* 2 ─ Preload logic: Prioritize frame 0 for instant load, chunk the rest */
     let firstDrawn = false;
-    FRAME_NUMS.forEach((num, i) => {
+    
+    const loadImg = (idx: number, isFirst: boolean = false, cb?: () => void) => {
       const img = new window.Image();
-      img.src = frameUrl(num);
+      if (isFirst && "fetchPriority" in img) {
+        (img as any).fetchPriority = "high";
+      }
+      img.src = frameUrl(FRAME_NUMS[idx]);
       img.onload = () => {
-        loadedRef.current[i] = true;
-        if (!firstDrawn) {
-          firstDrawn = true;
-          drawFrame(0);
+        loadedRef.current[idx] = true;
+        if (cb) cb();
+        // If user scrolled to this frame while it was loading, draw it now
+        if (currentIdxRef.current === idx) drawFrame(idx);
+      };
+      imagesRef.current[idx] = img;
+    };
+
+    // Load first frame immediately
+    loadImg(0, true, () => {
+      if (!firstDrawn) {
+        firstDrawn = true;
+        drawFrame(0);
+      }
+      
+      // Lazy-load the remaining frames in small batches so we don't choke the network/CPU
+      let i = 1;
+      const loadChunk = () => {
+        let count = 0;
+        // load 5 frames at a time
+        while (i < TOTAL_FRAMES && count < 5) {
+          loadImg(i);
+          i++;
+          count++;
+        }
+        if (i < TOTAL_FRAMES) {
+          // small delay gives the main thread room to breathe
+          setTimeout(loadChunk, 60);
         }
       };
-      imagesRef.current[i] = img;
+      // start loading rest shortly after first frame is painted
+      setTimeout(loadChunk, 100);
     });
 
     /* 3 ─ GSAP: entrance + scroll-scrub */
@@ -253,6 +282,21 @@ export default function LuxuryHero() {
             // Removed fallback background color
           }}
         >
+          {/* LCP Fallback Image: Ensures the browser fetches the first frame immediately before JS runs */}
+          <img 
+            src="/images/hero-bg_frames/hero-bg_frames/frame_000.jpg"
+            alt=""
+            fetchPriority="high"
+            decoding="sync"
+            style={{
+              position: "absolute",
+              inset: 0,
+              width: "100%",
+              height: "100%",
+              objectFit: "cover",
+              zIndex: -1, // Sits exactly behind the canvas
+            }}
+          />
 
           {/* CANVAS — full-bleed frame renderer */}
           <canvas
