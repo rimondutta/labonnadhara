@@ -284,7 +284,7 @@ export default function LuxuryHero() {
         >
           {/* LCP Fallback Image: Ensures the browser fetches the first frame immediately before JS runs */}
           <img 
-            src="/images/hero-bg_frames/hero-bg_frames/frame_000.jpg"
+            src="/images/hero-bg_frames/hero-bg_frames/frame_001.jpg"
             alt=""
             fetchPriority="high"
             decoding="sync"
