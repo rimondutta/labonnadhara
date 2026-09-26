@@ -232,7 +232,7 @@ export default function Homepage({
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-[1200px] mx-auto">
           {[
             {
-              productImg: "https://images.unsplash.com/photo-1599643478524-fb66f7ca2bc6?w=400&q=80",
+              productImg: "https://scontent.fcgp3-1.fna.fbcdn.net/v/t39.30808-1/788705149_1095884756115913_6096616204972118746_n.jpg?stp=dst-jpg_tt6&cstp=mx2048x2046&ctp=s200x200&_nc_cat=109&_nc_map=urlgen_bucketless&ccb=1-7&_nc_sid=e99d92&_nc_ohc=smPWco-WqZ0Q7kNvwGEHhgn&_nc_oc=Adon-CCnee90nyT-ewvKaGpI9XEEvAY_Ie05z_EPGwEDU-J823-9GcnSiY9gXWbfyzc&_nc_zt=24&_nc_ht=scontent.fcgp3-1.fna&_nc_gid=iKDHPXN8bVjNFDfnnX6wLw&_nc_ss=7b2a8&oh=00_AQKgzvSEsNOw26NpIuVBN4q8y8k35YK4Pf327pHyZu0gXw&oe=6ABDA6AE",
               review: "জুয়েলারির কোয়ালিটি খুব ভালো। প্যাকেজিংও অসাধারণ ছিল। অবশ্যই আবার কিনবো।",
               name: "Trishna Das",
               location: "Chattogram",
