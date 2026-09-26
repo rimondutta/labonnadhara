@@ -1,9 +1,10 @@
 import React from "react";
 import Link from "next/link";
-import Image, { getImageProps } from "next/image";
+import Image from "next/image";
 import dynamic from "next/dynamic";
 import { ArrowRight, Truck, RotateCcw, Headphones } from "lucide-react";
-import HeroAnimationWrapper from "@/components/ui/HeroAnimationWrapper";
+
+import LuxuryHero from "@/components/sections/LuxuryHero";
 
 const DynamicProductGridRimon = dynamic(() => import("@/components/ui/product-grid-rimon"));
 import AnimatedReveal from "@/components/ui/AnimatedReveal";
@@ -31,64 +32,14 @@ export default function Homepage({
   const categories = initialCategories;
   const blogs = initialBlogs;
 
-  // Generate responsive image props for hero background
-  const commonHeroProps = { alt: "Elegant jewelry hero background", fill: true, priority: true, fetchPriority: "high" as const, sizes: "100vw" };
-  const { props: desktopHeroProps } = getImageProps({ ...commonHeroProps, src: "/images/hero-bg.jpg" });
-  const { props: mobileHeroProps } = getImageProps({ ...commonHeroProps, src: "/images/mobile-hero-bg.jpg" });
 
   return (
     <div className="bg-white min-h-screen font-body" suppressHydrationWarning>
 
       {/* ═══════════════════════════════════════════════
-          HERO — Full width image background
+          HERO — Luxury Editorial Campaign
           ═══════════════════════════════════════════════ */}
-      <section className="relative min-h-[92vh] flex items-center overflow-hidden">
-
-
-        <div className="absolute inset-0 z-0 bg-[#0a0a0a]">
-          <div className="absolute inset-0 /40 z-10" />
-
-          {/* Art Direction for Hero Image to fix preload warnings */}
-          <picture>
-            <source media="(max-width: 640px)" srcSet={mobileHeroProps.srcSet} />
-            <source media="(min-width: 641px)" srcSet={desktopHeroProps.srcSet} />
-            <img 
-              {...desktopHeroProps} 
-              className="object-cover object-center w-full h-full"
-            />
-          </picture>
-        </div>
-
-        <div className="relative z-10 w-full px-4 sm:px-8 lg:px-[8vw] pt-28 sm:pt-32 pb-12 md:pb-20 flex flex-col justify-center h-full max-w-[1440px] mx-auto">
-          <HeroAnimationWrapper className="max-w-lg md:max-w-xl lg:max-w-2xl flex flex-col items-center text-center md:items-start md:text-left mx-auto md:mx-0">
-            <p data-hero-item className="font-serif italic text-[#de2b6a] text-lg sm:text-xl md:text-2xl lg:text-3xl mb-3 md:mb-5">
-              Welcome to Labonnadhara
-            </p>
-
-            <h1 data-hero-item className="font-serif font-bold text-4xl sm:text-5xl md:text-6xl lg:text-7xl leading-[1.1] tracking-tight mb-4 sm:mb-6">
-              <span className="text-[#2c3e50] block drop-shadow-sm">Elegant Jewelry</span>
-              <span className="text-[#de2b6a] block mt-1 drop-shadow-sm">for Every Moment</span>
-            </h1>
-
-            <p data-hero-item className="font-sans text-base sm:text-lg md:text-xl lg:text-[22px] text-[#334155] mb-2 font-medium tracking-wide drop-shadow-sm">
-              Beautiful. Trendy. Timeless.
-            </p>
-
-            <p data-hero-item className="font-sans text-sm sm:text-base md:text-lg text-[#475569] mb-8 sm:mb-10 max-w-lg leading-relaxed">
-              আপনার প্রতিদিনের লুককে আরও আকর্ষণীয় করে তুলুন<br className="hidden md:block" /> আমাদের অনন্য জুয়েলারির সাথে।
-            </p>
-
-            <div data-hero-item className="flex items-center gap-4 flex-wrap justify-center md:justify-start">
-              <Link
-                href="/products"
-                className="inline-flex items-center justify-center bg-[#de2b6a] text-white font-sans font-semibold text-sm md:text-base px-8 sm:px-10 py-3.5 sm:py-4 rounded-full hover:bg-[#c4205a] transition-all duration-300 shadow-[0_8px_20px_rgba(222,43,106,0.3)] hover:shadow-[0_12px_25px_rgba(222,43,106,0.4)] hover:-translate-y-1"
-              >
-                Shop Now
-              </Link>
-            </div>
-          </HeroAnimationWrapper>
-        </div>
-      </section>
+      <LuxuryHero />
 
       {/* ═══════════════════════════════════════════════
           FEATURES STRIP
@@ -305,7 +256,7 @@ export default function Homepage({
             <AnimatedReveal key={i} delay={i * 0.1}>
               <div className="bg-[#FFF8FB] border border-[#F3D6E2] rounded-2xl p-5 sm:p-6 flex gap-5 items-center hover:shadow-md transition-shadow duration-300">
                 <div className="shrink-0 relative w-[80px] h-[80px] sm:w-[90px] sm:h-[90px] rounded-full overflow-hidden shadow-sm border-2 border-white">
-                  <Image src={item.productImg} alt="Customer product" fill loading="lazy" sizes="90px" className="object-cover" />
+                  <Image src={item.productImg} alt="Customer product" fill loading="lazy" sizes="90px" className="object-cover" unoptimized />
                 </div>
                 <div className="flex flex-col flex-1">
                   <div className="flex text-[#F59E0B] mb-2 gap-0.5">
@@ -318,7 +269,7 @@ export default function Homepage({
                   </p>
                   <div className="flex items-center gap-2.5">
                     <div className="relative w-8 h-8 rounded-full overflow-hidden shadow-sm border border-white">
-                      <Image src={item.avatarImg} alt={item.name} fill loading="lazy" sizes="32px" className="object-cover" />
+                      <Image src={item.avatarImg} alt={item.name} fill loading="lazy" sizes="32px" className="object-cover" unoptimized />
                     </div>
                     <div className="flex flex-col">
                       <span className="font-sans font-bold text-[13px] text-[#252B3A] leading-none mb-1">{item.name}</span>
