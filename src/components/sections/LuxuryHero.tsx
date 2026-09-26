@@ -307,9 +307,10 @@ export default function LuxuryHero() {
             position: "sticky",
             top: 0,
             width: "100%",
-            height: "100svh", // svh fixes mobile Safari bottom-bar issues
+            height: "100svh",
             overflow: "hidden",
-            // Removed fallback background color
+            // contain:paint scopes paint/style recalc without breaking sticky positioning
+            contain: "paint",
           }}
         >
           {/* LCP Fallback Image: Highly optimized WebP/AVIF via Next.js Image */}
@@ -326,7 +327,7 @@ export default function LuxuryHero() {
             }}
           />
 
-          {/* CANVAS — full-bleed frame renderer */}
+          {/* CANVAS — full-bleed frame renderer, promoted to own GPU layer */}
           <canvas
             ref={canvasRef}
             aria-hidden="true"
@@ -337,6 +338,9 @@ export default function LuxuryHero() {
               width: "100%",
               height: "100%",
               pointerEvents: "none",
+              // Own compositing layer prevents main-thread involvement during draw
+              willChange: "contents",
+              imageRendering: "auto",
             }}
           />
 
