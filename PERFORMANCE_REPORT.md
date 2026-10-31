@@ -104,8 +104,22 @@ $ npm run lint
 ✔ 0 errors, 142 warnings (all pre-existing non-fatal warnings preserved)
 ```
 
-### Next.js Production Route Architecture
-- **`/` (Homepage):** Static / ISR with `revalidate: 60`.
+### Next.js Production Build
+```text
+▲ Next.js 16.3.5
+- Environments: .env
+✓ Compiled successfully in 11.4s
+✓ Generating static pages (76/76) in 7.7s
+✓ Finalizing page optimization ...
+
+Route (app)                                    Revalidate  Expire
+┌ ○ /                                                  1m      1y
+├ ○ /products                                          1m      1y
+├ ● /products/[slug]                                   1m      1y
+```
+- **Exit Code:** 0 (Clean Build)
+- **Warning Eliminated:** `⚠ Warning: Next.js ignored package-lock.json in C:\Users\PC` completely silenced by pinning `turbopack.root` and `outputFileTracingRoot`.
+- **Homepage `/`:** Prerendered as Static ISR (`○ /`, Revalidate 1m, Expire 1y).
 - **Cache Layer:** Dual-layer:
   - Layer 1: Vercel Edge CDN Cache (60s S-MaxAge).
   - Layer 2: Upstash Redis Key-Value Store (300s TTL).
@@ -113,16 +127,30 @@ $ npm run lint
 
 ---
 
-## 4. Manual Actions Required
+## 4. Verification of MongoDB Indexes
 
-### 1. Run the MongoDB Index Script
-To ensure MongoDB Atlas has all the required compound indexes created offline, run this once:
-```bash
-npx ts-node --compiler-options "{\"module\":\"CommonJS\"}" scripts/create-indexes.ts
+Executed `node scripts/create-indexes.js` against MongoDB Atlas:
+```text
+🔄 Connecting to MongoDB...
+✅ Connected to MongoDB.
+
+📊 Creating Product indexes...
+✅ Product indexes verified.
+
+📊 Creating Category indexes...
+✅ Category indexes verified.
+
+📊 Creating BlogPost indexes...
+✅ BlogPost indexes verified.
+
+🎉 All indexes successfully created/verified!
+👋 Disconnected from MongoDB.
 ```
-*(Make sure `MONGODB_URI` is present in your `.env` or passed via command line).*
 
-### 2. Verify Region Alignment
+---
+
+## 5. Region Alignment Recommendations
+
 In `vercel.json`, we configured:
 ```json
 {
@@ -132,3 +160,4 @@ In `vercel.json`, we configured:
 **Recommendation:**
 - If your **MongoDB Atlas** cluster and **Upstash Redis** database are in **Washington, D.C. (`us-east-1` / `iad1`)**, keep `"iad1"`.
 - If your Atlas or Upstash instance is hosted in **Singapore (`ap-southeast-1` / `sin1`)** or **Mumbai (`ap-south-1` / `bom1`)**, update `"regions"` in `vercel.json` to `["sin1"]` or `["bom1"]` to ensure your Vercel serverless functions reside in the same data center as your databases.
+

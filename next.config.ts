@@ -1,6 +1,13 @@
 import type { NextConfig } from "next";
+import path from "path";
 
 const nextConfig: NextConfig = {
+  // Pin root directory to prevent Next.js from detecting stray package-lock.json in parent folders
+  outputFileTracingRoot: path.join(__dirname),
+  turbopack: {
+    root: path.join(__dirname),
+  },
+
   // Prevent Next.js from bundling @react-pdf/renderer with webpack.
   // It relies on Node.js built-ins and must run as a server external.
   serverExternalPackages: ['@react-pdf/renderer'],
