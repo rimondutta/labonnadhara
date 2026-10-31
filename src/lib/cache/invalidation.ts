@@ -40,7 +40,8 @@ export const KEYS = {
   categoryProducts: (id: string)   => `cache:category-products:${id}`,
 
   // Homepage
-  homepage:         ()             => 'cache:home:isr:data',
+  homepage:         ()             => 'cache:home:data',
+  homepageLegacy:   ()             => 'cache:home:isr:data',
 
   // Settings / Navigation
   settings:         ()             => 'cache:settings:global',
@@ -76,6 +77,7 @@ export async function invalidateProduct(productId: string, slug?: string): Promi
       KEYS.featuredProducts(),
       // homepage may reference this product (trending)
       KEYS.homepage(),
+      KEYS.homepageLegacy(),
     ];
 
     if (slug) {
@@ -182,7 +184,7 @@ export async function invalidateCategoryList(): Promise<void> {
 
 export async function invalidateHomepage(): Promise<void> {
   try {
-    await deleteCached(KEYS.homepage());
+    await deleteCached(KEYS.homepage(), KEYS.homepageLegacy());
     const { revalidatePath } = await import('next/cache');
     revalidatePath('/');
   } catch (err) {

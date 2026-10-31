@@ -15,8 +15,8 @@ import FramerMotionProvider from "@/components/providers/FramerMotionProvider";
 
 const playfair = Playfair_Display({
   subsets: ["latin"],
-  weight: ["400", "500", "600", "700", "800", "900"],
-  style: ["normal", "italic"],
+  weight: ["600", "700"],
+  style: ["normal"],
   variable: "--font-playfair",
   display: "swap",
 });
@@ -75,8 +75,12 @@ export default function RootLayout({
       className={`${playfair.variable} ${poppins.variable}`}
     >
       <head>
-        <link rel="preconnect" href="https://res.cloudinary.com" />
+        <link rel="preconnect" href="https://res.cloudinary.com" crossOrigin="anonymous" />
+        <link rel="dns-prefetch" href="https://res.cloudinary.com" />
         <link rel="dns-prefetch" href="https://connect.facebook.net" />
+        {/* LCP hero image preload hints for mobile & desktop */}
+        <link rel="preload" as="image" href="/images/mobile-hero-bg.jpg" media="(max-width: 640px)" fetchPriority="high" />
+        <link rel="preload" as="image" href="/images/hero-bg.jpg" media="(min-width: 641px)" fetchPriority="high" />
 
         {/* Google Analytics */}
         <Script

@@ -3,36 +3,72 @@ import connectToDatabase from "@/lib/db";
 import Product from "@/models/Product";
 import Category from "@/models/Category";
 import BlogPost from "@/models/BlogPost";
+import { getOrSetCached } from "@/lib/cache/redis-cache";
 
-// Set ISR Revalidation window to 60 seconds.
-// This allows 800k traffic to hit the Vercel Edge Cache, falling back to DB only once per minute.
+// Enable ISR caching at Vercel Edge / CDN
 export const revalidate = 60;
 
+const HOMEPAGE_CACHE_KEY = 'cache:home:data';
+const HOMEPAGE_TTL = 300; // 5 min in Redis
+
+async function fetchHomepageData() {
+  const startTotal = performance.now();
+
+  const data = await getOrSetCached(
+    HOMEPAGE_CACHE_KEY,
+    HOMEPAGE_TTL,
+    async () => {
+      if (!process.env.MONGODB_URI) {
+        return { trendingProducts: [], categories: [], latestBlogs: [] };
+      }
+      const dbStart = performance.now();
+      await connectToDatabase();
+      const dbConnectDuration = (performance.now() - dbStart).toFixed(2);
+
+      const queryStart = performance.now();
+      // Execute all 3 queries in parallel with lean() and targeted select()
+      const [dbProducts, dbCategories, dbBlogs] = await Promise.all([
+        Product.find({ isPublished: true })
+          .select('title price compareAtPrice slug images badge inventory rating reviewCount')
+          .sort({ createdAt: -1 })
+          .limit(4)
+          .lean(),
+        Category.find({ isActive: true })
+          .select('name slug image')
+          .limit(10)
+          .lean(),
+        BlogPost.find({ isPublished: true })
+          .select('title slug excerpt featuredImage category publishedAt createdAt')
+          .sort({ publishedAt: -1 })
+          .limit(3)
+          .lean(),
+      ]);
+      const queryDuration = (performance.now() - queryStart).toFixed(2);
+
+      console.log(`[PERF][Homepage-DB-Miss] DB Connect: ${dbConnectDuration}ms | Queries: ${queryDuration}ms`);
+
+      return {
+        trendingProducts: JSON.parse(JSON.stringify(dbProducts)),
+        categories: JSON.parse(JSON.stringify(dbCategories)),
+        latestBlogs: JSON.parse(JSON.stringify(dbBlogs)),
+      };
+    }
+  );
+
+  const totalDuration = (performance.now() - startTotal).toFixed(2);
+  console.log(`[PERF][Homepage-Total] Data Fetch: ${totalDuration}ms`);
+
+  return data;
+}
+
 export default async function Home() {
-  await connectToDatabase();
+  const { trendingProducts, categories, latestBlogs } = await fetchHomepageData();
 
-  // Fetch trending products and categories server-side in parallel
-  const { withCache } = await import('@/lib/cache');
-
-  const [dbProducts, dbCategories, dbBlogs] = await withCache('home:isr:data', 60, async () => {
-    return await Promise.all([
-      Product.find({ isPublished: true })
-        .select('title price compareAtPrice slug images category badge colors sizes inventory rating reviewCount')
-        .sort({ createdAt: -1 })
-        .limit(4)
-        .lean(),
-      Category.find({}).lean(),
-      BlogPost.find({ isPublished: true })
-        .sort({ publishedAt: -1 })
-        .limit(3)
-        .lean()
-    ]);
-  });
-
-  // Serialize MongoDB Data (object IDs to strings)
-  const trendingProducts = JSON.parse(JSON.stringify(dbProducts));
-  const categories = JSON.parse(JSON.stringify(dbCategories));
-  const latestBlogs = JSON.parse(JSON.stringify(dbBlogs));
-
-  return <Homepage initialTrendingProducts={trendingProducts} initialCategories={categories} initialBlogs={latestBlogs} />;
+  return (
+    <Homepage
+      initialTrendingProducts={trendingProducts}
+      initialCategories={categories}
+      initialBlogs={latestBlogs}
+    />
+  );
 }
