@@ -48,22 +48,6 @@ const nextConfig: NextConfig = {
     ],
   },
 
-
-  experimental: {
-    // Tree-shake these large packages to only import what is actually used.
-    // Fixes "Reduce unused JavaScript" and "Legacy JavaScript" PageSpeed issues.
-    optimizePackageImports: [
-      'framer-motion',
-      'lucide-react',
-      '@tabler/icons-react',
-      'swiper',
-      'react-icons',
-      '@heroicons/react',
-      'gsap',
-      'lenis',
-    ],
-  },
-
   async headers() {
     return [
       {
