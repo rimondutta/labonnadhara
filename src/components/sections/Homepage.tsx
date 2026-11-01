@@ -46,7 +46,7 @@ export default function Homepage({
 
 
         <div className="absolute inset-0 z-0 bg-[#0a0a0a]">
-          <div className="absolute inset-0 /40 z-10" />
+          <div className="absolute inset-0 bg-black/40 z-10" />
 
           {/* Art Direction for Hero Image to fix preload warnings */}
           <picture>
