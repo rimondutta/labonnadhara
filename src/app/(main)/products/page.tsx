@@ -10,17 +10,16 @@ export const revalidate = 60;
 export default async function ShopPage() {
   await connectToDatabase();
 
-  // Pre-fetch top 200 products to allow instant client-side filtering without hitting API routes.
-  // Note: For a real 500k catalog, you would want server-side pagination, but preserving the current filtering logic
-  // means we pass the list to the client. This is still MUCH better than a client-side fetch on mount.
+  // Pre-fetch top 48 products to allow instant client-side filtering without hitting API routes.
+  // Capped at 48 to keep the initial page payload lean and reduce Time-to-Interactive.
   const { withCache } = await import('@/lib/cache');
   
-  const products = await withCache('products:isr:list', 60, async () => {
+  const products = await withCache('products:isr:list:48', 60, async () => {
     return await Product.find({ isPublished: true })
       .populate('category')
       .select('title price compareAtPrice slug images category badge ageRange createdAt rating reviewCount inventory hasVariations variants')
       .sort({ createdAt: -1 })
-      .limit(200)
+      .limit(48)
       .lean();
   });
 

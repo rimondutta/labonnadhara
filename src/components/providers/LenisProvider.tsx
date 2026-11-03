@@ -8,6 +8,15 @@ export default function LenisProvider({
   children: React.ReactNode;
 }) {
   useEffect(() => {
+    // 1. Accessibility check: respect user's reduced motion preference
+    const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (prefersReducedMotion) return;
+
+    // 2. Device capability check: Only enable smooth scrolling for fine pointer devices (desktops/laptops with mouse/trackpad).
+    // On touch/mobile devices, native momentum scrolling is smoother, more battery-efficient, and does not hijack gestures.
+    const isTouchOnly = window.matchMedia("(pointer: coarse) and (hover: none)").matches;
+    if (isTouchOnly) return;
+
     let cleanup: (() => void) | null = null;
 
     // Fully deferred: Lenis + GSAP are dynamically imported so they never

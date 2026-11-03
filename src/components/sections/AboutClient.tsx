@@ -87,7 +87,6 @@ function ScrollCard() {
 
       {/* Main card */}
       <m.div
-        style={{ rotate, y, scale }}
         className="relative z-10 rounded-[28px] p-8 w-64 shadow-2xl flex flex-col gap-4 cursor-pointer border border-[#F3D6E2]"
         style={{ rotate, y, scale, background: "linear-gradient(135deg, #D62B72 0%, #C51F63 100%)" }}
         whileHover={{ scale: 1.06, transition: { duration: 0.3 } }}

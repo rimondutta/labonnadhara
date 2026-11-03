@@ -37,22 +37,25 @@ export async function POST(
       return NextResponse.json({ error: 'Product not found' }, { status: 404 });
     }
 
-    // Add the new review
+    // Add the new review with pending status (requires admin approval before it counts)
     const newReview = {
       rating: Number(rating),
       title: title.trim(),
       text: text.trim(),
       name: name.trim(),
       date: new Date(),
-      status: 'pending'
+      status: 'pending',
     };
 
     product.reviews.push(newReview);
 
-    // Recalculate average rating
-    const totalRating = product.reviews.reduce((sum: number, review: any) => sum + review.rating, 0);
-    product.rating = Number((totalRating / product.reviews.length).toFixed(1));
-    product.reviewCount = product.reviews.length;
+    // Recalculate average rating using ONLY published reviews.
+    // Pending or rejected reviews must not affect the public product rating.
+    const publishedReviews = product.reviews.filter((r: { status: string }) => r.status === 'published');
+    product.rating = publishedReviews.length > 0
+      ? Number((publishedReviews.reduce((sum: number, r: { rating: number }) => sum + r.rating, 0) / publishedReviews.length).toFixed(1))
+      : 0;
+    product.reviewCount = publishedReviews.length;
 
     await product.save();
 
@@ -64,7 +67,7 @@ export async function POST(
     }
 
     return NextResponse.json({ success: true, product });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error submitting review:', error);
     return NextResponse.json({ error: 'Failed to submit review' }, { status: 500 });
   }
