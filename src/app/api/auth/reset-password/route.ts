@@ -10,8 +10,8 @@ import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
 import connectToDatabase from '@/lib/db';
 import User from '@/models/User';
-
-const JWT_SECRET = process.env.NEXTAUTH_SECRET || 'fallback_secret_for_dev';
+import { getJwtSecret } from '@/lib/jwt-secret';
+import { checkRateLimit, getClientIp } from '@/lib/ratelimit';
 
 const CORS = {
   'Access-Control-Allow-Origin': '*',
@@ -21,6 +21,21 @@ const CORS = {
 
 export async function POST(req: Request) {
   try {
+    const ip = getClientIp(req);
+    const rateLimit = await checkRateLimit(ip, 'auth');
+    if (rateLimit.isLimited) {
+      return NextResponse.json(
+        { success: false, error: 'Too many password reset attempts. Please wait before retrying.' },
+        {
+          status: 429,
+          headers: {
+            ...CORS,
+            'Retry-After': String(Math.max(1, Math.ceil((rateLimit.reset - Date.now()) / 1000))),
+          },
+        }
+      );
+    }
+
     const body = await req.json();
     const { resetToken, newPassword } = body;
 
@@ -32,17 +47,19 @@ export async function POST(req: Request) {
     }
 
     // Validate password strength (min 8 chars)
-    if (newPassword.length < 8) {
+    if (typeof newPassword !== 'string' || newPassword.length < 8) {
       return NextResponse.json(
         { success: false, error: 'Password must be at least 8 characters.' },
         { status: 400, headers: CORS }
       );
     }
 
+    const secret = getJwtSecret();
+
     // Verify JWT and check purpose
     let payload: any;
     try {
-      payload = jwt.verify(resetToken, JWT_SECRET);
+      payload = jwt.verify(resetToken, secret);
     } catch {
       return NextResponse.json(
         { success: false, error: 'Reset link has expired or is invalid. Please request a new one.' },

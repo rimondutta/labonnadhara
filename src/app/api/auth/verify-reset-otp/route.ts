@@ -6,12 +6,13 @@
  * on success. Locks out after 5 failed attempts.
  */
 import { NextResponse } from 'next/server';
-import { createHash } from 'crypto';
+import { createHash, timingSafeEqual } from 'crypto';
 import jwt from 'jsonwebtoken';
 import connectToDatabase from '@/lib/db';
 import User from '@/models/User';
+import { getJwtSecret } from '@/lib/jwt-secret';
+import { checkRateLimit, getClientIp } from '@/lib/ratelimit';
 
-const JWT_SECRET = process.env.NEXTAUTH_SECRET || 'fallback_secret_for_dev';
 const MAX_ATTEMPTS = 5;
 
 const CORS = {
@@ -22,6 +23,21 @@ const CORS = {
 
 export async function POST(req: Request) {
   try {
+    const ip = getClientIp(req);
+    const rateLimit = await checkRateLimit(ip, 'auth');
+    if (rateLimit.isLimited) {
+      return NextResponse.json(
+        { success: false, error: 'Too many verification attempts. Please wait before retrying.' },
+        {
+          status: 429,
+          headers: {
+            ...CORS,
+            'Retry-After': String(Math.max(1, Math.ceil((rateLimit.reset - Date.now()) / 1000))),
+          },
+        }
+      );
+    }
+
     const body = await req.json();
     const email = (body.email ?? '').trim().toLowerCase();
     const otp = String(body.otp ?? '').trim();
@@ -67,9 +83,13 @@ export async function POST(req: Request) {
       );
     }
 
-    // Hash the submitted OTP and compare
+    // Timing-safe comparison of the SHA-256 hash
     const submittedHash = createHash('sha256').update(otp).digest('hex');
-    if (submittedHash !== user.resetOtpHash) {
+    const isOtpValid =
+      submittedHash.length === user.resetOtpHash.length &&
+      timingSafeEqual(Buffer.from(submittedHash, 'utf-8'), Buffer.from(user.resetOtpHash, 'utf-8'));
+
+    if (!isOtpValid) {
       // Increment failed attempts
       user.resetOtpAttempts = (user.resetOtpAttempts ?? 0) + 1;
       await user.save();
@@ -89,6 +109,8 @@ export async function POST(req: Request) {
     user.resetOtpAttempts = 0;
     await user.save();
 
+    const secret = getJwtSecret();
+
     // Issue a short-lived reset token scoped to password_reset only
     const resetToken = jwt.sign(
       {
@@ -96,7 +118,7 @@ export async function POST(req: Request) {
         email: user.email,
         purpose: 'password_reset',
       },
-      JWT_SECRET,
+      secret,
       { expiresIn: '10m' }
     );
 

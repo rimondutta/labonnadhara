@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import bcrypt from 'bcryptjs';
 import connectToDatabase from '@/lib/db';
 import User from '@/models/User';
+import { checkRateLimit, getClientIp } from '@/lib/ratelimit';
 
 const CORS_HEADERS = {
   'Access-Control-Allow-Origin': '*',
@@ -11,6 +12,21 @@ const CORS_HEADERS = {
 
 export async function POST(request: Request) {
   try {
+    const ip = getClientIp(request);
+    const rateLimit = await checkRateLimit(ip, 'auth');
+    if (rateLimit.isLimited) {
+      return NextResponse.json(
+        { success: false, error: 'Too many registration attempts. Please try again later.' },
+        {
+          status: 429,
+          headers: {
+            ...CORS_HEADERS,
+            'Retry-After': String(Math.max(1, Math.ceil((rateLimit.reset - Date.now()) / 1000))),
+          },
+        }
+      );
+    }
+
     const { name, email, password } = await request.json();
 
     if (!name || !email || !password) {
@@ -20,7 +36,7 @@ export async function POST(request: Request) {
       );
     }
 
-    if (password.length < 6) {
+    if (typeof password !== 'string' || password.length < 6) {
       return NextResponse.json(
         { success: false, error: 'Password must be at least 6 characters' },
         { status: 400, headers: CORS_HEADERS }

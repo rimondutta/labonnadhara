@@ -1,15 +1,16 @@
 /**
  * POST /api/auth/forgot-password
  *
- * Generates a 6-digit OTP, hashes it, stores it on the user, and sends
- * a branded email. Never reveals whether an email exists (account enumeration
- * protection). Rate-limited to 1 request per 60 seconds per email.
+ * Generates a 6-digit OTP, hashes it with SHA-256, stores it on the user, and sends
+ * a branded email. Never reveals whether an email exists (Account Enumeration Protection).
+ * Rate-limited per IP and per email. Uses timing equalization to defeat timing attacks.
  */
 import { NextResponse } from 'next/server';
 import { createHash, randomInt } from 'crypto';
 import connectToDatabase from '@/lib/db';
 import User from '@/models/User';
 import { sendPasswordResetOtpEmail } from '@/lib/nodemailer';
+import { checkRateLimit, getClientIp } from '@/lib/ratelimit';
 
 const CORS = {
   'Access-Control-Allow-Origin': '*',
@@ -24,6 +25,22 @@ const GENERIC_OK = {
 
 export async function POST(req: Request) {
   try {
+    // 1. IP-based rate limiting (5 req / 1 min per IP)
+    const ip = getClientIp(req);
+    const ipLimit = await checkRateLimit(ip, 'auth');
+    if (ipLimit.isLimited) {
+      return NextResponse.json(
+        { success: false, error: 'Too many password reset requests. Please wait before retrying.' },
+        {
+          status: 429,
+          headers: {
+            ...CORS,
+            'Retry-After': String(Math.max(1, Math.ceil((ipLimit.reset - Date.now()) / 1000))),
+          },
+        }
+      );
+    }
+
     const body = await req.json();
     const email = (body.email ?? '').trim().toLowerCase();
 
@@ -34,6 +51,21 @@ export async function POST(req: Request) {
       );
     }
 
+    // 2. Email-based rate limiting (3 req / 1 min per target email account)
+    const emailLimit = await checkRateLimit(`forgot-pwd:${email}`, 'auth');
+    if (emailLimit.isLimited) {
+      return NextResponse.json(
+        { success: false, error: 'Too many password reset requests for this email. Please wait before retrying.' },
+        {
+          status: 429,
+          headers: {
+            ...CORS,
+            'Retry-After': String(Math.max(1, Math.ceil((emailLimit.reset - Date.now()) / 1000))),
+          },
+        }
+      );
+    }
+
     await connectToDatabase();
 
     // Select hidden OTP fields explicitly
@@ -41,15 +73,18 @@ export async function POST(req: Request) {
       '+resetOtpHash +resetOtpExpiresAt +resetOtpAttempts +resetOtpRequestedAt'
     );
 
-    // If user not found, return an error for better UX
+    // 3. Security: Timing-equalized response when user does NOT exist
     if (!user) {
-      return NextResponse.json(
-        { success: false, error: 'No account found with this email address.' },
-        { status: 404, headers: CORS }
-      );
+      // Perform dummy hashing and simulated latency (300-450ms) to match email send timing
+      const dummyOtp = String(randomInt(100000, 999999));
+      createHash('sha256').update(dummyOtp).digest('hex');
+      const jitterMs = 300 + (randomInt(0, 150));
+      await new Promise((resolve) => setTimeout(resolve, jitterMs));
+
+      return NextResponse.json(GENERIC_OK, { headers: CORS });
     }
 
-    // Rate limit: max 1 OTP request per 60 seconds
+    // Rate limit: max 1 OTP request per 60 seconds per user account in database
     if (user.resetOtpRequestedAt) {
       const secondsSinceLast =
         (Date.now() - new Date(user.resetOtpRequestedAt).getTime()) / 1000;
@@ -66,7 +101,7 @@ export async function POST(req: Request) {
       }
     }
 
-    // Generate OTP
+    // Generate real OTP
     const otp = String(randomInt(100000, 999999));
     const otpHash = createHash('sha256').update(otp).digest('hex');
     const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes

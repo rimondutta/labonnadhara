@@ -13,22 +13,12 @@ interface PixelConfig {
  * FacebookPixel
  *
  * Fetches the current pixel config from /api/settings/pixel and — only if
- * enabled === true and a valid pixelId exists — injects the Meta Pixel base
- * code using next/script's "afterInteractive" strategy.
+ * enabled === true and a valid numeric pixelId exists — injects the Meta Pixel base
+ * code using next/script's "lazyOnload" strategy.
  *
- * Rendered once in the root layout to avoid duplicate initialization.
- *
- * SPA Route Tracking:
- * Next.js App Router is a SPA — navigating via <Link> or router.push() does
- * NOT reload the page, so the base script's initial fbq('track', 'PageView')
- * only fires once. We track client-side route changes via usePathname() and
- * fire a new PageView on each navigation — but ONLY after the pixel script has
- * fully loaded (guarded by `pixelReady`) to avoid losing events.
- *
- * ⚠️  GDPR/PDPA Note: This implementation loads the pixel as soon as the page
- * opens. If your target market requires explicit cookie consent (e.g., EU/EEA,
- * Thailand), integrate a consent management platform (CMP) and gate the
- * rendering of this component behind the user's consent signal.
+ * Security: Validates pixelId against a strict numeric regex (/^\d{5,20}$/) to prevent
+ * stored XSS injection via database settings into dangerouslySetInnerHTML, and embeds
+ * the value safely using JSON.stringify.
  */
 export default function FacebookPixel() {
   const [config, setConfig] = useState<PixelConfig | null>(null);
@@ -38,18 +28,13 @@ export default function FacebookPixel() {
 
   useEffect(() => {
     if (typeof window !== "undefined") {
-      // Set initial path once when component mounts
       initialPathnameRef.current = window.location.pathname;
 
-      // Instantly capture fbclid from URL before Next.js routing can strip it or before lazyOnload pixel fires.
       const urlParams = new URLSearchParams(window.location.search);
       const fbclid = urlParams.get("fbclid");
       if (fbclid) {
-        // Meta _fbc format: fb.<subdomainIndex>.<creationTime>.<fbclid>
-        // Use 1 for subdomain index as standard.
         const creationTime = Date.now();
         const fbcValue = `fb.1.${creationTime}.${fbclid}`;
-        // Store for 90 days (Meta standard)
         document.cookie = `_fbc=${fbcValue}; path=/; max-age=${90 * 24 * 60 * 60}; SameSite=Lax`;
       }
     }
@@ -61,20 +46,22 @@ export default function FacebookPixel() {
   }, []);
 
   useEffect(() => {
-    // Only track route changes if config is loaded and enabled
     if (!config || !config.enabled || !config.pixelId) return;
-    
-    // Skip the first render because the inline script already tracks the initial PageView
     if (pathname === initialPathnameRef.current) return;
 
-    if (typeof window !== "undefined" && (window as any).fbq) {
-      (window as any).fbq("track", "PageView");
+    if (typeof window !== "undefined" && (window as unknown as { fbq?: (...args: unknown[]) => void }).fbq) {
+      (window as unknown as { fbq: (...args: unknown[]) => void }).fbq("track", "PageView");
     }
   }, [pathname, config]);
 
-  if (!config || !config.enabled || !config.pixelId) return null;
+  // Strict numeric validation (5-20 digits). If invalid, render nothing.
+  const safePixelId = config?.pixelId && /^\d{5,20}$/.test(config.pixelId.trim())
+    ? config.pixelId.trim()
+    : null;
 
-  const pixelId = config.pixelId;
+  if (!config || !config.enabled || !safePixelId) return null;
+
+  const serializedPixelId = JSON.stringify(safePixelId);
 
   return (
     <>
@@ -91,7 +78,7 @@ export default function FacebookPixel() {
             t.src=v;s=b.getElementsByTagName(e)[0];
             s.parentNode.insertBefore(t,s)}(window, document,'script',
             'https://connect.facebook.net/en_US/fbevents.js');
-            fbq('init', '${pixelId}');
+            fbq('init', ${serializedPixelId});
             fbq('track', 'PageView');
           `,
         }}
@@ -101,7 +88,7 @@ export default function FacebookPixel() {
           height="1"
           width="1"
           style={{ display: "none" }}
-          src={`https://www.facebook.com/tr?id=${pixelId}&ev=PageView&noscript=1`}
+          src={`https://www.facebook.com/tr?id=${encodeURIComponent(safePixelId)}&ev=PageView&noscript=1`}
           alt=""
         />
       </noscript>

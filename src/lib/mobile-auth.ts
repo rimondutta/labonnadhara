@@ -1,8 +1,7 @@
 import { jwtVerify } from "jose";
 import { headers } from "next/headers";
 import { NextRequest } from "next/server";
-
-const JWT_SECRET = process.env.NEXTAUTH_SECRET || "fallback_secret_for_dev";
+import { getJwtSecretKey } from "@/lib/jwt-secret";
 
 export interface MobileSession {
   user: {
@@ -33,7 +32,7 @@ export async function getBearerSession(req?: NextRequest | Request): Promise<Mob
 
   const token = authHeader.split(" ")[1];
   try {
-    const secret = new TextEncoder().encode(JWT_SECRET);
+    const secret = getJwtSecretKey();
     const { payload } = await jwtVerify(token, secret);
     return {
       user: {
