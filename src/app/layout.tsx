@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Poppins, Playfair_Display } from "next/font/google";
+import localFont from "next/font/local";
 import Script from "next/script";
 import "./globals.css";
 import { CartProvider } from "@/components/providers/CartProvider";
@@ -13,18 +13,22 @@ import ExtensionHydrationFix from "@/components/ExtensionHydrationFix";
 import LenisProvider from "@/components/providers/LenisProvider";
 import FramerMotionProvider from "@/components/providers/FramerMotionProvider";
 
-const playfair = Playfair_Display({
-  subsets: ["latin"],
-  weight: ["600", "700"],
-  style: ["normal"],
+const playfair = localFont({
+  src: [
+    { path: "../../public/fonts/playfair-display-600.woff2", weight: "600", style: "normal" },
+    { path: "../../public/fonts/playfair-display-700.woff2", weight: "700", style: "normal" },
+  ],
   variable: "--font-playfair",
   display: "swap",
 });
 
-const poppins = Poppins({
-  subsets: ["latin"],
-  weight: ["400", "500", "600", "700"],
-  style: ["normal"],
+const poppins = localFont({
+  src: [
+    { path: "../../public/fonts/poppins-400.woff2", weight: "400", style: "normal" },
+    { path: "../../public/fonts/poppins-500.woff2", weight: "500", style: "normal" },
+    { path: "../../public/fonts/poppins-600.woff2", weight: "600", style: "normal" },
+    { path: "../../public/fonts/poppins-700.woff2", weight: "700", style: "normal" },
+  ],
   variable: "--font-poppins",
   display: "swap",
 });
