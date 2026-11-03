@@ -3,7 +3,6 @@
 import React, { useState, useEffect, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import Image from "next/image";
-import Link from "next/link";
 import {
   FaSearch,
   FaBox,
@@ -71,33 +70,35 @@ interface OrderData {
 function TrackOrderContent() {
   const searchParams = useSearchParams();
   const initialId = searchParams.get("id") || searchParams.get("orderId") || "";
+  const initialPhone = searchParams.get("phone") || "";
 
   const [orderIdInput, setOrderIdInput] = useState(initialId);
-  const [phoneInput, setPhoneInput] = useState("");
+  const [phoneInput, setPhoneInput] = useState(initialPhone);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [orderData, setOrderData] = useState<OrderData | null>(null);
   const [copied, setCopied] = useState(false);
 
-  const fetchTracking = async (idToSearch: string, phoneToSearch?: string) => {
-    if (!idToSearch.trim()) return;
+  const fetchTracking = async (idToSearch: string, phoneToSearch: string) => {
+    if (!idToSearch.trim() || !phoneToSearch.trim()) {
+      setError("Please enter both your Order ID and Shipping Phone Number to verify tracking.");
+      return;
+    }
+
     setLoading(true);
     setError(null);
     try {
-      let url = `/api/orders/track?orderId=${encodeURIComponent(idToSearch.trim())}`;
-      if (phoneToSearch?.trim()) {
-        url += `&phone=${encodeURIComponent(phoneToSearch.trim())}`;
-      }
+      const url = `/api/orders/track?orderId=${encodeURIComponent(idToSearch.trim())}&phone=${encodeURIComponent(phoneToSearch.trim())}`;
       const res = await fetch(url);
       const json = await res.json();
 
       if (!res.ok || !json.success) {
-        setError(json.error || "Order not found");
+        setError(json.error || "Order not found. Please verify your details.");
         setOrderData(null);
       } else {
         setOrderData(json.data);
       }
-    } catch (err: any) {
+    } catch {
       setError("Failed to fetch tracking details. Please try again.");
       setOrderData(null);
     } finally {
@@ -106,10 +107,10 @@ function TrackOrderContent() {
   };
 
   useEffect(() => {
-    if (initialId) {
-      fetchTracking(initialId);
+    if (initialId && initialPhone) {
+      fetchTracking(initialId, initialPhone);
     }
-  }, [initialId]);
+  }, [initialId, initialPhone]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -138,7 +139,7 @@ function TrackOrderContent() {
           Track Your Order
         </h1>
         <p className="font-body text-slate-600 text-base font-medium">
-          Enter your Order ID or Invoice Number below to view real-time courier status and step-by-step progress.
+          Enter your Order ID / Invoice Number and Phone Number to view real-time courier status and checkpoint history.
         </p>
       </div>
 
@@ -164,7 +165,7 @@ function TrackOrderContent() {
 
           <div>
             <label className="block font-mono text-xs font-bold uppercase tracking-wider text-slate-700 mb-2">
-              Shipping Phone Number <span className="text-slate-400 font-normal">(Optional validation)</span>
+              Shipping Phone Number <span className="text-rose-500">*</span>
             </label>
             <div className="relative">
               <input
@@ -172,6 +173,7 @@ function TrackOrderContent() {
                 value={phoneInput}
                 onChange={(e) => setPhoneInput(e.target.value)}
                 placeholder="e.g. 01712345678"
+                required
                 className="w-full bg-slate-50 border border-slate-300 focus:border-violet-600 focus:bg-white text-slate-900 px-5 py-4 pl-12 rounded-2xl font-mono text-sm font-semibold transition-all outline-none"
               />
               <FaPhoneAlt className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4" />
@@ -218,10 +220,10 @@ function TrackOrderContent() {
               <p className="text-sm font-medium text-slate-600">
                 Customer: <strong className="text-slate-900">{orderData.customerName || 'Customer'}</strong>
               </p>
-              {orderData.shippingAddress?.addressLine1 && (
+              {orderData.shippingAddress?.city && (
                 <p className="text-xs text-slate-500 flex items-center gap-1.5">
                   <FaMapMarkerAlt className="text-violet-600 w-3.5 h-3.5 shrink-0" />
-                  {orderData.shippingAddress.addressLine1}, {orderData.shippingAddress.city || 'Chattogram'}
+                  Destination: {orderData.shippingAddress.city} {orderData.shippingAddress.postcode ? `(${orderData.shippingAddress.postcode})` : ''}
                 </p>
               )}
             </div>

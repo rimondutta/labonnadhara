@@ -5,25 +5,26 @@ import connectToDatabase from '@/lib/db';
 import Order from '@/models/Order';
 import Product from '@/models/Product';
 import { isRateLimited } from '@/lib/ratelimit';
+import { calculateOrderTotals } from '@/lib/order-pricing';
 
 const OrderItemSchema = z.object({
   productId: z.string().min(1, "Product ID is required"),
   variantId: z.string().optional(),
-  quantity: z.number().int().min(1).max(99), // Sanitize: cap qty at 99
-  title: z.string().min(1),
+  quantity: z.number().int().min(1).max(99),
+  title: z.string().min(1).optional(),
   image: z.string().optional(),
-  // price is intentionally removed from client schema — server will enforce it
 });
 
 const OrderSchema = z.object({
   customerName: z.string().min(1, "Name is required"),
   customerEmail: z.string().email("Invalid email address").optional(),
   items: z.array(OrderItemSchema).min(1, "At least one item is required"),
-  totalAmount: z.number().min(0), // Client value — will be overwritten by server calculation
+  totalAmount: z.number().min(0).optional(),
   shippingCost: z.number().min(0).default(0),
   shippingZone: z.string().optional(),
   notes: z.string().optional(),
   paymentMethod: z.enum(['cod', 'bkash', 'card']).default('cod'),
+  couponCode: z.string().optional(),
   shippingAddress: z.object({
     addressLine1: z.string().min(1, "Address is required"),
     city: z.string().min(1, "City is required"),
@@ -59,51 +60,30 @@ export async function POST(req: Request) {
 
     await connectToDatabase();
 
-    // ─── SERVER-SIDE PRICE ENFORCEMENT ───────────────────────────────────────
-    // NEVER trust prices from the client. Fetch real prices from the DB.
-    const productIds = [...new Set(orderData.items.map(i => i.productId))];
-    const dbProducts = await Product.find({ _id: { $in: productIds } })
-      .select('_id price variants')
-      .lean() as any[];
+    // ─── AUTHORITATIVE SERVER-SIDE PRICING HELPER ─────────────────────────────
+    let pricingResult;
+    try {
+      pricingResult = await calculateOrderTotals({
+        items: orderData.items,
+        couponCode: orderData.couponCode,
+        shippingZone: orderData.shippingZone,
+        checkStock: true,
+      });
+    } catch (pricingErr: unknown) {
+      return NextResponse.json(
+        { data: null, error: (pricingErr as Error).message || 'Stock or pricing validation failed' },
+        { status: 400 }
+      );
+    }
 
-    const productMap = new Map(dbProducts.map(p => [p._id.toString(), p]));
-
-    const verifiedItems = orderData.items.map(item => {
-      const dbProduct = productMap.get(item.productId);
-      if (!dbProduct) throw new Error(`Product not found: ${item.productId}`);
-
-      let serverPrice = dbProduct.price;
-      // If a variantId was sent, use the variant's price instead
-      if (item.variantId && dbProduct.variants?.length) {
-        const variant = dbProduct.variants.find(
-          (v: any) => v._id?.toString() === item.variantId
-        );
-        if (variant?.price) serverPrice = variant.price;
-      }
-
-      return {
-        product: item.productId,
-        variantId: item.variantId,
-        quantity: item.quantity,
-        price: serverPrice, // ← always use DB price
-        title: item.title,
-        image: item.image,
-      };
-    });
-
-    // Recalculate total from server-verified prices
-    const verifiedSubtotal = verifiedItems.reduce(
-      (sum, item) => sum + item.price * item.quantity, 0
-    );
-    const verifiedTotal = verifiedSubtotal + (orderData.shippingCost || 0);
-    // ─────────────────────────────────────────────────────────────────────────
+    const { verifiedItems, totalAmount, shippingCost, inventoryOperations } = pricingResult;
 
     const orderDoc = {
       customerName: orderData.customerName.trim(),
       customerEmail: orderData.customerEmail?.toLowerCase().trim(),
       items: verifiedItems,
-      totalAmount: verifiedTotal,   // ← server-calculated, not client-supplied
-      shippingCost: orderData.shippingCost,
+      totalAmount,   // ← server-calculated, not client-supplied
+      shippingCost,
       shippingZone: orderData.shippingZone,
       notes: orderData.notes,
       shippingAddress: orderData.shippingAddress,
@@ -114,19 +94,27 @@ export async function POST(req: Request) {
 
     const order = await Order.create(orderDoc);
 
+    // Atomically deduct inventory
+    if (inventoryOperations.length > 0) {
+      try {
+        await Product.bulkWrite(inventoryOperations, { ordered: false });
+      } catch (stockErr) {
+        console.error('[v1/orders] Stock deduction failed:', stockErr);
+      }
+    }
+
     // Background tasks (Invoice, Email, Telegram)
-    // MUST await in serverless environments, otherwise the process is killed before they finish
     const notificationPayload = {
       orderId: order._id.toString(),
       customerName: orderData.customerName,
       customerEmail: orderData.customerEmail || '',
-      totalAmount: verifiedTotal,
-      shippingCost: orderData.shippingCost,
+      totalAmount,
+      shippingCost,
       shippingZone: orderData.shippingZone,
       notes: orderData.notes,
       paymentMethod: orderData.paymentMethod,
       shippingAddress: orderData.shippingAddress,
-      items: verifiedItems.map(item => ({
+      items: verifiedItems.map((item) => ({
         title: item.title,
         quantity: item.quantity,
         price: item.price,
@@ -149,88 +137,56 @@ export async function POST(req: Request) {
           addressLine1: orderData.shippingAddress.addressLine1,
           city: orderData.shippingAddress.city,
           paymentMethod: orderData.paymentMethod,
-          items: verifiedItems.map(i => ({ title: i.title, quantity: i.quantity, price: i.price })),
-          shippingCost: orderData.shippingCost,
-          totalAmount: verifiedTotal,
+          items: verifiedItems.map((i) => ({ title: i.title, quantity: i.quantity, price: i.price })),
+          shippingCost,
+          totalAmount,
           fulfillmentStatus: 'unfulfilled',
         })
       ),
     ]);
 
     // ── Meta Conversions API — Purchase ──
-    // Separate await so failures are always logged, never silently swallowed.
-    // event_id uses the MongoDB order ID to match the browser Pixel eventID.
     try {
       const cookieStore = await cookies();
       const fbp = cookieStore.get('_fbp')?.value;
       const fbc = cookieStore.get('_fbc')?.value;
-      const forwarded2 = req.headers.get('x-forwarded-for');
-      const clientIp = forwarded2?.split(',')[0]?.trim() || ip;
-      const { sendCapiEvent } = await import('@/lib/capi');
-      const capiResult = await sendCapiEvent({
+      const clientIp = forwarded?.split(',')[0]?.trim() || ip;
+      const { sendCapiEvent, hashData } = await import('@/lib/capi');
+      await sendCapiEvent({
         eventName: 'Purchase',
         eventTime: Math.floor(Date.now() / 1000),
         eventId: order._id.toString(),
+        eventSourceUrl: 'https://labonnadhara.shop/checkout',
         actionSource: 'website',
-        eventSourceUrl: req.headers.get('referer') || '',
         userData: {
-          em: orderData.customerEmail,
-          ph: orderData.shippingAddress.phone,
-          client_ip_address: clientIp,
-          client_user_agent: req.headers.get('user-agent') || undefined,
+          em: orderData.customerEmail ? hashData(orderData.customerEmail) : undefined,
+          ph: orderData.shippingAddress.phone ? hashData(orderData.shippingAddress.phone) : undefined,
           fbp,
           fbc,
-          external_id: orderData.customerEmail || orderData.shippingAddress.phone || undefined,
+          client_ip_address: clientIp,
+          client_user_agent: req.headers.get('user-agent') || '',
         },
         customData: {
-          value: verifiedTotal,
+          value: totalAmount,
           currency: 'BDT',
-          order_id: order._id.toString(),
-          content_ids: verifiedItems.map(i => i.product).filter(Boolean),
           content_type: 'product',
-          num_items: verifiedItems.reduce((sum, i) => sum + (i.quantity || 1), 0),
+          content_ids: verifiedItems.map((i) => i.product.toString()),
+          num_items: verifiedItems.reduce((acc, i) => acc + i.quantity, 0),
+          order_id: order._id.toString(),
         },
       });
-      if (!capiResult.success) {
-        console.error('[CAPI Purchase v1] Meta rejected the event:', capiResult.error);
-      }
     } catch (capiErr) {
-      console.error('[CAPI Purchase v1] Failed to send Meta Conversions API event:', capiErr);
+      console.error('[CAPI Purchase] Failed to fire purchase event:', capiErr);
     }
 
-    // Inventory Bulk Write (use verifiedItems which has correct product references)
-    const inventoryOps = verifiedItems.map(item => {
-      if (item.variantId) {
-        return {
-          updateOne: {
-            filter: { _id: item.product, 'variants._id': item.variantId },
-            update: { $inc: { 'variants.$.stock': -item.quantity } },
-          },
-        };
-      } else {
-        return {
-          updateOne: {
-            filter: { _id: item.product },
-            update: { $inc: { inventory: -item.quantity } },
-          },
-        };
-      }
-    });
-
-    if (inventoryOps.length > 0) {
-      await Product.bulkWrite(inventoryOps).catch((err: any) =>
-        console.error('Failed to update inventory via bulkWrite:', err)
-      );
-    }
-
-    return NextResponse.json({ 
-      data: { orderId: order._id, message: 'Order created successfully' },
-      error: null
-    });
-  } catch (err: any) {
-    console.error('Order Creation error:', err);
     return NextResponse.json(
-      { data: null, error: 'Failed to create order. Please try again.' },
+      { data: { orderId: order._id.toString() }, error: null },
+      { status: 201 }
+    );
+  } catch (error: unknown) {
+    console.error('Order creation error:', error);
+    return NextResponse.json(
+      { data: null, error: 'Internal server error. Failed to create order.' },
       { status: 500 }
     );
   }

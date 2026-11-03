@@ -2,7 +2,7 @@
 
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { CheckCircle2, ArrowRight, Package, Truck, Calendar, ShoppingBag, Star } from "lucide-react";
+import { CheckCircle2, Package, Truck, Calendar, Star } from "lucide-react";
 import { Suspense } from "react";
 import { m } from "framer-motion";
 import Button from "@/components/ui/Button";
@@ -10,6 +10,8 @@ import Button from "@/components/ui/Button";
 function SuccessContent() {
   const searchParams = useSearchParams();
   const orderId = searchParams.get("id");
+  const token = searchParams.get("token") || searchParams.get("t");
+  const invoiceHref = orderId ? `/invoice/${orderId}${token ? `?t=${encodeURIComponent(token)}` : ''}` : '#';
 
   return (
     <div className="max-w-5xl mx-auto px-8 py-24 lg:py-40 flex flex-col items-center text-center relative z-10">
@@ -22,7 +24,7 @@ function SuccessContent() {
          <CheckCircle2 size={64} />
       </m.div>
 
-      <m.div
+      <m.div 
         initial={{ y: 20, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         transition={{ delay: 0.2 }}
@@ -66,7 +68,7 @@ function SuccessContent() {
         className="flex flex-wrap justify-center gap-6 mt-8"
       >
          {orderId && (
-           <Link href={`/invoice/${orderId}`} target="_blank">
+           <Link href={invoiceHref} target="_blank">
               <Button variant="outline" size="lg" className="border-stamp-red text-stamp-red hover:bg-stamp-red hover:text-paper">
                 DOWNLOAD INVOICE
               </Button>

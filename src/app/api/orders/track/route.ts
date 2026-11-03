@@ -1,76 +1,93 @@
 import { NextResponse } from 'next/server';
+import mongoose from 'mongoose';
 import dbConnect from '@/lib/db';
 import Order from '@/models/Order';
 import { getCourierTrackingUrl, getTrackingSteps } from '@/lib/courier';
+import { checkRateLimit, getClientIp } from '@/lib/ratelimit';
+
+function maskEmail(email?: string): string {
+  if (!email || !email.includes('@')) return '***';
+  const [user, domain] = email.split('@');
+  if (user.length <= 2) return `${user[0]}***@${domain}`;
+  return `${user.slice(0, 2)}***${user.slice(-1)}@${domain}`;
+}
+
+function maskPhone(phone?: string): string {
+  if (!phone) return '***';
+  const digits = phone.replace(/\D/g, '');
+  if (digits.length <= 4) return '***';
+  return `${digits.slice(0, 3)}****${digits.slice(-3)}`;
+}
+
+/** Normalizes a phone number to its core 10-digit national number */
+function normalizePhone(phone: string): string {
+  const digits = phone.replace(/\D/g, '');
+  return digits.length >= 10 ? digits.slice(-10) : digits;
+}
 
 export async function GET(req: Request) {
   try {
-    await dbConnect();
-    const { searchParams } = new URL(req.url);
-    const orderId = searchParams.get('orderId') || searchParams.get('id') || searchParams.get('invoiceNumber');
-    const phone = searchParams.get('phone');
-
-    if (!orderId) {
+    // 1. IP-based rate limiting to prevent automated enumeration
+    const ip = getClientIp(req);
+    const { isLimited, reset } = await checkRateLimit(ip, 'global');
+    if (isLimited) {
       return NextResponse.json(
-        { success: false, error: 'Order ID or Invoice Number is required' },
+        { success: false, error: 'Too many tracking attempts. Please try again later.' },
+        {
+          status: 429,
+          headers: {
+            'Retry-After': String(Math.max(1, Math.ceil((reset - Date.now()) / 1000))),
+          },
+        }
+      );
+    }
+
+    const { searchParams } = new URL(req.url);
+    const orderId = (searchParams.get('orderId') || searchParams.get('id') || searchParams.get('invoiceNumber') || '').trim();
+    const phone = (searchParams.get('phone') || '').trim();
+
+    // 2. Require BOTH Order ID and Phone Number
+    if (!orderId || !phone) {
+      return NextResponse.json(
+        { success: false, error: 'Both Order ID / Invoice Number and Phone Number are required.' },
         { status: 400 }
       );
     }
 
-    const cleanId = orderId.trim();
+    await dbConnect();
 
-    // Query by Mongo _id, invoiceNumber, or string matching
-    const query: any = {
-      $or: [
-        { invoiceNumber: cleanId },
-        { invoiceNumber: cleanId.toUpperCase() },
-      ],
-    };
+    // 3. Build exact lookup query (No fuzzy or bulk scans)
+    const orConditions: Array<Record<string, unknown>> = [
+      { invoiceNumber: orderId },
+      { invoiceNumber: orderId.toUpperCase() },
+    ];
 
-    // If cleanId looks like a valid MongoDB ObjectId
-    if (cleanId.match(/^[0-9a-fA-F]{24}$/)) {
-      query.$or.push({ _id: cleanId });
+    if (mongoose.Types.ObjectId.isValid(orderId) && /^[0-9a-fA-F]{24}$/.test(orderId)) {
+      orConditions.push({ _id: orderId });
     }
 
-    let order = await Order.findOne(query).populate('items.product').lean();
+    const order = await Order.findOne({ $or: orConditions })
+      .populate('items.product')
+      .lean() as any;
 
-    // Fallback: search last 6 characters of ObjectId or invoice if needed
-    if (!order) {
-      const allOrders = await Order.find({}).sort({ createdAt: -1 }).limit(100).populate('items.product').lean();
-      order = allOrders.find(
-        (o: any) =>
-          o._id.toString().endsWith(cleanId) ||
-          (o.invoiceNumber && o.invoiceNumber.toLowerCase().includes(cleanId.toLowerCase()))
-      ) || null;
-    }
+    const normalizedSubmittedPhone = normalizePhone(phone);
+    const orderPhone = normalizePhone(order?.shippingAddress?.phone || '');
 
-    if (!order) {
+    // 4. Return identical generic 404 whether order does not exist OR phone mismatches (Defense Against Enumeration)
+    if (!order || !orderPhone || normalizedSubmittedPhone !== orderPhone) {
       return NextResponse.json(
-        { success: false, error: 'Order not found. Please check your Order ID or Invoice Number.' },
+        { success: false, error: 'Order not found. Please verify your Order ID and Phone Number.' },
         { status: 404 }
       );
     }
 
-    // Phone validation if phone parameter is provided
-    if (phone) {
-      const cleanPhone = phone.replace(/\D/g, '');
-      const orderPhone = (order.shippingAddress?.phone || '').replace(/\D/g, '');
-
-      if (cleanPhone && orderPhone && !orderPhone.endsWith(cleanPhone.slice(-8)) && !cleanPhone.endsWith(orderPhone.slice(-8))) {
-        return NextResponse.json(
-          { success: false, error: 'Phone number does not match shipping phone for this order.' },
-          { status: 401 }
-        );
-      }
-    }
-
-    // Courier tracking link calculation
+    // 5. Courier tracking link calculation
     let trackingUrl = order.courier?.trackingUrl;
     if (!trackingUrl && order.courier?.name && order.courier?.trackingId) {
       trackingUrl = getCourierTrackingUrl(order.courier.name, order.courier.trackingId);
     }
 
-    // Visual 5-step status calculation
+    // 6. Visual status steps
     const steps = getTrackingSteps(
       order.fulfillmentStatus,
       order.courierStatus,
@@ -78,14 +95,20 @@ export async function GET(req: Request) {
       order.updatedAt
     );
 
+    // 7. Return only tracking-necessary fields, masking sensitive PII
     return NextResponse.json({
       success: true,
       data: {
         _id: order._id,
         invoiceNumber: order.invoiceNumber || `TH-${order._id.toString().slice(-6).toUpperCase()}`,
         customerName: order.customerName,
-        customerEmail: order.customerEmail,
-        shippingAddress: order.shippingAddress,
+        customerEmail: maskEmail(order.customerEmail),
+        shippingAddress: {
+          city: order.shippingAddress?.city,
+          postcode: order.shippingAddress?.postcode,
+          addressLine1: order.shippingAddress?.addressLine1 ? '*** (Address hidden for privacy)' : undefined,
+          phone: maskPhone(order.shippingAddress?.phone),
+        },
         totalAmount: order.totalAmount,
         shippingCost: order.shippingCost,
         paymentStatus: order.paymentStatus,
@@ -103,7 +126,7 @@ export async function GET(req: Request) {
         timeline: order.trackingTimeline || [],
         items: (order.items || []).map((item: any) => ({
           productId: item.product?._id || item.product,
-          title: item.title || item.product?.title || 'Toy Product',
+          title: item.title || item.product?.title || 'Product',
           quantity: item.quantity,
           price: item.price,
           image: item.product?.images?.[0] || item.product?.image || null,
@@ -112,10 +135,10 @@ export async function GET(req: Request) {
         updatedAt: order.updatedAt,
       },
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error tracking order:', error);
     return NextResponse.json(
-      { success: false, error: error.message || 'Internal server error' },
+      { success: false, error: 'Internal server error.' },
       { status: 500 }
     );
   }

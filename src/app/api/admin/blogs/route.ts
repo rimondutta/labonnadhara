@@ -1,19 +1,33 @@
 import { NextResponse } from 'next/server';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth';
+import { getBearerSession } from '@/lib/mobile-auth';
 import dbConnect from '@/lib/db';
 import BlogPost from '@/models/BlogPost';
 
-export async function GET() {
+export async function GET(req: Request) {
   try {
+    // 1. Defense-in-depth Authentication & Authorization
+    const session = (await getBearerSession(req)) || (await getServerSession(authOptions));
+    if (!session) {
+      return NextResponse.json({ error: 'Unauthenticated' }, { status: 401 });
+    }
+
+    const role = (session.user as { role?: string })?.role;
+    if (role !== 'admin' && role !== 'manager') {
+      return NextResponse.json({ error: 'Forbidden: Admin or manager access required' }, { status: 403 });
+    }
+
     await dbConnect();
-    // Fetch all blogs, regardless of published status
+    // Fetch all blogs, regardless of published status (for admin management)
     const posts = await BlogPost.find({})
       .sort({ createdAt: -1 })
       .lean();
 
     return NextResponse.json(posts);
-  } catch (error: any) {
+  } catch (error: unknown) {
     return NextResponse.json(
-      { error: 'Failed to fetch blog posts' },
+      { error: (error as Error).message || 'Failed to fetch blog posts' },
       { status: 500 }
     );
   }

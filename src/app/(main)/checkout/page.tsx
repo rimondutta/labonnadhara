@@ -200,7 +200,8 @@ export default function CheckoutPage() {
         } catch { /* noop */ }
         clearCart();
         showToast("Order placed successfully! 🎉");
-        router.push(`/invoice/${data.orderId}`);
+        const tokenQuery = data.guestAccessToken ? `?token=${encodeURIComponent(data.guestAccessToken)}` : "";
+        router.push(`/invoice/${data.orderId}${tokenQuery}`);
       } else {
         showToast(data.message || "Order failed", "error");
       }

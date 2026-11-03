@@ -1,23 +1,12 @@
-/**
- * GET /api/orders/[id]/invoice
- *
- * Returns a redirect to the stored Cloudinary PDF URL.
- * Generates the invoice on-demand if it hasn't been generated yet.
- *
- * Auth:
- *  - Authenticated users: may only access their own order's invoice
- *    (session email must match order.customerEmail).
- *  - Unauthenticated / guest orders: accessible by order ID, consistent
- *    with the existing HTML invoice page at /invoice/[id] which has no auth.
- */
-import { NextResponse } from 'next/server';
+import { NextResponse, NextRequest } from 'next/server';
+import crypto from 'crypto';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import connectToDatabase from '@/lib/db';
 import Order from '@/models/Order';
 import { getInvoiceBufferForOrder } from '@/lib/invoice/generateInvoicePdf';
 import { getBearerSession } from '@/lib/mobile-auth';
-import { NextRequest } from 'next/server';
+import { verifyInvoiceToken } from '@/lib/invoice-token';
 
 export async function GET(
   req: NextRequest,
@@ -27,41 +16,66 @@ export async function GET(
     await connectToDatabase();
     const { id } = await params;
 
-    const order = await Order.findById(id).lean() as any;
+    const order = await Order.findById(id).select('+guestAccessTokenHash').lean() as any;
     if (!order) {
       return NextResponse.json({ error: 'Order not found' }, { status: 404 });
     }
 
-    // ── Auth check ──
-    // If a session exists, ensure the user owns this order.
+    // ── Authentication & Authorization Verification ──
     const session = (await getBearerSession(req)) || (await getServerSession(authOptions));
     const userRole = (session?.user as any)?.role;
     const isAdmin = userRole === 'admin' || userRole === 'manager';
 
-    if (session && !isAdmin) {
-      const sessionEmail = session.user?.email?.toLowerCase();
-      const orderEmail = (order.customerEmail as string | undefined)?.toLowerCase();
-      // If the order has an email and it doesn't match the session, deny.
-      if (orderEmail && sessionEmail && sessionEmail !== orderEmail) {
-        return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    let isAuthorized = false;
+
+    if (session && isAdmin) {
+      isAuthorized = true;
+    } else if (session && session.user?.email && order.customerEmail) {
+      const sessionEmail = session.user.email.toLowerCase().trim();
+      const orderEmail = order.customerEmail.toLowerCase().trim();
+      if (sessionEmail === orderEmail) {
+        isAuthorized = true;
+      }
+    } else {
+      // Guest Verification via HMAC Token or stored guestAccessTokenHash
+      const token = req.nextUrl.searchParams.get('t') || req.nextUrl.searchParams.get('token');
+      if (token) {
+        if (verifyInvoiceToken(id, token)) {
+          isAuthorized = true;
+        } else if (order.guestAccessTokenHash) {
+          const submittedHash = crypto.createHash('sha256').update(token.trim()).digest('hex');
+          if (
+            submittedHash.length === order.guestAccessTokenHash.length &&
+            crypto.timingSafeEqual(Buffer.from(submittedHash, 'utf-8'), Buffer.from(order.guestAccessTokenHash, 'utf-8'))
+          ) {
+            isAuthorized = true;
+          }
+        }
       }
     }
 
-    // ── Generate the invoice PDF buffer on the fly ──
-    // Bypassing Cloudinary entirely for downloads to avoid CDN strict delivery 401s, 
-    // WAF blocks, and fl_attachment parsing errors.
-    const { buffer, filename } = await getInvoiceBufferForOrder(id);
+    if (!isAuthorized) {
+      return NextResponse.json(
+        { error: 'Unauthorized: Valid session or signed access token required to view invoice' },
+        { status: 401 }
+      );
+    }
 
-    return new NextResponse(buffer as any, {
+    // ── PDF Generation ──
+    const { buffer, filename } = await getInvoiceBufferForOrder(order);
+
+    return new NextResponse(new Uint8Array(buffer), {
+      status: 200,
       headers: {
         'Content-Type': 'application/pdf',
         'Content-Disposition': `attachment; filename="${filename}"`,
+        'Cache-Control': 'private, no-cache, no-store, must-revalidate',
       },
     });
-  } catch (error: any) {
-    console.error('[invoice] GET error:', error);
+  } catch (error: unknown) {
+    console.error('Error generating invoice PDF:', error);
     return NextResponse.json(
-      { error: 'Failed to retrieve invoice' },
+      { error: (error as Error).message || 'Failed to generate invoice' },
       { status: 500 }
     );
   }

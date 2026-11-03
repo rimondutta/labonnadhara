@@ -84,11 +84,19 @@ const OrderSchema = new mongoose.Schema(
       type: Date,
       default: null,
     },
+    // ── Guest access token hash for secure invoice view ──
+    guestAccessTokenHash: {
+      type: String,
+      select: false,
+    },
   },
   { timestamps: true }
 );
 
-// High Performance: Indexes for customer order history and queries
+// High Performance: Indexes for customer order history, admin queries, and lookups
 OrderSchema.index({ customerEmail: 1, createdAt: -1 });
+OrderSchema.index({ createdAt: -1 });
+OrderSchema.index({ fulfillmentStatus: 1, createdAt: -1 });
+OrderSchema.index({ invoiceNumber: 1 }, { unique: true, sparse: true });
 
 export default mongoose.models.Order || mongoose.model('Order', OrderSchema);
