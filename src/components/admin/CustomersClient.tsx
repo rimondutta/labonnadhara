@@ -1,7 +1,7 @@
 "use client"
 
-import { useState, useEffect } from "react"
-import { Users, Mail, ShoppingBag, Calendar, ArrowUpRight } from "lucide-react"
+import { useState, useEffect, useCallback } from "react"
+import { Users, Mail, ShoppingBag, Calendar, ChevronLeft, ChevronRight, Search } from "lucide-react"
 
 interface Customer {
   _id: string
@@ -13,27 +13,51 @@ interface Customer {
   lastOrderDate?: string
 }
 
+interface Pagination {
+  page: number
+  limit: number
+  total: number
+  totalPages: number
+}
+
 export default function CustomersClient() {
-  const [customers, setCustomers] = useState<Customer[]>([])
-  const [isLoading, setIsLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+  const [customers, setCustomers]   = useState<Customer[]>([])
+  const [pagination, setPagination] = useState<Pagination>({ page: 1, limit: 20, total: 0, totalPages: 1 })
+  const [isLoading, setIsLoading]   = useState(true)
+  const [error, setError]           = useState<string | null>(null)
+  const [search, setSearch]         = useState("")
+  const [searchInput, setSearchInput] = useState("")
 
-  useEffect(() => {
-    fetchCustomers()
-  }, [])
-
-  const fetchCustomers = async () => {
+  const fetchCustomers = useCallback(async (page: number, searchTerm: string) => {
     try {
       setIsLoading(true)
-      const res = await fetch("/api/admin/customers")
+      setError(null)
+      const params = new URLSearchParams({ page: String(page), limit: "20" })
+      if (searchTerm) params.set("search", searchTerm)
+      const res = await fetch(`/api/admin/customers?${params}`)
       if (!res.ok) throw new Error("Failed to fetch customers")
       const data = await res.json()
       setCustomers(data.customers || [])
-    } catch (err: any) {
-      setError(err.message)
+      if (data.pagination) setPagination(data.pagination)
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Unknown error")
     } finally {
       setIsLoading(false)
     }
+  }, [])
+
+  useEffect(() => {
+    fetchCustomers(1, search)
+  }, [fetchCustomers, search])
+
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault()
+    setSearch(searchInput)
+  }
+
+  const goToPage = (page: number) => {
+    if (page < 1 || page > pagination.totalPages) return
+    fetchCustomers(page, search)
   }
 
   if (isLoading) {
@@ -66,6 +90,34 @@ export default function CustomersClient() {
             Manage your registered users and view their purchase history.
           </p>
         </div>
+        {/* Search */}
+        <form onSubmit={handleSearch} className="flex items-center gap-2">
+          <div className="relative">
+            <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+            <input
+              type="text"
+              value={searchInput}
+              onChange={(e) => setSearchInput(e.target.value)}
+              placeholder="Search name or email…"
+              className="pl-9 pr-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 w-56"
+            />
+          </div>
+          <button
+            type="submit"
+            className="px-3 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+          >
+            Search
+          </button>
+          {search && (
+            <button
+              type="button"
+              onClick={() => { setSearch(""); setSearchInput("") }}
+              className="px-3 py-2 text-sm bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
+            >
+              Clear
+            </button>
+          )}
+        </form>
       </div>
 
       <div className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
@@ -84,7 +136,7 @@ export default function CustomersClient() {
               {customers.length === 0 ? (
                 <tr>
                   <td colSpan={5} className="px-6 py-8 text-center text-gray-500">
-                    No customers found.
+                    {search ? `No customers matching "${search}".` : "No customers found."}
                   </td>
                 </tr>
               ) : (
@@ -134,6 +186,42 @@ export default function CustomersClient() {
             </tbody>
           </table>
         </div>
+
+        {/* Pagination footer */}
+        {pagination.totalPages > 1 && (
+          <div className="px-6 py-4 border-t border-gray-200 flex items-center justify-between text-sm text-gray-600">
+            <span>
+              Showing {((pagination.page - 1) * pagination.limit) + 1}–{Math.min(pagination.page * pagination.limit, pagination.total)} of {pagination.total} customers
+            </span>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => goToPage(pagination.page - 1)}
+                disabled={pagination.page <= 1}
+                className="p-1.5 rounded-md border border-gray-300 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                aria-label="Previous page"
+              >
+                <ChevronLeft size={16} />
+              </button>
+              <span className="px-3 py-1 rounded-md bg-gray-100 font-medium text-gray-700">
+                {pagination.page} / {pagination.totalPages}
+              </span>
+              <button
+                onClick={() => goToPage(pagination.page + 1)}
+                disabled={pagination.page >= pagination.totalPages}
+                className="p-1.5 rounded-md border border-gray-300 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                aria-label="Next page"
+              >
+                <ChevronRight size={16} />
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Summary row */}
+      <div className="flex items-center gap-2 text-sm text-gray-500">
+        <Users size={14} />
+        <span>{pagination.total} total customer{pagination.total !== 1 ? "s" : ""}</span>
       </div>
     </div>
   )

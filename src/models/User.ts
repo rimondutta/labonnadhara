@@ -59,5 +59,8 @@ const UserSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
+// Mirror the unique email index so Mongoose schema and MongoDB stay in sync
+UserSchema.index({ email: 1 }, { unique: true });
+
 export default mongoose.models.User || mongoose.model('User', UserSchema);
 
