@@ -3,15 +3,10 @@ import connectToDatabase from '@/lib/db';
 import { NextRequest } from 'next/server';
 import { checkRateLimit, getClientIp } from '@/lib/ratelimit';
 import { calculateOrderTotals } from '@/lib/order-pricing';
+import { mobileCorsHeaders } from '@/lib/cors';
 
-const CORS_HEADERS = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Methods': 'POST, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-};
-
-export async function OPTIONS() {
-  return new NextResponse(null, { status: 200, headers: CORS_HEADERS });
+export async function OPTIONS(request: Request) {
+  return new NextResponse(null, { status: 200, headers: mobileCorsHeaders(request) });
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -19,13 +14,20 @@ export async function OPTIONS() {
 // Creates a Stripe PaymentIntent with authoritative server-side pricing.
 // ─────────────────────────────────────────────────────────────
 export async function POST(req: NextRequest) {
+  const CORS_HEADERS = mobileCorsHeaders(req);
   try {
     const ip = getClientIp(req);
     const rateLimit = await checkRateLimit(ip, 'strict');
     if (rateLimit.isLimited) {
       return NextResponse.json(
         { success: false, error: 'Too many requests. Please wait a moment.' },
-        { status: 429, headers: CORS_HEADERS }
+        {
+          status: 429,
+          headers: {
+            ...CORS_HEADERS,
+            'Retry-After': String(Math.max(1, Math.ceil((rateLimit.reset - Date.now()) / 1000))),
+          },
+        }
       );
     }
 
@@ -95,7 +97,7 @@ export async function POST(req: NextRequest) {
         itemCount: pricingResult.verifiedItems.length.toString(),
         subtotal: pricingResult.subtotal.toString(),
         shippingCost: pricingResult.shippingCost.toString(),
-        shippingCity: shippingAddress?.city || 'N/A',
+        shippingCity: (shippingAddress as Record<string, string>)?.city || 'N/A',
       },
     });
 
@@ -112,8 +114,8 @@ export async function POST(req: NextRequest) {
   } catch (error: unknown) {
     console.error('Error creating PaymentIntent:', error);
     return NextResponse.json(
-      { success: false, error: (error as Error).message || 'Failed to initialize payment' },
-      { status: 500, headers: CORS_HEADERS }
+      { success: false, error: 'Failed to initialize payment' },
+      { status: 500, headers: mobileCorsHeaders(req) }
     );
   }
 }

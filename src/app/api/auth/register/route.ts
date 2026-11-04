@@ -3,14 +3,10 @@ import bcrypt from 'bcryptjs';
 import connectToDatabase from '@/lib/db';
 import User from '@/models/User';
 import { checkRateLimit, getClientIp } from '@/lib/ratelimit';
-
-const CORS_HEADERS = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Methods': 'POST, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-};
+import { mobileCorsHeaders } from '@/lib/cors';
 
 export async function POST(request: Request) {
+  const CORS_HEADERS = mobileCorsHeaders(request);
   try {
     const ip = getClientIp(request);
     const rateLimit = await checkRateLimit(ip, 'auth');
@@ -76,15 +72,15 @@ export async function POST(request: Request) {
       },
       { status: 201, headers: CORS_HEADERS }
     );
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Registration Error:', error);
     return NextResponse.json(
       { success: false, error: 'Internal Server Error' },
-      { status: 500, headers: CORS_HEADERS }
+      { status: 500, headers: mobileCorsHeaders(request) }
     );
   }
 }
 
-export async function OPTIONS() {
-  return new NextResponse(null, { status: 200, headers: CORS_HEADERS });
+export async function OPTIONS(request: Request) {
+  return new NextResponse(null, { status: 200, headers: mobileCorsHeaders(request) });
 }

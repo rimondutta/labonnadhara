@@ -12,14 +12,10 @@ import connectToDatabase from '@/lib/db';
 import User from '@/models/User';
 import { getJwtSecret } from '@/lib/jwt-secret';
 import { checkRateLimit, getClientIp } from '@/lib/ratelimit';
-
-const CORS = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Methods': 'POST, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type',
-};
+import { mobileCorsHeaders } from '@/lib/cors';
 
 export async function POST(req: Request) {
+  const CORS = mobileCorsHeaders(req);
   try {
     const ip = getClientIp(req);
     const rateLimit = await checkRateLimit(ip, 'auth');
@@ -57,9 +53,9 @@ export async function POST(req: Request) {
     const secret = getJwtSecret();
 
     // Verify JWT and check purpose
-    let payload: any;
+    let payload: { id: string; email: string; purpose: string };
     try {
-      payload = jwt.verify(resetToken, secret);
+      payload = jwt.verify(resetToken, secret) as typeof payload;
     } catch {
       return NextResponse.json(
         { success: false, error: 'Reset link has expired or is invalid. Please request a new one.' },
@@ -107,11 +103,11 @@ export async function POST(req: Request) {
     console.error('[reset-password]', err);
     return NextResponse.json(
       { success: false, error: 'Internal server error.' },
-      { status: 500, headers: CORS }
+      { status: 500, headers: mobileCorsHeaders(req) }
     );
   }
 }
 
-export async function OPTIONS() {
-  return new NextResponse(null, { status: 200, headers: CORS });
+export async function OPTIONS(request: Request) {
+  return new NextResponse(null, { status: 200, headers: mobileCorsHeaders(request) });
 }

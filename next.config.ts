@@ -1,6 +1,12 @@
 import type { NextConfig } from "next";
 import path from "path";
 
+const isDev = process.env.NODE_ENV === "development";
+
+// unsafe-eval is required by Next.js dev server (Turbopack/HMR) but must
+// never appear in the production policy.
+const scriptSrcDevExtra = isDev ? " 'unsafe-eval'" : "";
+
 const nextConfig: NextConfig = {
   // Pin root directory to prevent Next.js from detecting stray package-lock.json in parent folders
   outputFileTracingRoot: path.join(__dirname),
@@ -10,7 +16,7 @@ const nextConfig: NextConfig = {
 
   // Prevent Next.js from bundling @react-pdf/renderer with webpack.
   // It relies on Node.js built-ins and must run as a server external.
-  serverExternalPackages: ['@react-pdf/renderer'],
+  serverExternalPackages: ["@react-pdf/renderer"],
 
   // Remove the X-Powered-By header to reduce response payload size.
   poweredByHeader: false,
@@ -22,21 +28,23 @@ const nextConfig: NextConfig = {
   allowedDevOrigins: ["127.0.0.1", "localhost"],
 
   typescript: {
-    // Warning: This allows production builds to successfully complete even if
-    // your project has type errors.
-    ignoreBuildErrors: true,
+    // Type errors must be fixed before shipping — do not ignore them.
+    ignoreBuildErrors: false,
   },
 
   // Compiler optimizations for production performance
   compiler: {
-    removeConsole: process.env.NODE_ENV === "production" ? {
-      exclude: ["error", "warn"],
-    } : false,
+    removeConsole:
+      process.env.NODE_ENV === "production"
+        ? {
+            exclude: ["error", "warn"],
+          }
+        : false,
   },
 
   images: {
     // Serve AVIF first (smallest), fallback to WebP — ~30-40% smaller than JPEG/PNG.
-    formats: ['image/avif', 'image/webp'],
+    formats: ["image/avif", "image/webp"],
     // Cache optimized images for 1 year at the CDN edge.
     minimumCacheTTL: 31536000,
     // Mobile-first device breakpoints — smaller steps at mobile end for better srcset matching.
@@ -57,14 +65,9 @@ const nextConfig: NextConfig = {
 
   async headers() {
     return [
-      {
-        source: "/api/:path*",
-        headers: [
-          { key: "Access-Control-Allow-Origin", value: process.env.MOBILE_ORIGIN || "*" },
-          { key: "Access-Control-Allow-Methods", value: "GET,POST,PUT,PATCH,DELETE,OPTIONS" },
-          { key: "Access-Control-Allow-Headers", value: "Content-Type, Authorization" },
-        ],
-      },
+      // -----------------------------------------------------------------------
+      // Static asset caching — no CORS headers needed for same-origin assets
+      // -----------------------------------------------------------------------
       {
         source: "/(images|icons|logo)/:path*",
         headers: [
@@ -74,6 +77,9 @@ const nextConfig: NextConfig = {
           },
         ],
       },
+      // -----------------------------------------------------------------------
+      // Global security headers — applied to every route
+      // -----------------------------------------------------------------------
       {
         source: "/(.*)",
         headers: [
@@ -99,9 +105,15 @@ const nextConfig: NextConfig = {
           },
           {
             key: "Content-Security-Policy",
+            // Notes:
+            //   • unsafe-eval is omitted in production; dev adds it for HMR/Turbopack.
+            //   • unsafe-inline for scripts is required by Next.js inline scripts and
+            //     third-party tags (GA, FB Pixel). Nonce-based CSP requires significant
+            //     infrastructure changes and is tracked as a future improvement.
+            //   • report-uri sends violations to our own logging endpoint.
             value: [
               "default-src 'self'",
-              "script-src 'self' 'unsafe-eval' 'unsafe-inline' https://connect.facebook.net https://www.googletagmanager.com https://www.google-analytics.com https://static.cloudflareinsights.com",
+              `script-src 'self'${scriptSrcDevExtra} 'unsafe-inline' https://connect.facebook.net https://www.googletagmanager.com https://www.google-analytics.com https://static.cloudflareinsights.com`,
               "worker-src 'self' blob:",
               "child-src 'self' blob: https://www.facebook.com",
               "frame-src 'self' https://www.facebook.com",
@@ -112,7 +124,8 @@ const nextConfig: NextConfig = {
               "frame-ancestors 'none'",
               "base-uri 'self'",
               "form-action 'self' https://www.facebook.com",
-            ].join('; '),
+              "report-uri /api/csp-report",
+            ].join("; "),
           },
         ],
       },

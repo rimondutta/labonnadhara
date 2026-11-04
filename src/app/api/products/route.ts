@@ -6,33 +6,21 @@ import { authOptions } from '@/lib/auth';
 import { getBearerSession } from '@/lib/mobile-auth';
 import { touchProductsTimestamp } from '@/lib/lastUpdated';
 import { NextRequest } from 'next/server';
-
-const CORS_HEADERS = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-};
+import { mobileCorsHeaders } from '@/lib/cors';
+import { getSafeErrorMessage } from '@/lib/api-error';
 
 // ─────────────────────────────────────────────────────────────
 // GET /api/products
 // Public product list — safe for mobile, no auth required.
-// Query params:
-//   category   (slug string)
-//   search     (text)
-//   sort       newest | price-asc | price-desc  (default: newest)
-//   page       (default: 1)
-//   limit      (default: 20, max: 100)
-//   minPrice   (number)
-//   maxPrice   (number)
-// Response: { success, data: Product[], meta: { page, limit, total, totalPages } }
 // ─────────────────────────────────────────────────────────────
 export async function GET(req: NextRequest) {
+  const CORS_HEADERS = mobileCorsHeaders(req);
   try {
     const { searchParams } = new URL(req.url);
 
     // — Pagination —
-    const page  = Math.max(1, parseInt(searchParams.get('page')  || '1'));
-    const limit = Math.min(100, Math.max(1, parseInt(searchParams.get('limit') || '20')));
+    const page  = Math.max(1, parseInt(searchParams.get('page')  || '1', 10));
+    const limit = Math.min(100, Math.max(1, parseInt(searchParams.get('limit') || '20', 10)));
     const skip  = (page - 1) * limit;
 
     // — Filters —
@@ -63,8 +51,10 @@ export async function GET(req: NextRequest) {
     };
     const sortObj = sortMap[sort] ?? sortMap.newest;
 
-    // Generate a unique cache key based on query params
-    const cacheKey = `api:products:list:${categorySlug || 'all'}-${searchQuery || 'none'}-${sort}-${page}-${limit}-${minPrice}-${maxPrice}`;
+    // Generate a normalized unique cache key based on query params
+    const normCategory = categorySlug ? categorySlug.toLowerCase().trim() : 'all';
+    const normSearch = searchQuery ? searchQuery.toLowerCase().trim().slice(0, 100) : 'none';
+    const cacheKey = `api:products:list:${normCategory}-${normSearch}-${sort}-${page}-${limit}-${minPrice}-${maxPrice}`;
 
     // Wrap the entire data fetching block in Redis cache (60s TTL)
     const { withCache } = await import('@/lib/cache');
@@ -123,7 +113,7 @@ export async function GET(req: NextRequest) {
           .lean(),
         Product.countDocuments(filter),
       ]);
-      
+
       return { products: fetchedProducts, total: fetchedTotal };
     });
 
@@ -135,7 +125,7 @@ export async function GET(req: NextRequest) {
       },
       { headers: { ...CORS_HEADERS, 'Cache-Control': 'public, s-maxage=30, stale-while-revalidate=120' } }
     );
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('[GET /api/products]', error);
     return NextResponse.json(
       { success: false, error: 'Internal Server Error' },
@@ -149,13 +139,15 @@ export async function GET(req: NextRequest) {
 // Auth: NextAuth session (web) OR Bearer JWT (mobile admin)
 // ─────────────────────────────────────────────────────────────
 export async function POST(req: NextRequest) {
+  const CORS_HEADERS = mobileCorsHeaders(req);
   try {
     // Accept both NextAuth session (web admin) and Bearer JWT (mobile admin)
     const session =
       (await getBearerSession(req)) ??
       (await getServerSession(authOptions));
 
-    if (!session || !['admin', 'manager'].includes((session.user as any).role)) {
+    const role = (session?.user as { role?: string } | undefined)?.role;
+    if (!session || !role || !['admin', 'manager'].includes(role)) {
       return NextResponse.json(
         { success: false, error: 'Unauthorized' },
         { status: 401, headers: CORS_HEADERS }
@@ -167,7 +159,7 @@ export async function POST(req: NextRequest) {
     // Sanitize image URLs
     if (data.images && Array.isArray(data.images)) {
       data.images = data.images.filter(
-        (img: any) => img.url && (img.url.startsWith('http') || img.url.startsWith('/'))
+        (img: { url?: string }) => img.url && (img.url.startsWith('http') || img.url.startsWith('/'))
       );
     }
 
@@ -181,21 +173,22 @@ export async function POST(req: NextRequest) {
       { success: true, data: product },
       { status: 201, headers: CORS_HEADERS }
     );
-  } catch (error: any) {
-    if (error.code === 11000) {
+  } catch (error: unknown) {
+    if (typeof error === 'object' && error !== null && 'code' in error && (error as { code: number }).code === 11000) {
       return NextResponse.json(
         { success: false, error: 'Product with this slug already exists' },
         { status: 400, headers: CORS_HEADERS }
       );
     }
+    console.error('[POST /api/products]', error);
     return NextResponse.json(
-      { success: false, error: error.message },
+      { success: false, error: getSafeErrorMessage(error) },
       { status: 500, headers: CORS_HEADERS }
     );
   }
 }
 
 // Handle CORS preflight
-export async function OPTIONS() {
-  return new NextResponse(null, { status: 200, headers: CORS_HEADERS });
+export async function OPTIONS(req: NextRequest) {
+  return new NextResponse(null, { status: 200, headers: mobileCorsHeaders(req) });
 }

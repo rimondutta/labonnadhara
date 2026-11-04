@@ -41,18 +41,60 @@ export interface RateLimitResult {
 }
 
 /**
- * Extracts client IP securely without blindly trusting spoofable headers.
+ * Validates whether an IP address matches standard IPv4 or IPv6 format.
+ * Prevents header injection or malformed strings from polluting Redis keys.
+ */
+function isValidIp(ip: string): boolean {
+  if (!ip || ip.length > 45) return false;
+  // IPv4 regex (0.0.0.0 - 255.255.255.255)
+  const ipv4 = /^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/;
+  // IPv6 regex
+  const ipv6 = /^[0-9a-fA-F:]+$/;
+  return ipv4.test(ip) || (ip.includes(':') && ipv6.test(ip));
+}
+
+/**
+ * Extracts client IP securely with trusted reverse-proxy prioritization.
+ *
+ * Priority order:
+ * 1. cf-connecting-ip / true-client-ip (Cloudflare edge - cannot be spoofed by client)
+ * 2. x-vercel-forwarded-for (Vercel edge proxy - authoritative client IP)
+ * 3. x-real-ip (Standard reverse proxy edge header)
+ * 4. x-forwarded-for (Sanitized fallback with IP format validation)
  */
 export function getClientIp(req: Request): string {
+  // 1. Cloudflare edge
+  const cfIp = req.headers.get('cf-connecting-ip') || req.headers.get('true-client-ip');
+  if (cfIp && isValidIp(cfIp.trim())) {
+    return cfIp.trim();
+  }
+
+  // 2. Vercel edge proxy
+  const vercelForwarded = req.headers.get('x-vercel-forwarded-for');
+  if (vercelForwarded) {
+    const candidate = vercelForwarded.split(',')[0]?.trim();
+    if (candidate && isValidIp(candidate)) {
+      return candidate;
+    }
+  }
+
+  // 3. Trusted reverse-proxy X-Real-IP
+  const realIp = req.headers.get('x-real-ip');
+  if (realIp && isValidIp(realIp.trim())) {
+    return realIp.trim();
+  }
+
+  // 4. Fallback: X-Forwarded-For (filter and extract valid IP)
   const forwarded = req.headers.get('x-forwarded-for');
   if (forwarded) {
-    const clientIp = forwarded.split(',')[0]?.trim();
-    if (clientIp) return clientIp;
+    const parts = forwarded.split(',').map((p) => p.trim());
+    for (const part of parts) {
+      if (isValidIp(part)) {
+        return part;
+      }
+    }
   }
-  const realIp = req.headers.get('x-real-ip');
-  if (realIp) return realIp.trim();
-  const cfIp = req.headers.get('cf-connecting-ip');
-  if (cfIp) return cfIp.trim();
+
   return '127.0.0.1';
 }
 

@@ -7,15 +7,11 @@ import jwt from "jsonwebtoken";
 import { randomUUID } from "crypto";
 import { getAuthSecret } from "@/lib/jwt-secret";
 import { checkRateLimit, getClientIp } from "@/lib/ratelimit";
+import { mobileCorsHeaders } from "@/lib/cors";
+import { createRefreshToken } from "@/lib/refresh-token";
 
-const CORS_HEADERS = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Methods": "POST, OPTIONS",
-  "Access-Control-Allow-Headers": "Content-Type, Authorization",
-};
-
-export async function OPTIONS() {
-  return new NextResponse(null, { status: 200, headers: CORS_HEADERS });
+export async function OPTIONS(request: Request) {
+  return new NextResponse(null, { status: 200, headers: mobileCorsHeaders(request) });
 }
 
 function getAllowedClientIds(): string[] {
@@ -27,6 +23,7 @@ function getAllowedClientIds(): string[] {
 }
 
 export async function POST(req: Request) {
+  const CORS_HEADERS = mobileCorsHeaders(req);
   try {
     const ip = getClientIp(req);
     const rateLimit = await checkRateLimit(ip, 'auth');
@@ -83,8 +80,7 @@ export async function POST(req: Request) {
         );
       }
     } else if (accessToken) {
-      // 2. Access Token verification (existing mobile format)
-      // Call tokeninfo to check audience / azp / issued_to
+      // 2. Access Token verification
       if (allowedClientIds.length > 0) {
         try {
           const tokenInfoRes = await fetch(
@@ -96,7 +92,7 @@ export async function POST(req: Request) {
               { status: 401, headers: CORS_HEADERS }
             );
           }
-          const tokenInfo = await tokenInfoRes.json();
+          const tokenInfo = await tokenInfoRes.json() as { aud?: string; issued_to?: string; azp?: string };
           const tokenAud = tokenInfo.aud || tokenInfo.issued_to || tokenInfo.azp;
 
           if (!tokenAud || !allowedClientIds.includes(tokenAud)) {
@@ -115,7 +111,6 @@ export async function POST(req: Request) {
         }
       }
 
-      // Fetch user profile from userinfo
       const googleRes = await fetch(
         `https://www.googleapis.com/oauth2/v3/userinfo?access_token=${encodeURIComponent(accessToken)}`
       );
@@ -127,7 +122,7 @@ export async function POST(req: Request) {
         );
       }
 
-      const googleUser = await googleRes.json();
+      const googleUser = await googleRes.json() as { email?: string; name?: string; picture?: string; email_verified?: boolean };
       email = googleUser.email || "";
       name = googleUser.name || "";
       picture = googleUser.picture || "";
@@ -162,7 +157,7 @@ export async function POST(req: Request) {
 
     const secret = getAuthSecret();
 
-    // Issue custom mobile JWT
+    // Access token: 7 days (reduced from 30d for security)
     const token = jwt.sign(
       {
         id: user._id.toString(),
@@ -171,14 +166,19 @@ export async function POST(req: Request) {
         name: user.name,
       },
       secret,
-      { expiresIn: "30d" }
+      { expiresIn: "7d" }
     );
+
+    // Refresh token: 30-day revocable token stored in Redis
+    const refreshToken = await createRefreshToken(user._id.toString());
 
     return NextResponse.json(
       {
         success: true,
         data: {
           token,
+          ...(refreshToken ? { refreshToken } : {}),
+          expiresIn: 7 * 24 * 60 * 60,
           user: {
             id: user._id.toString(),
             name: user.name,
@@ -194,7 +194,7 @@ export async function POST(req: Request) {
     console.error("Mobile Google login error:", error);
     return NextResponse.json(
       { success: false, error: "Internal server error" },
-      { status: 500, headers: CORS_HEADERS }
+      { status: 500, headers: mobileCorsHeaders(req) }
     );
   }
 }

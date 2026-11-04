@@ -3,12 +3,15 @@ import { getBearerSession } from '@/lib/mobile-auth';
 import connectToDatabase from '@/lib/db';
 import User from '@/models/User';
 import { NextRequest } from 'next/server';
+import { mobileCorsHeaders } from '@/lib/cors';
 
-const CORS_HEADERS = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Methods': 'GET, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-};
+interface UserDoc {
+  _id: { toString(): string };
+  name: string;
+  email: string;
+  role: string;
+  image?: string;
+}
 
 /**
  * GET /api/auth/mobile/me
@@ -17,10 +20,9 @@ const CORS_HEADERS = {
  * Used by the mobile AuthContext on app resume to:
  *   1. Validate the stored token is still valid
  *   2. Refresh user data (name, role, image) from the DB
- *
- * Response: { success: true, data: { id, name, email, role, image } }
  */
 export async function GET(req: NextRequest) {
+  const CORS_HEADERS = mobileCorsHeaders(req);
   const session = await getBearerSession(req);
 
   if (!session) {
@@ -32,7 +34,7 @@ export async function GET(req: NextRequest) {
 
   try {
     await connectToDatabase();
-    const user = await User.findById(session.user.id).select('-password').lean();
+    const user = await User.findById(session.user.id).select('-password').lean() as UserDoc | null;
 
     if (!user) {
       return NextResponse.json(
@@ -45,24 +47,24 @@ export async function GET(req: NextRequest) {
       {
         success: true,
         data: {
-          id: (user as any)._id.toString(),
-          name: (user as any).name,
-          email: (user as any).email,
-          role: (user as any).role,
-          image: (user as any).image ?? null,
+          id: user._id.toString(),
+          name: user.name,
+          email: user.email,
+          role: user.role,
+          image: user.image ?? null,
         },
       },
       { headers: CORS_HEADERS }
     );
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('[GET /api/auth/mobile/me]', error);
     return NextResponse.json(
       { success: false, error: 'Internal Server Error' },
-      { status: 500, headers: CORS_HEADERS }
+      { status: 500, headers: mobileCorsHeaders(req) }
     );
   }
 }
 
-export async function OPTIONS() {
-  return new NextResponse(null, { status: 200, headers: CORS_HEADERS });
+export async function OPTIONS(request: Request) {
+  return new NextResponse(null, { status: 200, headers: mobileCorsHeaders(request) });
 }

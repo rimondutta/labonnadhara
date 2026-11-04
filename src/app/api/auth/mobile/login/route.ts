@@ -5,14 +5,11 @@ import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import { getJwtSecret } from "@/lib/jwt-secret";
 import { checkRateLimit, getClientIp } from "@/lib/ratelimit";
-
-const CORS_HEADERS = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Methods": "POST, OPTIONS",
-  "Access-Control-Allow-Headers": "Content-Type, Authorization",
-};
+import { mobileCorsHeaders } from "@/lib/cors";
+import { createRefreshToken } from "@/lib/refresh-token";
 
 export async function POST(req: Request) {
+  const CORS_HEADERS = mobileCorsHeaders(req);
   try {
     const ip = getClientIp(req);
     const rateLimit = await checkRateLimit(ip, 'auth');
@@ -60,7 +57,7 @@ export async function POST(req: Request) {
 
     const secret = getJwtSecret();
 
-    // Create JWT Token for mobile app
+    // Access token: 7 days (reduced from 30d for security)
     const token = jwt.sign(
       {
         id: user._id.toString(),
@@ -69,14 +66,19 @@ export async function POST(req: Request) {
         name: user.name,
       },
       secret,
-      { expiresIn: "30d" }
+      { expiresIn: "7d" }
     );
+
+    // Refresh token: 30-day revocable token stored in Redis
+    const refreshToken = await createRefreshToken(user._id.toString());
 
     return NextResponse.json(
       {
         success: true,
         data: {
           token,
+          ...(refreshToken ? { refreshToken } : {}),
+          expiresIn: 7 * 24 * 60 * 60, // seconds
           user: {
             id: user._id.toString(),
             name: user.name,
@@ -87,18 +89,18 @@ export async function POST(req: Request) {
       },
       { headers: CORS_HEADERS }
     );
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Mobile login error:", error);
     return NextResponse.json(
       { success: false, error: "Internal server error" },
-      { status: 500, headers: CORS_HEADERS }
+      { status: 500, headers: mobileCorsHeaders(req) }
     );
   }
 }
 
-export async function OPTIONS() {
+export async function OPTIONS(request: Request) {
   return new NextResponse(null, {
     status: 200,
-    headers: CORS_HEADERS,
+    headers: mobileCorsHeaders(request),
   });
 }

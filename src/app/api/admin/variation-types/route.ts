@@ -4,12 +4,14 @@ import { authOptions } from '@/lib/auth';
 import connectToDatabase from '@/lib/db';
 import VariationType from '@/models/VariationType';
 import VariationValue from '@/models/VariationValue';
+import { getSafeErrorMessage } from '@/lib/api-error';
 
 /** GET /api/admin/variation-types — list all variation types with value counts */
 export async function GET() {
   try {
     const session = await getServerSession(authOptions);
-    if (!session || !['admin', 'manager'].includes((session.user as any).role)) {
+    const role = (session?.user as { role?: string } | undefined)?.role;
+    if (!session || !role || !['admin', 'manager'].includes(role)) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
@@ -30,8 +32,9 @@ export async function GET() {
     }));
 
     return NextResponse.json({ variationTypes: result });
-  } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+  } catch (error: unknown) {
+    console.error('Admin GET variation-types error:', error);
+    return NextResponse.json({ error: getSafeErrorMessage(error) }, { status: 500 });
   }
 }
 
@@ -39,7 +42,8 @@ export async function GET() {
 export async function POST(req: Request) {
   try {
     const session = await getServerSession(authOptions);
-    if (!session || !['admin', 'manager'].includes((session.user as any).role)) {
+    const role = (session?.user as { role?: string } | undefined)?.role;
+    if (!session || !role || !['admin', 'manager'].includes(role)) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
@@ -60,10 +64,11 @@ export async function POST(req: Request) {
     });
 
     return NextResponse.json({ variationType }, { status: 201 });
-  } catch (error: any) {
-    if (error.code === 11000) {
+  } catch (error: unknown) {
+    if (typeof error === 'object' && error !== null && 'code' in error && (error as { code: number }).code === 11000) {
       return NextResponse.json({ error: 'A variation type with this name already exists' }, { status: 400 });
     }
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    console.error('Admin POST variation-type error:', error);
+    return NextResponse.json({ error: getSafeErrorMessage(error) }, { status: 500 });
   }
 }

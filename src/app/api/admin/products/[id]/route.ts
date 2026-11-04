@@ -5,6 +5,7 @@ import connectToDatabase from '@/lib/db';
 import Product from '@/models/Product';
 import { deleteImage } from '@/lib/cloudinary';
 import { touchProductsTimestamp } from '@/lib/lastUpdated';
+import { getSafeErrorMessage } from '@/lib/api-error';
 
 export async function GET(
   req: Request,
@@ -12,21 +13,23 @@ export async function GET(
 ) {
   try {
     const session = await getServerSession(authOptions);
-    if (!session || !['admin', 'manager'].includes((session.user as any).role)) {
+    const role = (session?.user as { role?: string } | undefined)?.role;
+    if (!session || !role || !['admin', 'manager'].includes(role)) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     await connectToDatabase();
     const { id } = await params;
     const product = await Product.findById(id).populate('category', 'name');
-    
+
     if (!product) {
       return NextResponse.json({ error: 'Product not found' }, { status: 404 });
     }
 
     return NextResponse.json({ product });
-  } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+  } catch (error: unknown) {
+    console.error('Admin GET product by ID error:', error);
+    return NextResponse.json({ error: getSafeErrorMessage(error) }, { status: 500 });
   }
 }
 
@@ -36,15 +39,16 @@ export async function PUT(
 ) {
   try {
     const session = await getServerSession(authOptions);
-    if (!session || !['admin', 'manager'].includes((session.user as any).role)) {
+    const role = (session?.user as { role?: string } | undefined)?.role;
+    if (!session || !role || !['admin', 'manager'].includes(role)) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     const data = await req.json();
-    
+
     // Sanitize image URLs to prevent next/image crash
     if (data.images && Array.isArray(data.images)) {
-      data.images = data.images.filter((img: any) => img.url && (img.url.startsWith('http') || img.url.startsWith('/')));
+      data.images = data.images.filter((img: { url?: string }) => img.url && (img.url.startsWith('http') || img.url.startsWith('/')));
     }
 
     await connectToDatabase();
@@ -57,8 +61,8 @@ export async function PUT(
     }
 
     // Identify images being removed
-    const existingUrls = existingProduct.images?.map((img: any) => img.url) || [];
-    const newUrls = data.images?.map((img: any) => img.url) || [];
+    const existingUrls = existingProduct.images?.map((img: { url?: string }) => img.url || '').filter(Boolean) || [];
+    const newUrls = data.images?.map((img: { url?: string }) => img.url || '').filter(Boolean) || [];
     const urlsToDelete = existingUrls.filter((url: string) => !newUrls.includes(url) && url.includes('cloudinary.com'));
 
     // Delete removed images from Cloudinary
@@ -75,10 +79,10 @@ export async function PUT(
       runValidators: true,
     });
 
-    const { revalidatePath } = require('next/cache');
+    const { revalidatePath } = await import('next/cache');
     revalidatePath('/');
     revalidatePath('/products');
-    if (product.slug) {
+    if (product?.slug) {
       revalidatePath(`/products/${product.slug}`);
     }
 
@@ -90,14 +94,15 @@ export async function PUT(
     await invalidateCache('products:*', `product:*:*`);
 
     return NextResponse.json({ product });
-  } catch (error: any) {
-    if (error.code === 11000) {
+  } catch (error: unknown) {
+    if (typeof error === 'object' && error !== null && 'code' in error && (error as { code: number }).code === 11000) {
       return NextResponse.json(
         { error: 'Product with this slug already exists' },
         { status: 400 }
       );
     }
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    console.error('Admin PUT product error:', error);
+    return NextResponse.json({ error: getSafeErrorMessage(error) }, { status: 500 });
   }
 }
 
@@ -107,13 +112,14 @@ export async function DELETE(
 ) {
   try {
     const session = await getServerSession(authOptions);
-    if (!session || !['admin', 'manager'].includes((session.user as any).role)) {
+    const role = (session?.user as { role?: string } | undefined)?.role;
+    if (!session || !role || !['admin', 'manager'].includes(role)) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     await connectToDatabase();
     const { id } = await params;
-    
+
     // Find the product first to get image URLs
     const product = await Product.findById(id);
     if (!product) {
@@ -144,7 +150,8 @@ export async function DELETE(
     await invalidateCache('products:*', `product:*:*`);
 
     return NextResponse.json({ message: 'Product and associated images deleted' });
-  } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+  } catch (error: unknown) {
+    console.error('Admin DELETE product error:', error);
+    return NextResponse.json({ error: getSafeErrorMessage(error) }, { status: 500 });
   }
 }

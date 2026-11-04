@@ -3,11 +3,13 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import connectToDatabase from "@/lib/db";
 import Coupon from "@/models/Coupon";
+import { getSafeErrorMessage } from "@/lib/api-error";
 
 // Auth helper — reusable guard for all handlers
 async function requireAdmin() {
   const session = await getServerSession(authOptions);
-  if (!session || !['admin', 'manager'].includes((session.user as any).role)) {
+  const role = (session?.user as { role?: string } | undefined)?.role;
+  if (!session || !role || !['admin', 'manager'].includes(role)) {
     return null;
   }
   return session;
@@ -22,8 +24,9 @@ export async function GET() {
     await connectToDatabase();
     const coupons = await Coupon.find().sort({ createdAt: -1 }).lean();
     return NextResponse.json(coupons);
-  } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+  } catch (error: unknown) {
+    console.error("Admin GET coupons error:", error);
+    return NextResponse.json({ error: getSafeErrorMessage(error) }, { status: 500 });
   }
 }
 
@@ -53,8 +56,9 @@ export async function POST(req: NextRequest) {
     });
 
     return NextResponse.json(coupon, { status: 201 });
-  } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+  } catch (error: unknown) {
+    console.error("Admin POST coupon error:", error);
+    return NextResponse.json({ error: getSafeErrorMessage(error) }, { status: 500 });
   }
 }
 
@@ -72,8 +76,9 @@ export async function DELETE(req: NextRequest) {
 
     await Coupon.findByIdAndDelete(id);
     return NextResponse.json({ success: true });
-  } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+  } catch (error: unknown) {
+    console.error("Admin DELETE coupon error:", error);
+    return NextResponse.json({ error: getSafeErrorMessage(error) }, { status: 500 });
   }
 }
 
@@ -93,7 +98,8 @@ export async function PATCH(req: NextRequest) {
     if (!coupon) return NextResponse.json({ error: "Coupon not found" }, { status: 404 });
 
     return NextResponse.json(coupon);
-  } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+  } catch (error: unknown) {
+    console.error("Admin PATCH coupon error:", error);
+    return NextResponse.json({ error: getSafeErrorMessage(error) }, { status: 500 });
   }
 }

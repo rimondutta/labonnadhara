@@ -1,9 +1,26 @@
 import { NextResponse } from 'next/server';
 import connectToDatabase from '@/lib/db';
 import Coupon from '@/models/Coupon';
+import { checkRateLimit, getClientIp } from '@/lib/ratelimit';
+import { NextRequest } from 'next/server';
 
-export async function POST(req: Request) {
+export async function POST(req: NextRequest) {
   try {
+    // Rate limit: prevent coupon brute-force enumeration (60 req / 1 min per IP)
+    const ip = getClientIp(req);
+    const rateLimit = await checkRateLimit(ip, 'global');
+    if (rateLimit.isLimited) {
+      return NextResponse.json(
+        { error: 'Too many requests. Please try again later.' },
+        {
+          status: 429,
+          headers: {
+            'Retry-After': String(Math.max(1, Math.ceil((rateLimit.reset - Date.now()) / 1000))),
+          },
+        }
+      );
+    }
+
     const { code, orderTotal } = await req.json();
 
     if (!code || orderTotal === undefined) {
@@ -44,7 +61,7 @@ export async function POST(req: Request) {
       discountValue: coupon.discountValue,
       discountAmount,
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Coupon validation error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }

@@ -1,31 +1,44 @@
 import { NextResponse } from 'next/server';
 import connectToDatabase from '@/lib/db';
 import Product from '@/models/Product';
-import Category from '@/models/Category';
+import { getSafeErrorMessage } from '@/lib/api-error';
 
-// This handles fetching published products for the storefront - REBUILD TRIGGER
+// This handles fetching published products for the storefront
 export async function GET(req: Request) {
   try {
     const { searchParams } = new URL(req.url);
     const categoryQuery = searchParams.get('category');
     const searchQuery = searchParams.get('search');
     const idsQuery = searchParams.get('ids');
-    
+
     await connectToDatabase();
 
     // Enforce max limits to prevent DB overload
-    let requestedLimit = parseInt(searchParams.get('limit') || '50');
+    let requestedLimit = parseInt(searchParams.get('limit') || '50', 10);
+    if (isNaN(requestedLimit) || requestedLimit <= 0) requestedLimit = 50;
     if (requestedLimit > 100) requestedLimit = 100;
-    if (requestedLimit <= 0) requestedLimit = 50;
+
+    // Normalize parameters to create deterministic, collision-resistant cache keys
+    const normalizedCategory = categoryQuery ? categoryQuery.toLowerCase().trim().slice(0, 100) : '';
+    const normalizedSearch = searchQuery ? searchQuery.toLowerCase().trim().slice(0, 100) : '';
+    const normalizedIds = idsQuery
+      ? idsQuery
+          .split(',')
+          .map((id) => id.trim())
+          .filter((id) => id.length > 0 && /^[a-zA-Z0-9_-]+$/.test(id))
+          .sort()
+          .join(',')
+      : '';
+
+    const cacheKey = `products:legacy:cat=${normalizedCategory}&q=${normalizedSearch}&ids=${normalizedIds}&limit=${requestedLimit}`;
 
     // High Traffic Scaling: Cache search results at the edge
     const { withCache } = await import('@/lib/cache');
-    const cacheKey = `products:legacy:${searchParams.toString()}`;
-    
+
     const products = await withCache(cacheKey, 60, async () => {
       // ── Fast path: fetch by IDs (e.g. wishlist) ──
-      if (idsQuery) {
-        const idList = idsQuery.split(',').filter(id => id.length > 0);
+      if (normalizedIds) {
+        const idList = normalizedIds.split(',');
         if (idList.length > 0) {
           return await Product.find({ _id: { $in: idList }, isPublished: true })
             .populate('category')
@@ -37,7 +50,7 @@ export async function GET(req: Request) {
 
       // ── Main path: filter by category slug and/or search ──
       if (categoryQuery && !searchQuery) {
-        const pipeline: any[] = [
+        const pipeline = [
           {
             $lookup: {
               from: 'categories',
@@ -50,16 +63,27 @@ export async function GET(req: Request) {
           {
             $match: {
               isPublished: true,
-              'category.slug': categoryQuery,
+              'category.slug': categoryQuery.trim(),
             },
           },
-          { $sort: { createdAt: -1 } },
+          { $sort: { createdAt: -1 as const } },
           { $limit: requestedLimit },
           {
             $project: {
-              title: 1, price: 1, compareAtPrice: 1, slug: 1, images: 1, category: 1,
-              badge: 1, colors: 1, sizes: 1, inventory: 1, rating: 1,
-              reviewCount: 1, ageRange: 1, createdAt: 1,
+              title: 1,
+              price: 1,
+              compareAtPrice: 1,
+              slug: 1,
+              images: 1,
+              category: 1,
+              badge: 1,
+              colors: 1,
+              sizes: 1,
+              inventory: 1,
+              rating: 1,
+              reviewCount: 1,
+              ageRange: 1,
+              createdAt: 1,
             },
           },
         ];
@@ -67,14 +91,12 @@ export async function GET(req: Request) {
         return await Product.aggregate(pipeline);
       }
 
-      // ── Search path ──
-      let query: any = { isPublished: true };
+      // ── Search path: Use text index for sub-millisecond keyword search ──
+      const query: Record<string, unknown> = { isPublished: true };
       if (searchQuery) {
-        const escapedSearch = searchQuery.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-        query.$or = [
-          { title: { $regex: escapedSearch, $options: 'i' } },
-          { description: { $regex: escapedSearch, $options: 'i' } },
-        ];
+        const trimmed = searchQuery.trim();
+        // Use MongoDB text search to leverage the compound text index
+        query.$text = { $search: trimmed };
       }
 
       return await Product.find(query)
@@ -93,8 +115,8 @@ export async function GET(req: Request) {
         },
       }
     );
-  } catch (error: any) {
-    // Security: Don't leak raw error stack traces to the client in production
+  } catch (error: unknown) {
+    console.error('Store products error:', getSafeErrorMessage(error));
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
 }

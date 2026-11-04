@@ -33,8 +33,6 @@ const poppins = localFont({
   display: "swap",
 });
 
-
-
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || process.env.NEXTAUTH_URL || 'https://labonnadhara.com'),
   title: {
@@ -53,8 +51,8 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "Labonnadhara — Toys They'll Actually Play With Twice",
-    description: "Endlessly fun, safety-tested toys for curious kids aged 0–10.",
+    title: "Labonnadhara — Premium Jewelry & Lifestyle",
+    description: "Elegant, timeless jewelry crafted for your everyday style and special moments.",
   },
   verification: {
     google: "cN9MpMpdVbMEnDhHrc7E670jqvrh4tO5U9bj3zUg1EY",
@@ -71,6 +69,8 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const gaId = process.env.NEXT_PUBLIC_GA_ID;
+
   return (
     <html
       lang="en"
@@ -83,20 +83,23 @@ export default function RootLayout({
         <link rel="dns-prefetch" href="https://res.cloudinary.com" />
         <link rel="dns-prefetch" href="https://connect.facebook.net" />
 
-        {/* Google Analytics */}
-        <Script
-          src="https://www.googletagmanager.com/gtag/js?id=G-NWR9G1FPB6"
-          strategy="lazyOnload"
-        />
-        <Script id="google-analytics" strategy="lazyOnload">
-          {`
-            window.dataLayer = window.dataLayer || [];
-            function gtag(){dataLayer.push(arguments);}
-            gtag('js', new Date());
-            gtag('config', 'G-NWR9G1FPB6');
-          `}
-        </Script>
-
+        {/* Google Analytics - Loaded only when configured */}
+        {gaId && (
+          <>
+            <Script
+              src={`https://www.googletagmanager.com/gtag/js?id=${gaId}`}
+              strategy="lazyOnload"
+            />
+            <Script id="google-analytics" strategy="lazyOnload">
+              {`
+                window.dataLayer = window.dataLayer || [];
+                function gtag(){dataLayer.push(arguments);}
+                gtag('js', new Date());
+                gtag('config', '${gaId}');
+              `}
+            </Script>
+          </>
+        )}
       </head>
       <body
         suppressHydrationWarning

@@ -4,6 +4,7 @@ import { authOptions } from '@/lib/auth';
 import connectToDatabase from '@/lib/db';
 import User from '@/models/User';
 import bcrypt from 'bcryptjs';
+import { getSafeErrorMessage } from '@/lib/api-error';
 
 // PUT: Update profile (name, image)
 export async function PUT(req: Request) {
@@ -28,9 +29,9 @@ export async function PUT(req: Request) {
     }
 
     return NextResponse.json({ success: true, user: { name: user.name, image: user.image } });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Profile update error:", error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ error: getSafeErrorMessage(error) }, { status: 500 });
   }
 }
 
@@ -78,8 +79,8 @@ export async function PATCH(req: NextRequest) {
     await user.save();
 
     return NextResponse.json({ success: true, message: 'Password updated successfully' });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Password change error:', error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ error: getSafeErrorMessage(error) }, { status: 500 });
   }
 }

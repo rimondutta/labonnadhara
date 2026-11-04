@@ -10,14 +10,10 @@ import connectToDatabase from '@/lib/db';
 import User from '@/models/User';
 import { getBearerSession } from '@/lib/mobile-auth';
 import { Expo } from 'expo-server-sdk';
-
-const CORS = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Methods': 'PATCH, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-};
+import { mobileCorsHeaders } from '@/lib/cors';
 
 export async function PATCH(req: NextRequest) {
+  const CORS = mobileCorsHeaders(req);
   try {
     const session = await getBearerSession(req);
     if (!session?.user?.id) {
@@ -59,15 +55,15 @@ export async function PATCH(req: NextRequest) {
       { success: true, message: 'Push token registered.' },
       { headers: CORS }
     );
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error('[push-token]', err);
     return NextResponse.json(
-      { success: false, error: err.message || 'Internal server error.' },
-      { status: 500, headers: CORS }
+      { success: false, error: 'Internal server error.' },
+      { status: 500, headers: mobileCorsHeaders(req) }
     );
   }
 }
 
-export async function OPTIONS() {
-  return new NextResponse(null, { status: 200, headers: CORS });
+export async function OPTIONS(request: Request) {
+  return new NextResponse(null, { status: 200, headers: mobileCorsHeaders(request) });
 }

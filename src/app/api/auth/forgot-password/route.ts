@@ -11,12 +11,7 @@ import connectToDatabase from '@/lib/db';
 import User from '@/models/User';
 import { sendPasswordResetOtpEmail } from '@/lib/nodemailer';
 import { checkRateLimit, getClientIp } from '@/lib/ratelimit';
-
-const CORS = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Methods': 'POST, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type',
-};
+import { mobileCorsHeaders } from '@/lib/cors';
 
 const GENERIC_OK = {
   success: true,
@@ -24,6 +19,7 @@ const GENERIC_OK = {
 };
 
 export async function POST(req: Request) {
+  const CORS = mobileCorsHeaders(req);
   try {
     // 1. IP-based rate limiting (5 req / 1 min per IP)
     const ip = getClientIp(req);
@@ -136,6 +132,6 @@ export async function POST(req: Request) {
   }
 }
 
-export async function OPTIONS() {
-  return new NextResponse(null, { status: 200, headers: CORS });
+export async function OPTIONS(request: Request) {
+  return new NextResponse(null, { status: 200, headers: mobileCorsHeaders(request) });
 }

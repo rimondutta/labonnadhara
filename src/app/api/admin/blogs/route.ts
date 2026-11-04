@@ -4,6 +4,7 @@ import { authOptions } from '@/lib/auth';
 import { getBearerSession } from '@/lib/mobile-auth';
 import dbConnect from '@/lib/db';
 import BlogPost from '@/models/BlogPost';
+import { getSafeErrorMessage } from '@/lib/api-error';
 
 export async function GET(req: Request) {
   try {
@@ -26,8 +27,9 @@ export async function GET(req: Request) {
 
     return NextResponse.json(posts);
   } catch (error: unknown) {
+    console.error('Admin GET blogs error:', error);
     return NextResponse.json(
-      { error: (error as Error).message || 'Failed to fetch blog posts' },
+      { error: getSafeErrorMessage(error) },
       { status: 500 }
     );
   }

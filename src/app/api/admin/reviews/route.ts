@@ -4,6 +4,7 @@ import { authOptions } from '@/lib/auth';
 import connectToDatabase from '@/lib/db';
 import Product from '@/models/Product';
 import mongoose from 'mongoose';
+import { getSafeErrorMessage } from '@/lib/api-error';
 
 /** Recalculates rating/reviewCount from published reviews only and saves the product. */
 async function recalcProductRating(productId: string | mongoose.Types.ObjectId) {
@@ -22,7 +23,8 @@ async function recalcProductRating(productId: string | mongoose.Types.ObjectId) 
 export async function GET() {
   try {
     const session = await getServerSession(authOptions);
-    if (!session || !['admin', 'manager'].includes((session.user as { role?: string }).role ?? '')) {
+    const role = (session?.user as { role?: string } | undefined)?.role;
+    if (!session || !role || !['admin', 'manager'].includes(role)) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
@@ -58,14 +60,16 @@ export async function GET() {
 
     return NextResponse.json({ reviews: allReviews });
   } catch (error: unknown) {
-    return NextResponse.json({ error: (error as Error).message }, { status: 500 });
+    console.error('Admin GET reviews error:', error);
+    return NextResponse.json({ error: getSafeErrorMessage(error) }, { status: 500 });
   }
 }
 
 export async function PATCH(req: Request) {
   try {
     const session = await getServerSession(authOptions);
-    if (!session || !['admin', 'manager'].includes((session.user as { role?: string }).role ?? '')) {
+    const role = (session?.user as { role?: string } | undefined)?.role;
+    if (!session || !role || !['admin', 'manager'].includes(role)) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
@@ -93,14 +97,16 @@ export async function PATCH(req: Request) {
 
     return NextResponse.json({ success: true });
   } catch (error: unknown) {
-    return NextResponse.json({ error: (error as Error).message }, { status: 500 });
+    console.error('Admin PATCH review error:', error);
+    return NextResponse.json({ error: getSafeErrorMessage(error) }, { status: 500 });
   }
 }
 
 export async function DELETE(req: Request) {
   try {
     const session = await getServerSession(authOptions);
-    if (!session || !['admin', 'manager'].includes((session.user as { role?: string }).role ?? '')) {
+    const role = (session?.user as { role?: string } | undefined)?.role;
+    if (!session || !role || !['admin', 'manager'].includes(role)) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
@@ -137,6 +143,7 @@ export async function DELETE(req: Request) {
 
     return NextResponse.json({ success: true });
   } catch (error: unknown) {
-    return NextResponse.json({ error: (error as Error).message }, { status: 500 });
+    console.error('Admin DELETE review error:', error);
+    return NextResponse.json({ error: getSafeErrorMessage(error) }, { status: 500 });
   }
 }

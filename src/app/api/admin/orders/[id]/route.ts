@@ -4,6 +4,7 @@ import { authOptions } from '@/lib/auth';
 import connectToDatabase from '@/lib/db';
 import Order from '@/models/Order';
 import Product from '@/models/Product';
+import { getSafeErrorMessage } from '@/lib/api-error';
 
 export async function GET(
   req: Request,
@@ -11,14 +12,15 @@ export async function GET(
 ) {
   try {
     const session = await getServerSession(authOptions);
-    if (!session || !['admin', 'manager'].includes((session.user as any).role)) {
+    const role = (session?.user as { role?: string } | undefined)?.role;
+    if (!session || !role || !['admin', 'manager'].includes(role)) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     await connectToDatabase();
     const { id } = await params;
-    const order = await Order.findById(id).lean() as any;
-    
+    const order = (await Order.findById(id).lean()) as any;
+
     if (!order) {
       return NextResponse.json({ error: 'Order not found' }, { status: 404 });
     }
@@ -30,10 +32,10 @@ export async function GET(
         .filter(Boolean);
 
       if (productIds.length) {
-        const products = await Product.find(
+        const products = (await Product.find(
           { _id: { $in: productIds } },
           { images: 1 }
-        ).lean() as any[];
+        ).lean()) as any[];
 
         const productMap: Record<string, string> = {};
         for (const p of products) {
@@ -48,8 +50,9 @@ export async function GET(
     }
 
     return NextResponse.json({ order });
-  } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+  } catch (error: unknown) {
+    console.error('Admin GET order by ID error:', error);
+    return NextResponse.json({ error: getSafeErrorMessage(error) }, { status: 500 });
   }
 }
 
@@ -59,17 +62,17 @@ export async function PUT(
 ) {
   try {
     const session = await getServerSession(authOptions);
-    if (!session || !['admin', 'manager'].includes((session.user as any).role)) {
+    const role = (session?.user as { role?: string } | undefined)?.role;
+    if (!session || !role || !['admin', 'manager'].includes(role)) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     const data = await req.json();
 
     await connectToDatabase();
-    // Only allow updating statuses explicitly
     const { id } = await params;
     const oldOrder = await Order.findById(id);
-    
+
     if (!oldOrder) {
       return NextResponse.json({ error: 'Order not found' }, { status: 404 });
     }
@@ -109,7 +112,7 @@ export async function PUT(
         data.fulfillmentStatus || oldOrder.fulfillmentStatus,
         data.courierStatus || oldOrder.courierStatus
       );
-      const activeStep = steps.find(s => s.active) || steps[0];
+      const activeStep = steps.find((s) => s.active) || steps[0];
 
       const newTimelineItem = {
         status: data.courierStatus || oldOrder.courierStatus || 'in_transit',
@@ -130,23 +133,28 @@ export async function PUT(
     // Send Email Notification if status changed
     if (data.fulfillmentStatus && data.fulfillmentStatus !== oldOrder.fulfillmentStatus) {
       const { sendOrderStatusUpdateEmail } = await import('@/lib/nodemailer');
-      await sendOrderStatusUpdateEmail(order, 'fulfillment', data.fulfillmentStatus).catch(err => console.error('Status email error:', err));
+      await sendOrderStatusUpdateEmail(order, 'fulfillment', data.fulfillmentStatus).catch((err) =>
+        console.error('Status email error:', err)
+      );
     } else if (data.paymentStatus && data.paymentStatus !== oldOrder.paymentStatus) {
       const { sendOrderStatusUpdateEmail } = await import('@/lib/nodemailer');
-      await sendOrderStatusUpdateEmail(order, 'payment', data.paymentStatus).catch(err => console.error('Status email error:', err));
+      await sendOrderStatusUpdateEmail(order, 'payment', data.paymentStatus).catch((err) =>
+        console.error('Status email error:', err)
+      );
     }
 
     // Send Push Notification + save Notification record via centralized helper
     if (data.fulfillmentStatus && data.fulfillmentStatus !== oldOrder.fulfillmentStatus) {
       const { sendOrderStatusNotification } = await import('@/lib/push');
-      sendOrderStatusNotification(order, data.fulfillmentStatus).catch(err =>
+      sendOrderStatusNotification(order, data.fulfillmentStatus).catch((err) =>
         console.error('Push notification error:', err)
       );
     }
 
     return NextResponse.json({ order });
-  } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+  } catch (error: unknown) {
+    console.error('Admin PUT order error:', error);
+    return NextResponse.json({ error: getSafeErrorMessage(error) }, { status: 500 });
   }
 }
 
@@ -156,20 +164,22 @@ export async function DELETE(
 ) {
   try {
     const session = await getServerSession(authOptions);
-    if (!session || !['admin', 'manager'].includes((session.user as any).role)) {
+    const role = (session?.user as { role?: string } | undefined)?.role;
+    if (!session || !role || !['admin', 'manager'].includes(role)) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     await connectToDatabase();
     const { id } = await params;
     const deletedOrder = await Order.findByIdAndDelete(id);
-    
+
     if (!deletedOrder) {
       return NextResponse.json({ error: 'Order not found' }, { status: 404 });
     }
 
     return NextResponse.json({ success: true, message: 'Order deleted successfully' });
-  } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+  } catch (error: unknown) {
+    console.error('Admin DELETE order error:', error);
+    return NextResponse.json({ error: getSafeErrorMessage(error) }, { status: 500 });
   }
 }

@@ -1,7 +1,7 @@
 import mongoose from 'mongoose';
 import BlogPost from '../models/BlogPost';
 
-const MONGODB_URI = 'mongodb://localhost:27017/flexwear';
+const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/labonnadhara';
 
 const posts = [
   {
@@ -14,13 +14,13 @@ const posts = [
 Minimalism in fashion is often misunderstood as simply 'wearing less.' In reality, it is a disciplined approach to curation, where every piece serves a specific purpose—both aesthetically and functionally.
 
 ## The Foundation
-A minimalist wardrobe begins with high-quality basics. These are the versatile building blocks that can be mixed and matched across seasons. Our 'Tech-Cotton' series is a prime example of this philosophy.
+A minimalist wardrobe begins with high-quality basics. These are the versatile building blocks that can be mixed and matched across seasons. Our signature series is a prime example of this philosophy.
 
 ## Technical Superiority
-Why settle for generic fabrics? We believe that the clothes you wear should adapt to your environment. From moisture-wicking properties to antimicrobial properties, technical fabrics are no longer reserved for the gym.
+Why settle for generic designs? We believe that what you wear should adapt to your lifestyle with enduring elegance and craftsmanship.
 
 ## The Editorial Shift
-The transition from street-ready to boardroom-chic is a subtle one. By focusing on silhouette and texture over logos and loud colors, you create a timeless look that commands respect through its understated elegance.
+The transition from daytime elegance to evening glamour is a subtle one. By focusing on silhouette and texture, you create a timeless look that commands respect through understated elegance.
     `,
     author: { name: "ALEX RILEY", avatar: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?q=80&w=200&h=200&fit=crop" },
     featuredImage: { 
@@ -28,63 +28,57 @@ The transition from street-ready to boardroom-chic is a subtle one. By focusing 
       alt: "Minimalist fashion aesthetic"
     },
     category: "Style Guide",
-    tags: ["Minimalism", "Technical", "AW24"],
+    tags: ["Minimalism", "Elegance", "Style"],
     readingTime: "4 min read",
     isPublished: true
   },
   {
-    title: "Behind the Seams: The Tech-Wear Revolution",
-    slug: "behind-the-seams-tech-wear-revolution",
-    excerpt: "A deep dive into the laboratory where our signature performance fabrics are engineered.",
+    title: "Behind the Craft: The Labonnadhara Philosophy",
+    slug: "behind-the-craft-labonnadhara-philosophy",
+    excerpt: "A deep dive into our studio where each signature piece is meticulously designed.",
     content: `
-# Behind the Seams: The Tech-Wear Revolution
+# Behind the Craft: The Labonnadhara Philosophy
 
-The future of fashion isn't just about what you see; it's about what you don't. At FLEXWEAR, we spend thousands of hours in the laboratory before a single stitch is made.
+The soul of style isn't just about appearance; it's about craftsmanship and authenticity. At Labonnadhara, we dedicate countless hours to perfecting every nuance before a piece reaches your collection.
 
-## Engineering Performance
-Our proprietary 'Aero-Weave' technology is designed to regulate body temperature in extreme conditions. Whether you're navigating the urban jungle or a high-altitude hike, the fabric breathes with you.
+## Handcrafted Excellence
+Our pieces are designed to celebrate your unique personality and moments that matter, blending timeless heritage with contemporary flair.
 
-## Sustainable Innovation
-Performance shouldn't come at the cost of the planet. All our technical components are now 80% derived from recycled ocean plastics, maintaining their structural integrity while reducing our carbon footprint.
-
-## Future Outlook
-We are currently exploring biocompatible fibers that can monitor heart rate and hydration levels. The line between technology and apparel is blurring, and we are at the forefront of that convergence.
+## Sustainable Elegance
+True beauty lasts generations. We source ethically and design for permanence, keeping our environmental footprint low.
     `,
     author: { name: "SARA CHEN", avatar: "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?q=80&w=200&h=200&fit=crop" },
     featuredImage: { 
       url: "https://images.unsplash.com/photo-1523381210434-271e8be1f52b?q=80&w=1200&h=800&fit=crop",
-      alt: "Fabric engineering lab"
+      alt: "Design studio and craftsmanship"
     },
-    category: "Innovation",
-    tags: ["Technology", "Sustainability", "Future"],
-    readingTime: "6 min read",
+    category: "Craftsmanship",
+    tags: ["Craft", "Design", "Timeless"],
+    readingTime: "5 min read",
     isPublished: true
   },
   {
-    title: "Paris Fashion Week: A New Direction",
-    slug: "paris-fashion-week-new-direction",
-    excerpt: "Insights from the front row as we debuted our 'Cyber-Classic' collection in the heart of Paris.",
+    title: "Seasonal Showcase: A New Direction",
+    slug: "seasonal-showcase-new-direction",
+    excerpt: "Discover the inspiration behind our latest signature collection.",
     content: `
-# Paris Fashion Week: A New Direction
+# Seasonal Showcase: A New Direction
 
-The atmosphere was electric at the Palais de Tokyo as we unveiled the 'Cyber-Classic' FW24 collection. This season marks a departure from traditional street-wear towards a more structured, architectural approach to clothing.
+This season marks a fresh artistic evolution towards intricate artistry and pure modern lines.
 
-## The 'Cyber-Classic' Aesthetic
-By combining 19th-century tailoring techniques with 21st-century bonded seams, we created a silhouette that feels both historical and futuristic.
+## The Signature Collection
+By combining timeless artisanship with modern silhouettes, we present pieces that feel rooted in tradition yet distinctly contemporary.
 
-## Critical Reception
-Vogue described the collection as 'a masterclass in restrained futurism.' The feedback reinforces our belief that the market is ready for apparel that challenges the status quo.
-
-## What's Next?
-The collection will be available exclusively through our 'Early Access Registry' starting next month. Stay tuned for the official drop manifest.
+## Available Now
+The new season is now available online and in select boutiques.
     `,
-    author: { name: "MARCUS VOGUE", avatar: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?q=80&w=200&h=200&fit=crop" },
+    author: { name: "LABONNADHARA EDITORIAL", avatar: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?q=80&w=200&h=200&fit=crop" },
     featuredImage: { 
       url: "https://images.unsplash.com/photo-1539109136881-3be0616acf4b?q=80&w=1200&h=800&fit=crop",
-      alt: "Runway show in Paris"
+      alt: "Seasonal collection showcase"
     },
     category: "Brand",
-    tags: ["PFW", "FW24", "Editorial"],
+    tags: ["Editorial", "Collection", "Showcase"],
     readingTime: "3 min read",
     isPublished: true
   }

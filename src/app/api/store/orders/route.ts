@@ -4,7 +4,7 @@ import connectToDatabase from '@/lib/db';
 import Order from '@/models/Order';
 import Product from '@/models/Product';
 import Coupon from '@/models/Coupon';
-import { isRateLimited, getClientIp } from '@/lib/ratelimit';
+import { checkRateLimit, getClientIp } from '@/lib/ratelimit';
 import { redis, hasRedis } from '@/lib/redis';
 import { calculateOrderTotals } from '@/lib/order-pricing';
 
@@ -43,13 +43,18 @@ async function resolveIdempotencyKey(key: string, orderId: string): Promise<void
 
 export async function POST(req: Request) {
   try {
-    // 1. Distributed Rate Limiting
+    // 1. Distributed Rate Limiting — now with Retry-After header
     const ip = getClientIp(req);
-    const rateLimited = await isRateLimited(ip, 'strict');
-    if (rateLimited) {
+    const rateLimit = await checkRateLimit(ip, 'strict');
+    if (rateLimit.isLimited) {
       return NextResponse.json(
         { error: 'Too many requests. Please try again later.' },
-        { status: 429 }
+        {
+          status: 429,
+          headers: {
+            'Retry-After': String(Math.max(1, Math.ceil((rateLimit.reset - Date.now()) / 1000))),
+          },
+        }
       );
     }
 
@@ -202,8 +207,12 @@ export async function POST(req: Request) {
   } catch (error: unknown) {
     console.error('Failed to create order:', error);
     return NextResponse.json(
-      { error: (error as Error).message || 'Failed to place order.' },
+      { error: 'Failed to place order.' },
       { status: 500 }
     );
   }
+}
+
+export async function OPTIONS() {
+  return new NextResponse(null, { status: 200 });
 }

@@ -7,7 +7,7 @@ const BlogPostSchema = new mongoose.Schema(
     excerpt: { type: String, required: true },
     content: { type: String, required: true }, // Markdown supported
     author: {
-      name: { type: String, default: "FLEXWEAR EDITORIAL" },
+      name: { type: String, default: "LABONNADHARA EDITORIAL" },
       avatar: { type: String },
     },
     featuredImage: {
