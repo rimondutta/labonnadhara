@@ -11,6 +11,7 @@ export interface CartItem {
   quantity: number;
   variantOptions?: Record<string, string>; // e.g. { Color: "Red", Size: "M", Pieces: "10" }
   image: string;
+  requiresCustomPhoto?: boolean;
 }
 
 interface CartState {

@@ -56,6 +56,7 @@ export default function QuickLookDrawer() {
         ...(selectedSize ? { Size: selectedSize } : {}),
       },
       image: images[0],
+      requiresCustomPhoto: Boolean(product.requiresCustomPhoto),
     });
     closeQuickLook();
     openCart();

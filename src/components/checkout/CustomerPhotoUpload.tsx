@@ -114,10 +114,22 @@ export default function CustomerPhotoUpload({
             <ImageIcon size={18} />
           </div>
           <div>
-            <h3 className="text-base font-bold text-gray-900">Upload Your Photo</h3>
+            <h3 className="text-base font-bold text-gray-900 flex items-center gap-1.5">
+              Upload Your Photo
+              {isRequired ? (
+                <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-red-100 text-red-700">
+                  Required
+                </span>
+              ) : (
+                <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-gray-100 text-gray-600">
+                  Optional
+                </span>
+              )}
+            </h3>
             <p className="text-xs text-gray-500">
-              For your custom photo frame order
-              {isRequired && <span className="text-[#D62B72] ml-1 font-semibold">*Required</span>}
+              {isRequired
+                ? "Please upload the photo for your custom photo frame order."
+                : "Add a personal photo for custom photo frames or personalized gift items."}
             </p>
           </div>
         </div>

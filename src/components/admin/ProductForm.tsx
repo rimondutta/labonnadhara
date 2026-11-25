@@ -51,6 +51,7 @@ export default function ProductForm({ initialData, categories, onSubmit, loading
     inventory: 0,
     isPublished: true,
     ageRange: "",
+    requiresCustomPhoto: false,
     images: [] as { url: string; alt: string }[],
   })
   const [tags, setTags] = useState("")
@@ -113,6 +114,7 @@ export default function ProductForm({ initialData, categories, onSubmit, loading
       inventory: initialData.inventory || 0,
       isPublished: initialData.isPublished !== undefined ? initialData.isPublished : true,
       ageRange: initialData.ageRange || "",
+      requiresCustomPhoto: Boolean(initialData.requiresCustomPhoto),
       images: initialData.images || [],
     })
     if (initialData.tags) setTags(initialData.tags.join(", "))
@@ -819,6 +821,25 @@ export default function ProductForm({ initialData, categories, onSubmit, loading
                 />
               </div>
             </div>
+          </div>
+
+          {/* Custom Photo Requirements */}
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 space-y-4">
+            <h3 className="text-base font-semibold text-gray-900">Custom Photo Options</h3>
+            <label className="flex items-start gap-3 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={Boolean(formData.requiresCustomPhoto)}
+                onChange={e => setFormData(prev => ({ ...prev, requiresCustomPhoto: e.target.checked }))}
+                className="mt-1 h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+              />
+              <div className="space-y-0.5">
+                <span className="text-sm font-medium text-gray-900">Requires Customer Photo</span>
+                <p className="text-xs text-gray-500">
+                  Enforces customer photo upload at checkout (e.g. for custom photo frames, personalized prints). Photo is uploaded directly to Google Drive upon checkout.
+                </p>
+              </div>
+            </label>
           </div>
 
           {/* Save */}

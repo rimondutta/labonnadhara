@@ -27,6 +27,7 @@ interface Product {
   inventory?: number;
   hasVariations?: boolean;
   variants?: any[];
+  requiresCustomPhoto?: boolean;
 }
 
 interface Props {
@@ -69,6 +70,7 @@ export default function ProductCardModern({ product, priority = false, index = 1
       price: product.price,
       quantity: 1,
       image: product.images?.[0]?.url || "/placeholder.jpg",
+      requiresCustomPhoto: Boolean(product.requiresCustomPhoto),
     });
     setIsAdding(false);
 

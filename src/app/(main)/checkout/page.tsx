@@ -63,13 +63,21 @@ export default function CheckoutPage() {
   const [selectedPhoto, setSelectedPhoto] = useState<File | null>(null);
 
   // Detect whether any product in cart requires a custom photo (custom photo frames)
-  const requiresPhoto = items.some((item) => {
+  const isPhotoRequired = items.some((item) => {
     const title = (item.title || "").toLowerCase();
+    const slug = (item.slug || "").toLowerCase();
     return (
       (item as any).requiresCustomPhoto === true ||
       title.includes("frame") ||
       title.includes("photo") ||
-      title.includes("custom")
+      title.includes("custom") ||
+      title.includes("portrait") ||
+      title.includes("print") ||
+      title.includes("ছবি") ||
+      title.includes("ফ্রেম") ||
+      slug.includes("frame") ||
+      slug.includes("photo") ||
+      slug.includes("custom")
     );
   });
   // A stable UUID generated once per checkout session.
@@ -168,7 +176,7 @@ export default function CheckoutPage() {
   const handleSubmit = async () => {
     if (isSubmitting) return;
 
-    if (requiresPhoto && !selectedPhoto) {
+    if (isPhotoRequired && !selectedPhoto) {
       showToast("Please select your photo for your custom photo frame before placing your order.", "error");
       setStep(0);
       return;
@@ -454,16 +462,14 @@ export default function CheckoutPage() {
                     </div>
                   )}
 
-                  {/* ── Custom Photo Upload for Photo Frame Products ── */}
-                  {requiresPhoto && (
-                    <div className="pt-2">
-                      <CustomerPhotoUpload
-                        selectedFile={selectedPhoto}
-                        onFileSelect={setSelectedPhoto}
-                        isRequired={true}
-                      />
-                    </div>
-                  )}
+                  {/* ── Custom Photo Upload (Always displayed: Required for photo frames, Optional for other items) ── */}
+                  <div className="pt-2">
+                    <CustomerPhotoUpload
+                      selectedFile={selectedPhoto}
+                      onFileSelect={setSelectedPhoto}
+                      isRequired={isPhotoRequired}
+                    />
+                  </div>
                 </m.div>
               )}
 

@@ -136,7 +136,8 @@ export default function ProductDetailsClient({ product: initialProduct, relatedP
       price: matchingVariant ? matchingVariant.price : product.price,
       quantity,
       image: matchingVariant?.images?.[0] || product.images?.[0]?.url || "/placeholder.jpg",
-      variantId: matchingVariant?._id
+      variantId: matchingVariant?._id,
+      requiresCustomPhoto: Boolean(product.requiresCustomPhoto),
     });
     try { trackAddToCart(product, quantity); } catch { /* noop */ }
     showToast(`Added ${quantity} to your bag!`, "success");
@@ -151,7 +152,8 @@ export default function ProductDetailsClient({ product: initialProduct, relatedP
       price: matchingVariant ? matchingVariant.price : product.price,
       quantity,
       image: matchingVariant?.images?.[0] || product.images?.[0]?.url || "/placeholder.jpg",
-      variantId: matchingVariant?._id
+      variantId: matchingVariant?._id,
+      requiresCustomPhoto: Boolean(product.requiresCustomPhoto),
     });
     try { trackAddToCart(product, quantity); } catch { /* noop */ }
     router.push("/checkout");
