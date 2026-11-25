@@ -21,7 +21,9 @@ import {
   Truck,
   Loader2,
   Sparkles,
+  ImageIcon,
 } from "lucide-react";
+import CustomerPhotoUpload from "@/components/checkout/CustomerPhotoUpload";
 
 const STEPS = [
   { id: "shipping", label: "Shipping", icon: Package },
@@ -58,6 +60,18 @@ export default function CheckoutPage() {
 
   const [step, setStep] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [selectedPhoto, setSelectedPhoto] = useState<File | null>(null);
+
+  // Detect whether any product in cart requires a custom photo (custom photo frames)
+  const requiresPhoto = items.some((item) => {
+    const title = (item.title || "").toLowerCase();
+    return (
+      (item as any).requiresCustomPhoto === true ||
+      title.includes("frame") ||
+      title.includes("photo") ||
+      title.includes("custom")
+    );
+  });
   // A stable UUID generated once per checkout session.
   // Survives re-renders and intentional retries so the server can detect
   // duplicate submissions and return the existing orderId instead of creating
@@ -153,40 +167,61 @@ export default function CheckoutPage() {
 
   const handleSubmit = async () => {
     if (isSubmitting) return;
+
+    if (requiresPhoto && !selectedPhoto) {
+      showToast("Please select your photo for your custom photo frame before placing your order.", "error");
+      setStep(0);
+      return;
+    }
+
     setIsSubmitting(true);
     try {
-      const res = await fetch("/api/store/orders", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          customerEmail: form.email,
-          customerName: form.name,
-          items: items.map((item) => ({
-            productId: item.id,
-            variantId: item.variantId,
-            title: item.title,
-            price: item.price,
-            quantity: item.quantity,
-            variantOptions: item.variantOptions,
-            image: item.image,
-          })),
-          shippingAddress: {
-            name: form.name,
-            email: form.email,
-            phone: form.phone,
-            addressLine1: form.address,
-            city: form.city,
-            postcode: form.zip,
-            country: 'Bangladesh'
-          },
-          paymentMethod: form.paymentMethod,
-          shippingZone: form.shippingZone,
-          notes: form.notes,
-          totalAmount: grandTotal,
-          shippingCost: shippingCost,
-          idempotencyKey: idempotencyKeyRef.current,
-        }),
-      });
+      const orderPayload = {
+        customerEmail: form.email,
+        customerName: form.name,
+        items: items.map((item) => ({
+          productId: item.id,
+          variantId: item.variantId,
+          title: item.title,
+          price: item.price,
+          quantity: item.quantity,
+          variantOptions: item.variantOptions,
+          image: item.image,
+        })),
+        shippingAddress: {
+          name: form.name,
+          email: form.email,
+          phone: form.phone,
+          addressLine1: form.address,
+          city: form.city,
+          postcode: form.zip,
+          country: 'Bangladesh'
+        },
+        paymentMethod: form.paymentMethod,
+        shippingZone: form.shippingZone,
+        notes: form.notes,
+        totalAmount: grandTotal,
+        shippingCost: shippingCost,
+        idempotencyKey: idempotencyKeyRef.current,
+      };
+
+      let res: Response;
+      if (selectedPhoto) {
+        const formData = new FormData();
+        formData.append("data", JSON.stringify(orderPayload));
+        formData.append("photo", selectedPhoto);
+        res = await fetch("/api/store/orders", {
+          method: "POST",
+          body: formData,
+        });
+      } else {
+        res = await fetch("/api/store/orders", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(orderPayload),
+        });
+      }
+
       const data = await res.json();
       if (data.success) {
         // Invalidate the idempotency key so a future checkout generates a fresh one
@@ -199,11 +234,12 @@ export default function CheckoutPage() {
           });
         } catch { /* noop */ }
         clearCart();
+        setSelectedPhoto(null);
         showToast("Order placed successfully! 🎉");
         const tokenQuery = data.guestAccessToken ? `?token=${encodeURIComponent(data.guestAccessToken)}` : "";
         router.push(`/invoice/${data.orderId}${tokenQuery}`);
       } else {
-        showToast(data.message || "Order failed", "error");
+        showToast(data.message || data.error || "Order failed", "error");
       }
     } catch {
       showToast("Connection error. Please try again.", "error");
@@ -417,6 +453,17 @@ export default function CheckoutPage() {
                       </div>
                     </div>
                   )}
+
+                  {/* ── Custom Photo Upload for Photo Frame Products ── */}
+                  {requiresPhoto && (
+                    <div className="pt-2">
+                      <CustomerPhotoUpload
+                        selectedFile={selectedPhoto}
+                        onFileSelect={setSelectedPhoto}
+                        isRequired={true}
+                      />
+                    </div>
+                  )}
                 </m.div>
               )}
 
@@ -570,6 +617,28 @@ export default function CheckoutPage() {
                       ))}
                     </div>
                   </div>
+
+                  {/* Customer Photo Review */}
+                  {selectedPhoto && (
+                    <div className="rounded-2xl border border-[#F3D6E2] bg-white shadow-sm p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                      <div className="flex items-center gap-3 min-w-0">
+                        <div className="w-9 h-9 rounded-xl bg-[#FFF1F6] border border-[#F3D6E2] flex items-center justify-center text-[#D62B72] shrink-0">
+                          <ImageIcon size={18} />
+                        </div>
+                        <div className="min-w-0">
+                          <p className="text-sm font-bold text-gray-900 truncate">
+                            Custom Photo: {selectedPhoto.name}
+                          </p>
+                          <p className="text-xs text-gray-500">
+                            {(selectedPhoto.size / (1024 * 1024)).toFixed(1)} MB • Will be uploaded securely to Google Drive upon order
+                          </p>
+                        </div>
+                      </div>
+                      <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 self-start sm:self-auto shrink-0">
+                        Ready to upload
+                      </span>
+                    </div>
+                  )}
                 </m.div>
               )}
             </AnimatePresence>

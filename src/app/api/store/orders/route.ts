@@ -58,7 +58,44 @@ export async function POST(req: Request) {
       );
     }
 
-    const body = await req.json();
+    // ── Content-type aware body parsing (supports multipart/form-data with photo) ──
+    const contentType = req.headers.get('content-type') || '';
+    let body: any;
+    let photoBuffer: Buffer | null = null;
+    let photoFileName: string | null = null;
+    let photoMimeType: string | null = null;
+    let photoFileSize = 0;
+
+    if (contentType.includes('multipart/form-data')) {
+      const formData = await req.formData();
+      const dataField = formData.get('data');
+      if (!dataField || typeof dataField !== 'string') {
+        return NextResponse.json({ error: 'Invalid request format.' }, { status: 400 });
+      }
+      try {
+        body = JSON.parse(dataField);
+      } catch {
+        return NextResponse.json({ error: 'Invalid JSON in form data.' }, { status: 400 });
+      }
+
+      const photoFile = formData.get('photo');
+      if (photoFile && photoFile instanceof Blob) {
+        const { validateCustomerPhoto } = await import('@/lib/google-drive');
+        const arrBuffer = await photoFile.arrayBuffer();
+        photoBuffer = Buffer.from(arrBuffer);
+        photoFileName = (photoFile as File).name || 'customer-photo.jpg';
+        photoMimeType = photoFile.type || 'image/jpeg';
+        photoFileSize = photoBuffer.length;
+
+        const validation = validateCustomerPhoto(photoFileSize, photoMimeType, photoFileName);
+        if (!validation.valid) {
+          return NextResponse.json({ error: validation.error }, { status: 400 });
+        }
+      }
+    } else {
+      body = await req.json();
+    }
+
     const {
       customerEmail,
       customerName,
@@ -165,6 +202,9 @@ export async function POST(req: Request) {
       paymentStatus: 'pending',
       fulfillmentStatus: 'unfulfilled',
       guestAccessTokenHash,
+      customPhoto: photoBuffer
+        ? { uploadStatus: 'pending', fileName: photoFileName, mimeType: photoMimeType, fileSize: photoFileSize }
+        : { uploadStatus: 'not_required' },
     };
 
     if (customerEmail) {
@@ -192,6 +232,37 @@ export async function POST(req: Request) {
     // Resolve Idempotency key
     if (idempotencyKey && typeof idempotencyKey === 'string') {
       await resolveIdempotencyKey(idempotencyKey, order._id.toString());
+    }
+
+    // ── Google Drive Photo Upload (after order is created) ──────────────────────
+    if (photoBuffer && photoFileName && photoMimeType) {
+      try {
+        const { uploadCustomerPhotoToDrive, sanitizePhotoFileName } = await import('@/lib/google-drive');
+        await Order.findByIdAndUpdate(order._id, { 'customPhoto.uploadStatus': 'uploading' });
+        const uploadResult = await uploadCustomerPhotoToDrive({
+          orderId: order._id.toString(),
+          orderNumber: order.invoiceNumber || order._id.toString().slice(-8).toUpperCase(),
+          fileBuffer: photoBuffer,
+          fileName: sanitizePhotoFileName(photoFileName),
+          mimeType: photoMimeType,
+        });
+        await Order.findByIdAndUpdate(order._id, {
+          'customPhoto.driveFileId': uploadResult.driveFileId,
+          'customPhoto.driveFolderId': uploadResult.driveFolderId,
+          'customPhoto.fileName': uploadResult.fileName,
+          'customPhoto.uploadStatus': 'uploaded',
+          'customPhoto.uploadedAt': new Date(),
+          'customPhoto.uploadError': null,
+        });
+      } catch (uploadErr: unknown) {
+        console.error('[order] Google Drive upload failed for order', order._id, uploadErr);
+        await Order.findByIdAndUpdate(order._id, {
+          'customPhoto.uploadStatus': 'failed',
+          'customPhoto.uploadError':
+            uploadErr instanceof Error ? uploadErr.message.slice(0, 500) : 'Upload failed',
+        });
+        // Order is still created — do NOT fail the response
+      }
     }
 
     return NextResponse.json(

@@ -4,7 +4,7 @@ import { useEffect, useState } from "react"
 import { useParams, useRouter } from "next/navigation"
 import Link from "next/link"
 import Image from "next/image"
-import { ArrowLeft, Package, CreditCard, Truck, User, MapPin, Mail, Phone, Calendar, Trash2, Download, RefreshCw, Link2, Save, Clock } from "lucide-react"
+import { ArrowLeft, Package, CreditCard, Truck, User, MapPin, Mail, Phone, Calendar, Trash2, Download, RefreshCw, Link2, Save, Clock, Image as ImageIcon, Eye, ExternalLink, AlertCircle, UploadCloud } from "lucide-react"
 
 export default function AdminOrderDetailsPage() {
   const params = useParams()
@@ -13,6 +13,8 @@ export default function AdminOrderDetailsPage() {
   const [loading, setLoading] = useState(true)
   const [updating, setUpdating] = useState(false)
   const [regenerating, setRegenerating] = useState(false)
+  const [uploadingPhoto, setUploadingPhoto] = useState(false)
+  const [deletingPhoto, setDeletingPhoto] = useState(false)
 
   // Courier assignment state
   const [configuredCouriers, setConfiguredCouriers] = useState<{name:string;code:string}[]>([])
@@ -154,6 +156,59 @@ export default function AdminOrderDetailsPage() {
     }
   }
 
+  const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    if (file.size > 15 * 1024 * 1024) {
+      alert("File size must be under 15 MB")
+      return
+    }
+    setUploadingPhoto(true)
+    try {
+      const formData = new FormData()
+      formData.append("photo", file)
+      const res = await fetch(`/api/admin/orders/${params.id}/photo/retry`, {
+        method: "POST",
+        body: formData,
+      })
+      const data = await res.json()
+      if (res.ok) {
+        alert("Photo uploaded successfully to Google Drive!")
+        await fetchOrder()
+      } else {
+        alert("Upload failed: " + (data.error || "Unknown error"))
+      }
+    } catch (err: unknown) {
+      console.error(err)
+      alert("Error uploading photo")
+    } finally {
+      setUploadingPhoto(false)
+      e.target.value = ""
+    }
+  }
+
+  const handleDeletePhoto = async () => {
+    if (!window.confirm("Are you sure you want to delete this customer photo from Google Drive? This action cannot be undone.")) return
+    setDeletingPhoto(true)
+    try {
+      const res = await fetch(`/api/admin/orders/${params.id}/photo`, {
+        method: "DELETE",
+      })
+      const data = await res.json()
+      if (res.ok) {
+        alert("Photo deleted successfully.")
+        await fetchOrder()
+      } else {
+        alert("Failed to delete photo: " + (data.error || "Unknown error"))
+      }
+    } catch (err) {
+      console.error(err)
+      alert("Error deleting photo")
+    } finally {
+      setDeletingPhoto(false)
+    }
+  }
+
   if (loading) {
     return (
       <div className="flex justify-center items-center h-64">
@@ -271,6 +326,135 @@ export default function AdminOrderDetailsPage() {
                 </select>
               </div>
             </div>
+          </div>
+
+          {/* Customer Photo Section */}
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 space-y-4">
+            <div className="flex items-center justify-between">
+              <h2 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+                <ImageIcon className="text-blue-500" size={20} /> Customer Custom Photo
+              </h2>
+              {order.customPhoto?.uploadStatus && (
+                <span
+                  className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold uppercase tracking-wider ${
+                    order.customPhoto.uploadStatus === "uploaded"
+                      ? "bg-green-100 text-green-800"
+                      : order.customPhoto.uploadStatus === "uploading"
+                      ? "bg-blue-100 text-blue-800"
+                      : order.customPhoto.uploadStatus === "failed"
+                      ? "bg-red-100 text-red-800"
+                      : "bg-gray-100 text-gray-800"
+                  }`}
+                >
+                  {order.customPhoto.uploadStatus}
+                </span>
+              )}
+            </div>
+
+            {order.customPhoto && order.customPhoto.uploadStatus === "uploaded" && order.customPhoto.driveFileId ? (
+              <div className="space-y-4">
+                <div className="relative bg-gray-50 rounded-lg border border-gray-200 overflow-hidden flex items-center justify-center p-2 min-h-[220px]">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={`/api/admin/orders/${order._id}/photo`}
+                    alt="Customer Uploaded Photo"
+                    className="max-h-72 w-auto object-contain rounded shadow-sm"
+                  />
+                </div>
+
+                <div className="flex flex-wrap items-center justify-between gap-3 pt-2 border-t border-gray-100 text-xs text-gray-500">
+                  <div>
+                    {order.customPhoto.fileName && (
+                      <p className="font-mono text-gray-700 font-medium">{order.customPhoto.fileName}</p>
+                    )}
+                    {order.customPhoto.fileSize && (
+                      <p>{(order.customPhoto.fileSize / (1024 * 1024)).toFixed(2)} MB</p>
+                    )}
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <a
+                      href={`/api/admin/orders/${order._id}/photo`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-medium rounded-lg transition-colors"
+                    >
+                      <Eye size={14} /> View
+                    </a>
+                    <a
+                      href={`/api/admin/orders/${order._id}/photo?download=true`}
+                      download
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 text-xs font-medium rounded-lg transition-colors"
+                    >
+                      <Download size={14} /> Download
+                    </a>
+                    <label className="cursor-pointer inline-flex items-center gap-1.5 px-3 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-medium rounded-lg transition-colors">
+                      <UploadCloud size={14} />
+                      {uploadingPhoto ? "Replacing..." : "Replace"}
+                      <input
+                        type="file"
+                        accept="image/jpeg,image/png,image/webp"
+                        className="hidden"
+                        onChange={handlePhotoUpload}
+                        disabled={uploadingPhoto}
+                      />
+                    </label>
+                    <button
+                      onClick={handleDeletePhoto}
+                      disabled={deletingPhoto}
+                      className="p-1.5 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                      title="Delete photo from Google Drive"
+                    >
+                      <Trash2 size={16} />
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ) : order.customPhoto?.uploadStatus === "failed" ? (
+              <div className="space-y-3">
+                <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-xs text-red-700 flex items-start gap-2">
+                  <AlertCircle size={16} className="text-red-500 flex-shrink-0 mt-0.5" />
+                  <div>
+                    <p className="font-semibold">Drive Upload Failed</p>
+                    <p className="mt-0.5">{order.customPhoto.uploadError || "An error occurred while uploading to Google Drive."}</p>
+                  </div>
+                </div>
+                <div className="flex items-center justify-between">
+                  <p className="text-xs text-gray-500">Upload replacement customer photo directly to Drive:</p>
+                  <label className="cursor-pointer inline-flex items-center gap-1.5 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium rounded-lg transition-colors">
+                    <UploadCloud size={14} />
+                    {uploadingPhoto ? "Uploading..." : "Upload Photo"}
+                    <input
+                      type="file"
+                      accept="image/jpeg,image/png,image/webp"
+                      className="hidden"
+                      onChange={handlePhotoUpload}
+                      disabled={uploadingPhoto}
+                    />
+                  </label>
+                </div>
+              </div>
+            ) : order.customPhoto?.uploadStatus === "uploading" ? (
+              <div className="text-center py-6">
+                <div className="w-6 h-6 border-2 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-2" />
+                <p className="text-xs text-gray-500">Uploading photo to Google Drive...</p>
+              </div>
+            ) : (
+              <div className="flex items-center justify-between text-xs text-gray-500 py-2">
+                <p>No customer photo attached for this order.</p>
+                <label className="cursor-pointer inline-flex items-center gap-1.5 px-3 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium rounded-lg transition-colors">
+                  <UploadCloud size={13} />
+                  {uploadingPhoto ? "Uploading..." : "Attach Photo"}
+                  <input
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp"
+                    className="hidden"
+                    onChange={handlePhotoUpload}
+                    disabled={uploadingPhoto}
+                  />
+                </label>
+              </div>
+            )}
           </div>
 
           {/* Courier Assignment */}

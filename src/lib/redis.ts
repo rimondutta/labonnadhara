@@ -11,14 +11,35 @@
  */
 import { Redis } from '@upstash/redis';
 
-export const hasRedis =
-  !!process.env.UPSTASH_REDIS_REST_URL &&
-  !!process.env.UPSTASH_REDIS_REST_TOKEN;
+function isValidRedisConfig(url?: string, token?: string): boolean {
+  if (!url || !token) return false;
+  const trimmedUrl = url.trim();
+  const trimmedToken = token.trim();
+  if (
+    trimmedUrl.includes('<') ||
+    trimmedUrl.includes('>') ||
+    trimmedUrl.includes('your-redis-instance') ||
+    trimmedToken.includes('your_upstash_redis_rest_token')
+  ) {
+    return false;
+  }
+  try {
+    const parsed = new URL(trimmedUrl);
+    return parsed.protocol === 'https:' || parsed.protocol === 'http:';
+  } catch {
+    return false;
+  }
+}
+
+export const hasRedis = isValidRedisConfig(
+  process.env.UPSTASH_REDIS_REST_URL,
+  process.env.UPSTASH_REDIS_REST_TOKEN
+);
 
 export const redis: Redis | null = hasRedis
   ? new Redis({
-      url: process.env.UPSTASH_REDIS_REST_URL!,
-      token: process.env.UPSTASH_REDIS_REST_TOKEN!,
+      url: process.env.UPSTASH_REDIS_REST_URL!.trim(),
+      token: process.env.UPSTASH_REDIS_REST_TOKEN!.trim(),
       // Override the default fetch to avoid cache: 'no-store' which breaks Next.js ISR/Static Generation
       fetch: (input: RequestInfo | URL, init?: RequestInit) => {
         if (init && init.cache === 'no-store') {

@@ -25,11 +25,12 @@ export const authOptions: NextAuthOptions = {
 
         await connectToDatabase();
 
-        const user = await User.findOne({ email: credentials.email }).select(
+        const normalizedEmail = credentials.email.trim().toLowerCase();
+        const user = await User.findOne({ email: normalizedEmail }).select(
           '+password'
         );
 
-        if (!user) {
+        if (!user || !user.password) {
           throw new Error('Invalid credentials');
         }
 
@@ -96,7 +97,7 @@ export const authOptions: NextAuthOptions = {
       return token;
     },
     async session({ session, token }) {
-      if (token) {
+      if (token && session.user) {
         (session.user as any).id = token.id;
         (session.user as any).role = token.role;
         if (token.image) {
@@ -113,6 +114,6 @@ export const authOptions: NextAuthOptions = {
     strategy: 'jwt',
     maxAge: 7 * 24 * 60 * 60, // 7 days — sessions expire automatically
   },
-  secret: process.env.NEXTAUTH_SECRET,
+  secret: process.env.NEXTAUTH_SECRET || process.env.AUTH_SECRET,
   debug: process.env.NODE_ENV === 'development',
 };

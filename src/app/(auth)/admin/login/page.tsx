@@ -1,34 +1,106 @@
 "use client"
 
-import { signIn } from "next-auth/react"
-import { useState } from "react"
-import { useRouter } from "next/navigation"
+import { Suspense, useEffect, useState } from "react"
+import { getSession, signIn, signOut } from "next-auth/react"
+import { useSearchParams } from "next/navigation"
 import { Loader2 } from "lucide-react"
 
-export default function AdminLogin() {
+function getSafeAdminCallbackUrl(raw: string | null): string {
+  if (!raw) return "/admin"
+  if (raw.startsWith("/") && !raw.startsWith("//")) {
+    return raw.startsWith("/admin") && !raw.startsWith("/admin/login") ? raw : "/admin"
+  }
+  try {
+    const parsed = new URL(raw)
+    if (
+      typeof window !== "undefined" &&
+      parsed.origin === window.location.origin &&
+      parsed.pathname.startsWith("/admin") &&
+      !parsed.pathname.startsWith("/admin/login")
+    ) {
+      return `${parsed.pathname}${parsed.search}${parsed.hash}`
+    }
+  } catch {
+    // Ignore malformed callbackUrl and fall back to /admin
+  }
+  return "/admin"
+}
+
+function getInitialAuthError(errorCode: string | null): string {
+  if (!errorCode) return ""
+  if (errorCode === "AccessDenied") return "Access denied. Admin or manager privileges are required."
+  if (errorCode === "Configuration") return "Server authentication is misconfigured. Please check NEXTAUTH_SECRET and NEXTAUTH_URL."
+  if (errorCode === "CredentialsSignin") return "Invalid email or password"
+  return "Unable to sign in. Please try again."
+}
+
+function AdminLoginForm() {
+  const searchParams = useSearchParams()
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
-  const [error, setError] = useState("")
+  const [error, setError] = useState(() => getInitialAuthError(searchParams.get("error")))
   const [isLoading, setIsLoading] = useState(false)
-  const router = useRouter()
+
+  useEffect(() => {
+    let mounted = true
+    getSession().then((session) => {
+      if (!mounted) return
+      const role = (session?.user as { role?: string } | undefined)?.role
+      if (role === "admin" || role === "manager") {
+        const targetUrl = getSafeAdminCallbackUrl(searchParams.get("callbackUrl"))
+        window.location.assign(targetUrl)
+      }
+    })
+    return () => {
+      mounted = false
+    }
+  }, [searchParams])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError("")
     setIsLoading(true)
-    
-    const res = await signIn("credentials", {
-      email,
-      password,
-      redirect: false,
-    })
 
-    if (res?.error) {
-      setError("Invalid email or password")
+    try {
+      const res = await signIn("credentials", {
+        email: email.trim(),
+        password,
+        redirect: false,
+      })
+
+      if (!res || res.error || !res.ok) {
+        if (res?.status === 429) {
+          setError("Too many login attempts. Please wait a minute and try again.")
+        } else if (res?.error === "Configuration") {
+          setError("Server authentication is misconfigured. Please check NEXTAUTH_SECRET and NEXTAUTH_URL.")
+        } else {
+          setError("Invalid email or password")
+        }
+        setIsLoading(false)
+        return
+      }
+
+      const session = await getSession()
+      const role = (session?.user as { role?: string } | undefined)?.role
+
+      if (!session?.user) {
+        setError("Login succeeded, but your session could not be established. Check NEXTAUTH_URL and NEXTAUTH_SECRET.")
+        setIsLoading(false)
+        return
+      }
+
+      if (role !== "admin" && role !== "manager") {
+        await signOut({ redirect: false })
+        setError("Access denied. Admin or manager privileges are required.")
+        setIsLoading(false)
+        return
+      }
+
+      const targetUrl = getSafeAdminCallbackUrl(searchParams.get("callbackUrl"))
+      window.location.assign(targetUrl)
+    } catch {
+      setError("Unable to sign in right now. Please try again.")
       setIsLoading(false)
-    } else {
-      router.push("/admin")
-      router.refresh()
     }
   }
 
@@ -98,5 +170,20 @@ export default function AdminLogin() {
         </div>
       </div>
     </div>
+  )
+}
+
+export default function AdminLogin() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4 text-gray-500 gap-2">
+          <Loader2 className="w-5 h-5 animate-spin" />
+          <span className="text-sm font-medium">Loading...</span>
+        </div>
+      }
+    >
+      <AdminLoginForm />
+    </Suspense>
   )
 }

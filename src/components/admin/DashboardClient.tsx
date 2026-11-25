@@ -48,13 +48,15 @@ function StatCard({ title, value, change, icon: Icon, colorClass }: any) {
 }
 
 export default function DashboardClient({
-  totalRevenue,
-  totalOrdersCount,
-  totalCustomersCount,
-  totalProductsCount,
-  recentOrders,
-  topProducts,
+  totalRevenue = 0,
+  totalOrdersCount = 0,
+  totalCustomersCount = 0,
+  totalProductsCount = 0,
+  recentOrders = [],
+  topProducts = [],
 }: DashboardClientProps) {
+  const safeOrders = Array.isArray(recentOrders) ? recentOrders : []
+  const safeProducts = Array.isArray(topProducts) ? topProducts : []
 
   return (
     <div className="max-w-6xl mx-auto space-y-8 pb-10">
@@ -126,7 +128,7 @@ export default function DashboardClient({
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
-                {recentOrders.length === 0 ? (
+                {safeOrders.length === 0 ? (
                   <tr>
                     <td colSpan={4} className="px-5 py-12 text-center text-gray-500">
                       <div className="flex flex-col items-center gap-3">
@@ -136,31 +138,33 @@ export default function DashboardClient({
                     </td>
                   </tr>
                 ) : (
-                  recentOrders.map((order) => (
-                    <tr key={order._id} className="hover:bg-gray-50 transition-colors">
+                  safeOrders.map((order) => {
+                    const paymentStatus = order.paymentStatus || "pending";
+                    return (
+                    <tr key={order._id || Math.random()} className="hover:bg-gray-50 transition-colors">
                       <td className="px-5 py-3">
                         <span className="font-medium text-gray-900">
-                          #{order._id.toString().slice(-5).toUpperCase()}
+                          #{order._id ? order._id.toString().slice(-5).toUpperCase() : "N/A"}
                         </span>
-                        <p className="text-xs text-gray-500 mt-0.5">{new Date(order.createdAt).toLocaleDateString()}</p>
+                        <p className="text-xs text-gray-500 mt-0.5">{order.createdAt ? new Date(order.createdAt).toLocaleDateString() : ""}</p>
                       </td>
                       <td className="px-5 py-3">
                         <div className="font-medium text-gray-900">{order.customerName || "Guest User"}</div>
-                        <p className="text-xs text-gray-500 truncate max-w-[140px] mt-0.5">{order.customerEmail}</p>
+                        <p className="text-xs text-gray-500 truncate max-w-[140px] mt-0.5">{order.customerEmail || ""}</p>
                       </td>
                       <td className="px-5 py-3">
-                        <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${order.paymentStatus === 'paid' ? 'bg-green-100 text-green-800' :
-                            order.paymentStatus === 'pending' ? 'bg-yellow-100 text-yellow-800' :
+                        <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${paymentStatus === 'paid' ? 'bg-green-100 text-green-800' :
+                            paymentStatus === 'pending' ? 'bg-yellow-100 text-yellow-800' :
                               'bg-red-100 text-red-800'
                           }`}>
-                          {order.paymentStatus.charAt(0).toUpperCase() + order.paymentStatus.slice(1)}
+                          {paymentStatus.charAt(0).toUpperCase() + paymentStatus.slice(1)}
                         </span>
                       </td>
                       <td className="px-5 py-3 text-right font-medium text-gray-900">
-                        ৳{Math.round(order.totalAmount).toLocaleString()}
+                        ৳{Math.round(order.totalAmount ?? 0).toLocaleString()}
                       </td>
                     </tr>
-                  ))
+                  )})
                 )}
               </tbody>
             </table>
@@ -175,26 +179,34 @@ export default function DashboardClient({
               <Link href="/admin/products" className="text-sm font-medium text-gray-600 hover:text-gray-900">View all</Link>
             </div>
             <div className="space-y-4">
-              {topProducts.map((product, i) => (
-                <div key={product._id || i} className="flex items-center gap-3">
-                  <div className="w-12 h-12 rounded-md border border-gray-200 overflow-hidden flex-shrink-0 relative bg-gray-50">
-                    <Image
-                      src={(product.images?.[0]?.url && (product.images[0].url.startsWith('http') || product.images[0].url.startsWith('/'))) ? product.images[0].url : "/placeholder.png"}
-                      alt={product.title}
-                      fill
-                      sizes="48px"
-                      className="object-cover"
-                    />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="text-sm font-medium text-gray-900 truncate">{product.title}</div>
-                    <div className="text-xs text-gray-500 mt-0.5">{Math.floor(Math.random() * 50) + 10} units sold</div>
-                  </div>
-                  <div className="text-sm font-medium text-gray-900">
-                    ৳{product.price.toLocaleString()}
-                  </div>
+              {safeProducts.length === 0 ? (
+                <div className="py-8 text-center text-gray-400 text-sm">
+                  No products added yet
                 </div>
-              ))}
+              ) : (
+                safeProducts.map((product, i) => (
+                  <div key={product._id || i} className="flex items-center gap-3">
+                    <div className="w-12 h-12 rounded-md border border-gray-200 overflow-hidden flex-shrink-0 relative bg-gray-50">
+                      <Image
+                        src={(product.images?.[0]?.url && (product.images[0].url.startsWith('http') || product.images[0].url.startsWith('/'))) ? product.images[0].url : "/placeholder.png"}
+                        alt={product.title || "Product"}
+                        fill
+                        sizes="48px"
+                        className="object-cover"
+                      />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="text-sm font-medium text-gray-900 truncate">{product.title || "Untitled Product"}</div>
+                      <div className="text-xs text-gray-500 mt-0.5">
+                        {typeof product.stock === "number" ? `${product.stock} in stock` : "In stock"}
+                      </div>
+                    </div>
+                    <div className="text-sm font-medium text-gray-900">
+                      ৳{(product.price ?? 0).toLocaleString()}
+                    </div>
+                  </div>
+                ))
+              )}
             </div>
           </div>
 

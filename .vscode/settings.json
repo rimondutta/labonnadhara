@@ -1,0 +1,7 @@
+{
+  "typescript.tsdk": "node_modules/typescript/lib",
+  "typescript.enablePromptUseWorkspaceTsdk": false,
+  "typescript.useWorkspaceTsdk": true,
+  "typescript.preferences.quoteStyle": "single",
+  "editor.formatOnSave": false
+}

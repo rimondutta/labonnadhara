@@ -2,7 +2,7 @@
 
 import { Fragment } from "react"
 import { Dialog, DialogPanel, Transition, TransitionChild } from "@headlessui/react"
-import { X, Home, ShoppingCart, Tag, Users, Ticket, UserPlus, Image as ImageIcon, Settings, LogOut, Store, Layers, MessageSquare, Sliders, Megaphone, BarChart2, Truck, FileText, Plus } from "lucide-react"
+import { X, Home, ShoppingCart, Tag, Users, Ticket, UserPlus, Image as ImageIcon, Settings, LogOut, Store, Layers, MessageSquare, Sliders, Megaphone, BarChart2, Truck, FileText, Plus, Package, HardDrive } from "lucide-react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { signOut, useSession } from "next-auth/react"
@@ -31,6 +31,8 @@ export default function AdminMobileSidebar({ isOpen, onClose }: AdminMobileSideb
     { name: "Add User", href: "/admin/users/add", icon: UserPlus },
     { name: "Pixel Settings", href: "/admin/settings/pixel", icon: BarChart2 },
     { name: "Shipping Settings", href: "/admin/settings/shipping", icon: Truck },
+    { name: "Courier APIs", href: "/admin/settings/couriers", icon: Package },
+    { name: "Google Drive", href: "/admin/settings/google-drive", icon: HardDrive },
     { name: "Size Guide", href: "/admin/settings/size-guide", icon: FileText },
   ]
 
@@ -120,7 +122,7 @@ export default function AdminMobileSidebar({ isOpen, onClose }: AdminMobileSideb
               <button
                 onClick={() => {
                    onClose();
-                   signOut();
+                   signOut({ callbackUrl: "/admin/login" });
                 }}
                 className="flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium text-gray-600 hover:bg-gray-50 hover:text-red-600 transition-colors w-full text-left"
               >

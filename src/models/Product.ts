@@ -21,6 +21,7 @@ const ProductSchema = new mongoose.Schema(
     images: [{ url: String, alt: String }],
     badge: String, // e.g., 'New', 'Best Seller'
     ageRange: String, // e.g., '3-5', '5-8'
+    requiresCustomPhoto: { type: Boolean, default: false }, // Requires customer photo during checkout (custom photo frames)
     inventory: { type: Number, default: 0 },
     isPublished: { type: Boolean, default: true },
     reviews: [

@@ -89,6 +89,21 @@ const OrderSchema = new mongoose.Schema(
       type: String,
       select: false,
     },
+    // ── Custom Photo Frame Upload (Customer provided photo) ──
+    customPhoto: {
+      driveFileId: { type: String, default: null },
+      driveFolderId: { type: String, default: null },
+      fileName: { type: String, default: null },
+      mimeType: { type: String, default: null },
+      fileSize: { type: Number, default: 0 },
+      uploadStatus: {
+        type: String,
+        enum: ['not_required', 'pending', 'uploading', 'uploaded', 'failed'],
+        default: 'not_required',
+      },
+      uploadedAt: { type: Date, default: null },
+      uploadError: { type: String, default: null },
+    },
   },
   { timestamps: true }
 );
@@ -97,6 +112,7 @@ const OrderSchema = new mongoose.Schema(
 OrderSchema.index({ customerEmail: 1, createdAt: -1 });
 OrderSchema.index({ createdAt: -1 });
 OrderSchema.index({ fulfillmentStatus: 1, createdAt: -1 });
+OrderSchema.index({ 'customPhoto.uploadStatus': 1, createdAt: -1 });
 OrderSchema.index({ invoiceNumber: 1 }, { unique: true, sparse: true });
 
 export default mongoose.models.Order || mongoose.model('Order', OrderSchema);

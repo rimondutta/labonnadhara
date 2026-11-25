@@ -6,7 +6,7 @@ import { signOut, useSession } from "next-auth/react"
 import { 
   Home, ShoppingCart, Tag, Users, Inbox, BarChart2, 
   Megaphone, Ticket, Settings, Store, Search, Bell,
-  LogOut, Plus, ChevronRight, UserPlus, Image as ImageIcon, Layers, Sliders, Truck, MessageSquare, FileText, Package
+  LogOut, Plus, ChevronRight, UserPlus, Image as ImageIcon, Layers, Sliders, Truck, MessageSquare, FileText, Package, HardDrive
 } from "lucide-react"
 
 export default function Sidebar() {
@@ -29,6 +29,7 @@ export default function Sidebar() {
     { name: "Pixel Settings", href: "/admin/settings/pixel", icon: BarChart2 },
     { name: "Shipping Settings", href: "/admin/settings/shipping", icon: Truck },
     { name: "Courier APIs", href: "/admin/settings/couriers", icon: Package },
+    { name: "Google Drive", href: "/admin/settings/google-drive", icon: HardDrive },
     { name: "Size Guide", href: "/admin/settings/size-guide", icon: FileText },
   ]
 
@@ -84,7 +85,7 @@ export default function Sidebar() {
       {/* Footer Nav */}
       <div className="p-3 border-t border-gray-200">
         <button
-          onClick={() => signOut()}
+          onClick={() => signOut({ callbackUrl: "/admin/login" })}
           className="flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium text-gray-600 hover:bg-gray-50 hover:text-red-600 transition-colors w-full text-left"
         >
           <LogOut size={18} />

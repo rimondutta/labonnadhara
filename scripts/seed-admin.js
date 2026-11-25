@@ -14,11 +14,12 @@ const UserSchema = new mongoose.Schema({
 const User = mongoose.models.User || mongoose.model('User', UserSchema);
 
 const MONGODB_URI = process.env.MONGODB_URI;
-const ADMIN_EMAIL = process.env.ADMIN_EMAIL;
-const ADMIN_PASS = process.env.ADMIN_PASS;
+const ADMIN_EMAIL = process.argv[2] || process.env.ADMIN_EMAIL;
+const ADMIN_PASS = process.argv[3] || process.env.ADMIN_PASS;
 
 if (!MONGODB_URI || !ADMIN_EMAIL || !ADMIN_PASS) {
-  console.error("Missing MONGODB_URI, ADMIN_EMAIL, or ADMIN_PASS in .env");
+  console.log("Usage: node scripts/seed-admin.js <email> <password>");
+  console.log("Or define ADMIN_EMAIL and ADMIN_PASS in your .env file.");
   process.exit(1);
 }
 
@@ -28,25 +29,27 @@ async function seedAdmin() {
     await mongoose.connect(MONGODB_URI);
     console.log('Connected.');
 
-    const existing = await User.findOne({ email: ADMIN_EMAIL });
+    const normalizedEmail = ADMIN_EMAIL.trim().toLowerCase();
+    const hashedPassword = await bcrypt.hash(ADMIN_PASS, 12);
+
+    const existing = await User.findOne({ email: normalizedEmail });
     if (existing) {
-      console.log(`Admin user already exists: ${ADMIN_EMAIL}`);
+      existing.password = hashedPassword;
+      existing.role = 'admin';
+      await existing.save();
+      console.log(`Updated existing user to admin with new password: ${normalizedEmail}`);
       process.exit(0);
     }
 
-
-
-    const hashedPassword = await bcrypt.hash(ADMIN_PASS, 12);
-
     await User.create({
       name: 'Admin',
-      email: ADMIN_EMAIL,
+      email: normalizedEmail,
       password: hashedPassword,
       role: 'admin',
     });
 
     console.log(`Admin user created successfully!`);
-    console.log(`  Email: ${ADMIN_EMAIL}`);
+    console.log(`  Email: ${normalizedEmail}`);
     console.log(`  Role:  admin`);
     process.exit(0);
   } catch (error) {
