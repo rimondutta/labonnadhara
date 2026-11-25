@@ -31,82 +31,87 @@ export async function POST(
     const contentType = req.headers.get('content-type') || '';
     if (!contentType.includes('multipart/form-data')) {
       return NextResponse.json(
-        { error: 'Please provide a replacement photo using multipart/form-data.' },
+        { error: 'Please provide photos using multipart/form-data.' },
         { status: 400 }
       );
     }
 
     const formData = await req.formData();
-    const photoFile = formData.get('photo');
-    if (!photoFile || !(photoFile instanceof Blob)) {
-      return NextResponse.json({ error: 'No photo file provided.' }, { status: 400 });
+    const rawFiles = formData.getAll('photos').concat(formData.getAll('photo'));
+    const photoFiles = rawFiles.filter((f) => f instanceof Blob) as (Blob & { name?: string })[];
+
+    if (photoFiles.length === 0) {
+      return NextResponse.json({ error: 'No photo files provided.' }, { status: 400 });
     }
 
-    const arrBuffer = await photoFile.arrayBuffer();
-    const photoBuffer = Buffer.from(arrBuffer);
-    const originalFileName = (photoFile as File).name || 'customer-photo.jpg';
-    const photoMimeType = photoFile.type || 'image/jpeg';
-    const photoFileSize = photoBuffer.length;
+    const orderNumber = order.invoiceNumber || order._id.toString().slice(-8).toUpperCase();
+    const uploadedResults: any[] = [];
+    const errors: string[] = [];
 
-    const validation = validateCustomerPhoto(photoFileSize, photoMimeType, originalFileName);
-    if (!validation.valid) {
-      return NextResponse.json({ error: validation.error }, { status: 400 });
+    for (let i = 0; i < photoFiles.length; i++) {
+      const file = photoFiles[i];
+      const arrBuffer = await file.arrayBuffer();
+      const photoBuffer = Buffer.from(arrBuffer);
+      const originalFileName = file.name || `photo-${i + 1}.jpg`;
+      const photoMimeType = file.type || 'image/jpeg';
+      const photoFileSize = photoBuffer.length;
+
+      const validation = validateCustomerPhoto(photoFileSize, photoMimeType, originalFileName);
+      if (!validation.valid) {
+        errors.push(`${originalFileName}: ${validation.error}`);
+        continue;
+      }
+
+      const sanitizedName = sanitizePhotoFileName(originalFileName);
+
+      try {
+        const uploadResult = await uploadCustomerPhotoToDrive({
+          orderId: order._id.toString(),
+          orderNumber,
+          fileBuffer: photoBuffer,
+          fileName: sanitizedName,
+          mimeType: photoMimeType,
+        });
+
+        uploadedResults.push({
+          driveFileId: uploadResult.driveFileId,
+          driveFolderId: uploadResult.driveFolderId,
+          fileName: uploadResult.fileName,
+          mimeType: photoMimeType,
+          fileSize: photoFileSize,
+          uploadStatus: 'uploaded',
+          uploadedAt: new Date(),
+          uploadError: null,
+        });
+      } catch (uploadErr: unknown) {
+        const msg = uploadErr instanceof Error ? uploadErr.message : 'Upload failed';
+        errors.push(`${sanitizedName}: ${msg}`);
+      }
     }
 
-    const sanitizedName = sanitizePhotoFileName(originalFileName);
-
-    // Update status to uploading
-    order.customPhoto = {
-      ...(order.customPhoto || {}),
-      uploadStatus: 'uploading',
-      fileName: sanitizedName,
-      mimeType: photoMimeType,
-      fileSize: photoFileSize,
-      uploadError: null,
-    };
-    await order.save();
-
-    try {
-      const uploadResult = await uploadCustomerPhotoToDrive({
-        orderId: order._id.toString(),
-        orderNumber: order.invoiceNumber || order._id.toString().slice(-8).toUpperCase(),
-        fileBuffer: photoBuffer,
-        fileName: sanitizedName,
-        mimeType: photoMimeType,
-      });
-
-      order.customPhoto = {
-        driveFileId: uploadResult.driveFileId,
-        driveFolderId: uploadResult.driveFolderId,
-        fileName: uploadResult.fileName,
-        mimeType: photoMimeType,
-        fileSize: photoFileSize,
-        uploadStatus: 'uploaded',
-        uploadedAt: new Date(),
-        uploadError: null,
-      };
+    if (uploadedResults.length > 0) {
+      const existingPhotos = order.customPhotos || [];
+      const updatedPhotos = [...existingPhotos, ...uploadedResults];
+      order.customPhotos = updatedPhotos;
+      order.customPhoto = updatedPhotos[0];
       await order.save();
 
       return NextResponse.json({
         success: true,
-        message: 'Photo uploaded successfully to Google Drive',
-        customPhoto: order.customPhoto,
+        message: `${uploadedResults.length} photo(s) uploaded successfully to Google Drive`,
+        customPhotos: order.customPhotos,
+        errors: errors.length > 0 ? errors : undefined,
       });
-    } catch (uploadErr: unknown) {
-      const errorMessage = uploadErr instanceof Error ? uploadErr.message : 'Upload failed';
-      order.customPhoto.uploadStatus = 'failed';
-      order.customPhoto.uploadError = errorMessage.slice(0, 500);
-      await order.save();
-
-      return NextResponse.json(
-        { error: `Google Drive upload failed: ${errorMessage}` },
-        { status: 502 }
-      );
     }
+
+    return NextResponse.json(
+      { error: `Google Drive upload failed: ${errors.join(', ')}` },
+      { status: 502 }
+    );
   } catch (error: unknown) {
     console.error('[Admin Photo Retry POST] Error:', error);
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'Server error during photo retry' },
+      { error: error instanceof Error ? error.message : 'Server error during photo upload' },
       { status: 500 }
     );
   }

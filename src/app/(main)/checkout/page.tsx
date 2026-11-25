@@ -60,7 +60,7 @@ export default function CheckoutPage() {
 
   const [step, setStep] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [selectedPhoto, setSelectedPhoto] = useState<File | null>(null);
+  const [selectedPhotos, setSelectedPhotos] = useState<File[]>([]);
 
   // Detect whether any product in cart requires a custom photo (custom photo frames)
   const isPhotoRequired = items.some((item) => {
@@ -176,8 +176,8 @@ export default function CheckoutPage() {
   const handleSubmit = async () => {
     if (isSubmitting) return;
 
-    if (isPhotoRequired && !selectedPhoto) {
-      showToast("Please select your photo for your custom photo frame before placing your order.", "error");
+    if (isPhotoRequired && selectedPhotos.length === 0) {
+      showToast("Please select at least one photo for your custom photo frame before placing your order.", "error");
       setStep(0);
       return;
     }
@@ -214,10 +214,14 @@ export default function CheckoutPage() {
       };
 
       let res: Response;
-      if (selectedPhoto) {
+      if (selectedPhotos.length > 0) {
         const formData = new FormData();
         formData.append("data", JSON.stringify(orderPayload));
-        formData.append("photo", selectedPhoto);
+        selectedPhotos.forEach((file) => {
+          formData.append("photos", file);
+        });
+        // Backward-compatibility: also append the first photo as 'photo'
+        formData.append("photo", selectedPhotos[0]);
         res = await fetch("/api/store/orders", {
           method: "POST",
           body: formData,
@@ -242,7 +246,7 @@ export default function CheckoutPage() {
           });
         } catch { /* noop */ }
         clearCart();
-        setSelectedPhoto(null);
+        setSelectedPhotos([]);
         showToast("Order placed successfully! 🎉");
         const tokenQuery = data.guestAccessToken ? `?token=${encodeURIComponent(data.guestAccessToken)}` : "";
         router.push(`/invoice/${data.orderId}${tokenQuery}`);
@@ -465,8 +469,8 @@ export default function CheckoutPage() {
                   {/* ── Custom Photo Upload (Always displayed: Required for photo frames, Optional for other items) ── */}
                   <div className="pt-2">
                     <CustomerPhotoUpload
-                      selectedFile={selectedPhoto}
-                      onFileSelect={setSelectedPhoto}
+                      selectedFiles={selectedPhotos}
+                      onFilesChange={setSelectedPhotos}
                       isRequired={isPhotoRequired}
                     />
                   </div>
@@ -624,25 +628,34 @@ export default function CheckoutPage() {
                     </div>
                   </div>
 
-                  {/* Customer Photo Review */}
-                  {selectedPhoto && (
-                    <div className="rounded-2xl border border-[#F3D6E2] bg-white shadow-sm p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                      <div className="flex items-center gap-3 min-w-0">
-                        <div className="w-9 h-9 rounded-xl bg-[#FFF1F6] border border-[#F3D6E2] flex items-center justify-center text-[#D62B72] shrink-0">
-                          <ImageIcon size={18} />
+                  {/* Customer Photos Review */}
+                  {selectedPhotos.length > 0 && (
+                    <div className="rounded-2xl border border-[#F3D6E2] bg-white shadow-sm p-5 space-y-3">
+                      <div className="flex items-center justify-between gap-3 flex-wrap">
+                        <div className="flex items-center gap-3">
+                          <div className="w-9 h-9 rounded-xl bg-[#FFF1F6] border border-[#F3D6E2] flex items-center justify-center text-[#D62B72] shrink-0">
+                            <ImageIcon size={18} />
+                          </div>
+                          <div>
+                            <p className="text-sm font-bold text-gray-900">
+                              Custom Photos ({selectedPhotos.length} {selectedPhotos.length === 1 ? "Photo" : "Photos"})
+                            </p>
+                            <p className="text-xs text-gray-500">
+                              {(selectedPhotos.reduce((s, f) => s + f.size, 0) / (1024 * 1024)).toFixed(1)} MB total • Will be uploaded securely to Google Drive upon order
+                            </p>
+                          </div>
                         </div>
-                        <div className="min-w-0">
-                          <p className="text-sm font-bold text-gray-900 truncate">
-                            Custom Photo: {selectedPhoto.name}
-                          </p>
-                          <p className="text-xs text-gray-500">
-                            {(selectedPhoto.size / (1024 * 1024)).toFixed(1)} MB • Will be uploaded securely to Google Drive upon order
-                          </p>
-                        </div>
+                        <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
+                          Ready to upload
+                        </span>
                       </div>
-                      <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 self-start sm:self-auto shrink-0">
-                        Ready to upload
-                      </span>
+                      <div className="flex flex-wrap gap-2 pt-1 text-xs text-gray-600">
+                        {selectedPhotos.map((f, i) => (
+                          <span key={i} className="px-2 py-1 bg-gray-50 border border-gray-200 rounded-md font-mono text-[11px]">
+                            #{i + 1} {f.name} ({(f.size / 1024).toFixed(0)} KB)
+                          </span>
+                        ))}
+                      </div>
                     </div>
                   )}
                 </m.div>

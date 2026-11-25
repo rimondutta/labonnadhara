@@ -157,41 +157,45 @@ export default function AdminOrderDetailsPage() {
   }
 
   const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (!file) return
-    if (file.size > 15 * 1024 * 1024) {
-      alert("File size must be under 15 MB")
-      return
-    }
+    const files = e.target.files
+    if (!files || files.length === 0) return
     setUploadingPhoto(true)
     try {
       const formData = new FormData()
-      formData.append("photo", file)
+      Array.from(files).forEach((file) => {
+        formData.append("photos", file)
+      })
       const res = await fetch(`/api/admin/orders/${params.id}/photo/retry`, {
         method: "POST",
         body: formData,
       })
       const data = await res.json()
       if (res.ok) {
-        alert("Photo uploaded successfully to Google Drive!")
+        alert("Photo(s) uploaded successfully to Google Drive!")
         await fetchOrder()
       } else {
         alert("Upload failed: " + (data.error || "Unknown error"))
       }
     } catch (err: unknown) {
       console.error(err)
-      alert("Error uploading photo")
+      alert("Error uploading photo(s)")
     } finally {
       setUploadingPhoto(false)
       e.target.value = ""
     }
   }
 
-  const handleDeletePhoto = async () => {
-    if (!window.confirm("Are you sure you want to delete this customer photo from Google Drive? This action cannot be undone.")) return
+  const handleDeletePhoto = async (fileId?: string) => {
+    const confirmMsg = fileId
+      ? "Are you sure you want to delete this customer photo from Google Drive? This action cannot be undone."
+      : "Are you sure you want to delete ALL customer photos from Google Drive? This action cannot be undone."
+    if (!window.confirm(confirmMsg)) return
     setDeletingPhoto(true)
     try {
-      const res = await fetch(`/api/admin/orders/${params.id}/photo`, {
+      const url = fileId
+        ? `/api/admin/orders/${params.id}/photo?fileId=${encodeURIComponent(fileId)}`
+        : `/api/admin/orders/${params.id}/photo`
+      const res = await fetch(url, {
         method: "DELETE",
       })
       const data = await res.json()
@@ -329,133 +333,192 @@ export default function AdminOrderDetailsPage() {
           </div>
 
           {/* Customer Photo Section */}
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 space-y-4">
-            <div className="flex items-center justify-between">
-              <h2 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
-                <ImageIcon className="text-blue-500" size={20} /> Customer Custom Photo
-              </h2>
-              {order.customPhoto?.uploadStatus && (
-                <span
-                  className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold uppercase tracking-wider ${
-                    order.customPhoto.uploadStatus === "uploaded"
-                      ? "bg-green-100 text-green-800"
-                      : order.customPhoto.uploadStatus === "uploading"
-                      ? "bg-blue-100 text-blue-800"
-                      : order.customPhoto.uploadStatus === "failed"
-                      ? "bg-red-100 text-red-800"
-                      : "bg-gray-100 text-gray-800"
-                  }`}
-                >
-                  {order.customPhoto.uploadStatus}
-                </span>
-              )}
-            </div>
+          {(() => {
+            const photosList: any[] = order.customPhotos?.length > 0
+              ? order.customPhotos
+              : order.customPhoto?.driveFileId
+              ? [order.customPhoto]
+              : [];
 
-            {order.customPhoto && order.customPhoto.uploadStatus === "uploaded" && order.customPhoto.driveFileId ? (
-              <div className="space-y-4">
-                <div className="relative bg-gray-50 rounded-lg border border-gray-200 overflow-hidden flex items-center justify-center p-2 min-h-[220px]">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={`/api/admin/orders/${order._id}/photo`}
-                    alt="Customer Uploaded Photo"
-                    className="max-h-72 w-auto object-contain rounded shadow-sm"
-                  />
-                </div>
-
-                <div className="flex flex-wrap items-center justify-between gap-3 pt-2 border-t border-gray-100 text-xs text-gray-500">
-                  <div>
-                    {order.customPhoto.fileName && (
-                      <p className="font-mono text-gray-700 font-medium">{order.customPhoto.fileName}</p>
+            return (
+              <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 space-y-4">
+                <div className="flex items-center justify-between flex-wrap gap-2">
+                  <h2 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+                    <ImageIcon className="text-blue-500" size={20} />
+                    Customer Custom Photos
+                    {photosList.length > 0 && (
+                      <span className="text-xs bg-blue-100 text-blue-800 font-semibold px-2 py-0.5 rounded-full">
+                        {photosList.length} {photosList.length === 1 ? "Photo" : "Photos"}
+                      </span>
                     )}
-                    {order.customPhoto.fileSize && (
-                      <p>{(order.customPhoto.fileSize / (1024 * 1024)).toFixed(2)} MB</p>
+                  </h2>
+                  <div className="flex items-center gap-2">
+                    {order.customPhoto?.uploadStatus && (
+                      <span
+                        className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold uppercase tracking-wider ${
+                          order.customPhoto.uploadStatus === "uploaded"
+                            ? "bg-green-100 text-green-800"
+                            : order.customPhoto.uploadStatus === "uploading"
+                            ? "bg-blue-100 text-blue-800"
+                            : order.customPhoto.uploadStatus === "failed"
+                            ? "bg-red-100 text-red-800"
+                            : "bg-gray-100 text-gray-800"
+                        }`}
+                      >
+                        {order.customPhoto.uploadStatus}
+                      </span>
+                    )}
+                    {photosList.length > 0 && (
+                      <label className="cursor-pointer inline-flex items-center gap-1.5 px-3 py-1 bg-blue-50 hover:bg-blue-100 text-blue-700 text-xs font-medium rounded-lg transition-colors">
+                        <UploadCloud size={14} />
+                        {uploadingPhoto ? "Uploading..." : "Add Photos"}
+                        <input
+                          type="file"
+                          multiple
+                          accept="image/jpeg,image/png,image/webp"
+                          className="hidden"
+                          onChange={handlePhotoUpload}
+                          disabled={uploadingPhoto}
+                        />
+                      </label>
                     )}
                   </div>
+                </div>
 
-                  <div className="flex items-center gap-2">
-                    <a
-                      href={`/api/admin/orders/${order._id}/photo`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-medium rounded-lg transition-colors"
-                    >
-                      <Eye size={14} /> View
-                    </a>
-                    <a
-                      href={`/api/admin/orders/${order._id}/photo?download=true`}
-                      download
-                      className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 text-xs font-medium rounded-lg transition-colors"
-                    >
-                      <Download size={14} /> Download
-                    </a>
-                    <label className="cursor-pointer inline-flex items-center gap-1.5 px-3 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-medium rounded-lg transition-colors">
-                      <UploadCloud size={14} />
-                      {uploadingPhoto ? "Replacing..." : "Replace"}
+                {photosList.length > 0 ? (
+                  <div className="space-y-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+                      {photosList.map((photo: any, idx: number) => {
+                        const isUploaded = photo.uploadStatus === "uploaded" && photo.driveFileId;
+                        return (
+                          <div
+                            key={photo.driveFileId || idx}
+                            className="rounded-xl border border-gray-200 overflow-hidden bg-gray-50 flex flex-col shadow-xs"
+                          >
+                            <div className="relative aspect-[4/3] bg-white flex items-center justify-center overflow-hidden border-b border-gray-100">
+                              {isUploaded ? (
+                                /* eslint-disable-next-line @next/next/no-img-element */
+                                <img
+                                  src={`/api/admin/orders/${order._id}/photo?fileId=${photo.driveFileId}`}
+                                  alt={photo.fileName || `Customer Photo ${idx + 1}`}
+                                  className="w-full h-full object-cover"
+                                />
+                              ) : (
+                                <div className="p-3 text-center text-xs text-gray-400">
+                                  <ImageIcon size={24} className="mx-auto mb-1 text-gray-300" />
+                                  <span>{photo.uploadStatus || "Pending"}</span>
+                                </div>
+                              )}
+                              <span className="absolute top-1.5 left-1.5 px-1.5 py-0.5 rounded bg-black/60 text-white text-[10px] font-mono">
+                                #{idx + 1}
+                              </span>
+                            </div>
+
+                            <div className="p-2.5 bg-white text-xs space-y-2">
+                              <div>
+                                <p className="font-medium text-gray-900 truncate" title={photo.fileName}>
+                                  {photo.fileName || `Photo ${idx + 1}`}
+                                </p>
+                                {photo.fileSize > 0 && (
+                                  <p className="text-gray-400 text-[10px]">
+                                    {(photo.fileSize / (1024 * 1024)).toFixed(2)} MB
+                                  </p>
+                                )}
+                              </div>
+
+                              <div className="flex items-center gap-1.5 pt-1 border-t border-gray-100">
+                                {isUploaded && (
+                                  <>
+                                    <a
+                                      href={`/api/admin/orders/${order._id}/photo?fileId=${photo.driveFileId}`}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="p-1 hover:bg-gray-100 text-gray-700 rounded transition-colors"
+                                      title="View photo"
+                                    >
+                                      <Eye size={14} />
+                                    </a>
+                                    <a
+                                      href={`/api/admin/orders/${order._id}/photo?fileId=${photo.driveFileId}&download=true`}
+                                      download
+                                      className="p-1 hover:bg-blue-50 text-blue-600 rounded transition-colors"
+                                      title="Download photo"
+                                    >
+                                      <Download size={14} />
+                                    </a>
+                                  </>
+                                )}
+                                <button
+                                  onClick={() => handleDeletePhoto(photo.driveFileId)}
+                                  disabled={deletingPhoto}
+                                  className="p-1 text-red-500 hover:bg-red-50 rounded ml-auto transition-colors"
+                                  title="Delete this photo"
+                                >
+                                  <Trash2 size={14} />
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+
+                    <div className="flex justify-between items-center pt-2 border-t border-gray-100 text-xs text-gray-500">
+                      <span>Total {photosList.length} photo(s) securely stored on Google Drive</span>
+                      <button
+                        onClick={() => handleDeletePhoto()}
+                        disabled={deletingPhoto}
+                        className="text-red-600 hover:text-red-700 hover:underline"
+                      >
+                        Delete All Photos
+                      </button>
+                    </div>
+                  </div>
+                ) : order.customPhoto?.uploadStatus === "failed" ? (
+                  <div className="space-y-3">
+                    <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-xs text-red-700 flex items-start gap-2">
+                      <AlertCircle size={16} className="text-red-500 flex-shrink-0 mt-0.5" />
+                      <div>
+                        <p className="font-semibold">Drive Upload Failed</p>
+                        <p className="mt-0.5">{order.customPhoto.uploadError || "An error occurred while uploading to Google Drive."}</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <p className="text-xs text-gray-500">Upload replacement customer photos directly to Drive:</p>
+                      <label className="cursor-pointer inline-flex items-center gap-1.5 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium rounded-lg transition-colors">
+                        <UploadCloud size={14} />
+                        {uploadingPhoto ? "Uploading..." : "Upload Photos"}
+                        <input
+                          type="file"
+                          multiple
+                          accept="image/jpeg,image/png,image/webp"
+                          className="hidden"
+                          onChange={handlePhotoUpload}
+                          disabled={uploadingPhoto}
+                        />
+                      </label>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex items-center justify-between text-xs text-gray-500 py-2">
+                    <p>No customer photos attached for this order.</p>
+                    <label className="cursor-pointer inline-flex items-center gap-1.5 px-3 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium rounded-lg transition-colors">
+                      <UploadCloud size={13} />
+                      {uploadingPhoto ? "Uploading..." : "Attach Photos"}
                       <input
                         type="file"
+                        multiple
                         accept="image/jpeg,image/png,image/webp"
                         className="hidden"
                         onChange={handlePhotoUpload}
                         disabled={uploadingPhoto}
                       />
                     </label>
-                    <button
-                      onClick={handleDeletePhoto}
-                      disabled={deletingPhoto}
-                      className="p-1.5 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                      title="Delete photo from Google Drive"
-                    >
-                      <Trash2 size={16} />
-                    </button>
                   </div>
-                </div>
+                )}
               </div>
-            ) : order.customPhoto?.uploadStatus === "failed" ? (
-              <div className="space-y-3">
-                <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-xs text-red-700 flex items-start gap-2">
-                  <AlertCircle size={16} className="text-red-500 flex-shrink-0 mt-0.5" />
-                  <div>
-                    <p className="font-semibold">Drive Upload Failed</p>
-                    <p className="mt-0.5">{order.customPhoto.uploadError || "An error occurred while uploading to Google Drive."}</p>
-                  </div>
-                </div>
-                <div className="flex items-center justify-between">
-                  <p className="text-xs text-gray-500">Upload replacement customer photo directly to Drive:</p>
-                  <label className="cursor-pointer inline-flex items-center gap-1.5 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium rounded-lg transition-colors">
-                    <UploadCloud size={14} />
-                    {uploadingPhoto ? "Uploading..." : "Upload Photo"}
-                    <input
-                      type="file"
-                      accept="image/jpeg,image/png,image/webp"
-                      className="hidden"
-                      onChange={handlePhotoUpload}
-                      disabled={uploadingPhoto}
-                    />
-                  </label>
-                </div>
-              </div>
-            ) : order.customPhoto?.uploadStatus === "uploading" ? (
-              <div className="text-center py-6">
-                <div className="w-6 h-6 border-2 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-2" />
-                <p className="text-xs text-gray-500">Uploading photo to Google Drive...</p>
-              </div>
-            ) : (
-              <div className="flex items-center justify-between text-xs text-gray-500 py-2">
-                <p>No customer photo attached for this order.</p>
-                <label className="cursor-pointer inline-flex items-center gap-1.5 px-3 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium rounded-lg transition-colors">
-                  <UploadCloud size={13} />
-                  {uploadingPhoto ? "Uploading..." : "Attach Photo"}
-                  <input
-                    type="file"
-                    accept="image/jpeg,image/png,image/webp"
-                    className="hidden"
-                    onChange={handlePhotoUpload}
-                    disabled={uploadingPhoto}
-                  />
-                </label>
-              </div>
-            )}
-          </div>
+            );
+          })()}
 
           {/* Courier Assignment */}
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 space-y-4">

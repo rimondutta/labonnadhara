@@ -104,6 +104,23 @@ const OrderSchema = new mongoose.Schema(
       uploadedAt: { type: Date, default: null },
       uploadError: { type: String, default: null },
     },
+    // Multiple customer photos support
+    customPhotos: [
+      {
+        driveFileId: { type: String, default: null },
+        driveFolderId: { type: String, default: null },
+        fileName: { type: String, default: null },
+        mimeType: { type: String, default: null },
+        fileSize: { type: Number, default: 0 },
+        uploadStatus: {
+          type: String,
+          enum: ['not_required', 'pending', 'uploading', 'uploaded', 'failed'],
+          default: 'not_required',
+        },
+        uploadedAt: { type: Date, default: null },
+        uploadError: { type: String, default: null },
+      },
+    ],
   },
   { timestamps: true }
 );

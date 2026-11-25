@@ -61,10 +61,13 @@ export async function POST(req: Request) {
     // ── Content-type aware body parsing (supports multipart/form-data with photo) ──
     const contentType = req.headers.get('content-type') || '';
     let body: any;
-    let photoBuffer: Buffer | null = null;
-    let photoFileName: string | null = null;
-    let photoMimeType: string | null = null;
-    let photoFileSize = 0;
+    interface PreparedPhoto {
+      buffer: Buffer;
+      fileName: string;
+      mimeType: string;
+      fileSize: number;
+    }
+    const preparedPhotos: PreparedPhoto[] = [];
 
     if (contentType.includes('multipart/form-data')) {
       const formData = await req.formData();
@@ -78,18 +81,36 @@ export async function POST(req: Request) {
         return NextResponse.json({ error: 'Invalid JSON in form data.' }, { status: 400 });
       }
 
-      const photoFile = formData.get('photo');
-      if (photoFile && photoFile instanceof Blob) {
-        const { validateCustomerPhoto } = await import('@/lib/google-drive');
-        const arrBuffer = await photoFile.arrayBuffer();
-        photoBuffer = Buffer.from(arrBuffer);
-        photoFileName = (photoFile as File).name || 'customer-photo.jpg';
-        photoMimeType = photoFile.type || 'image/jpeg';
-        photoFileSize = photoBuffer.length;
+      // Collect all photo files from 'photos' and 'photo'
+      const rawFiles = formData.getAll('photos').concat(formData.getAll('photo'));
+      const seenBlobs = new Set();
+      const photoFiles = rawFiles.filter((f) => {
+        if (!(f instanceof Blob)) return false;
+        if (seenBlobs.has(f)) return false;
+        seenBlobs.add(f);
+        return true;
+      }) as (Blob & { name?: string })[];
 
-        const validation = validateCustomerPhoto(photoFileSize, photoMimeType, photoFileName);
-        if (!validation.valid) {
-          return NextResponse.json({ error: validation.error }, { status: 400 });
+      if (photoFiles.length > 0) {
+        const { validateCustomerPhoto } = await import('@/lib/google-drive');
+        for (const file of photoFiles) {
+          const arrBuffer = await file.arrayBuffer();
+          const buffer = Buffer.from(arrBuffer);
+          const fileName = file.name || 'customer-photo.jpg';
+          const mimeType = file.type || 'image/jpeg';
+          const fileSize = buffer.length;
+
+          const validation = validateCustomerPhoto(fileSize, mimeType, fileName);
+          if (!validation.valid) {
+            return NextResponse.json({ error: validation.error }, { status: 400 });
+          }
+
+          preparedPhotos.push({
+            buffer,
+            fileName,
+            mimeType,
+            fileSize,
+          });
         }
       }
     } else {
@@ -202,9 +223,20 @@ export async function POST(req: Request) {
       paymentStatus: 'pending',
       fulfillmentStatus: 'unfulfilled',
       guestAccessTokenHash,
-      customPhoto: photoBuffer
-        ? { uploadStatus: 'pending', fileName: photoFileName, mimeType: photoMimeType, fileSize: photoFileSize }
+      customPhoto: preparedPhotos.length > 0
+        ? {
+            uploadStatus: 'pending',
+            fileName: preparedPhotos[0].fileName,
+            mimeType: preparedPhotos[0].mimeType,
+            fileSize: preparedPhotos[0].fileSize,
+          }
         : { uploadStatus: 'not_required' },
+      customPhotos: preparedPhotos.map((p) => ({
+        uploadStatus: 'pending',
+        fileName: p.fileName,
+        mimeType: p.mimeType,
+        fileSize: p.fileSize,
+      })),
     };
 
     if (customerEmail) {
@@ -234,25 +266,56 @@ export async function POST(req: Request) {
       await resolveIdempotencyKey(idempotencyKey, order._id.toString());
     }
 
-    // ── Google Drive Photo Upload (after order is created) ──────────────────────
-    if (photoBuffer && photoFileName && photoMimeType) {
+    // ── Google Drive Multiple Photos Upload (after order is created) ────────────
+    if (preparedPhotos.length > 0) {
       try {
         const { uploadCustomerPhotoToDrive, sanitizePhotoFileName } = await import('@/lib/google-drive');
-        await Order.findByIdAndUpdate(order._id, { 'customPhoto.uploadStatus': 'uploading' });
-        const uploadResult = await uploadCustomerPhotoToDrive({
-          orderId: order._id.toString(),
-          orderNumber: order.invoiceNumber || order._id.toString().slice(-8).toUpperCase(),
-          fileBuffer: photoBuffer,
-          fileName: sanitizePhotoFileName(photoFileName),
-          mimeType: photoMimeType,
-        });
         await Order.findByIdAndUpdate(order._id, {
-          'customPhoto.driveFileId': uploadResult.driveFileId,
-          'customPhoto.driveFolderId': uploadResult.driveFolderId,
-          'customPhoto.fileName': uploadResult.fileName,
-          'customPhoto.uploadStatus': 'uploaded',
-          'customPhoto.uploadedAt': new Date(),
-          'customPhoto.uploadError': null,
+          'customPhoto.uploadStatus': 'uploading',
+          'customPhotos.$[].uploadStatus': 'uploading',
+        });
+
+        const orderNumber = order.invoiceNumber || order._id.toString().slice(-8).toUpperCase();
+        const uploadedPhotosData: any[] = [];
+
+        for (let i = 0; i < preparedPhotos.length; i++) {
+          const p = preparedPhotos[i];
+          const sanitized = sanitizePhotoFileName(p.fileName);
+          try {
+            const uploadResult = await uploadCustomerPhotoToDrive({
+              orderId: order._id.toString(),
+              orderNumber,
+              fileBuffer: p.buffer,
+              fileName: sanitized,
+              mimeType: p.mimeType,
+            });
+            uploadedPhotosData.push({
+              driveFileId: uploadResult.driveFileId,
+              driveFolderId: uploadResult.driveFolderId,
+              fileName: uploadResult.fileName,
+              mimeType: p.mimeType,
+              fileSize: p.fileSize,
+              uploadStatus: 'uploaded',
+              uploadedAt: new Date(),
+              uploadError: null,
+            });
+          } catch (singleErr: unknown) {
+            console.error(`[order] Drive upload failed for photo #${i + 1}:`, singleErr);
+            uploadedPhotosData.push({
+              fileName: sanitized,
+              mimeType: p.mimeType,
+              fileSize: p.fileSize,
+              uploadStatus: 'failed',
+              uploadError: singleErr instanceof Error ? singleErr.message.slice(0, 500) : 'Upload failed',
+            });
+          }
+        }
+
+        const primaryPhoto = uploadedPhotosData.find((up) => up.uploadStatus === 'uploaded') || uploadedPhotosData[0];
+
+        await Order.findByIdAndUpdate(order._id, {
+          customPhotos: uploadedPhotosData,
+          customPhoto: primaryPhoto,
         });
       } catch (uploadErr: unknown) {
         console.error('[order] Google Drive upload failed for order', order._id, uploadErr);

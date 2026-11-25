@@ -20,21 +20,31 @@ export async function GET(
     const { id } = await params;
     await connectToDatabase();
 
-    const order = await Order.findById(id).select('customPhoto invoiceNumber');
+    const order = await Order.findById(id).select('customPhoto customPhotos invoiceNumber');
     if (!order) {
       return NextResponse.json({ error: 'Order not found' }, { status: 404 });
     }
 
-    const customPhoto = order.customPhoto;
-    if (!customPhoto || !customPhoto.driveFileId || customPhoto.uploadStatus !== 'uploaded') {
+    const fileId = req.nextUrl.searchParams.get('fileId');
+    const targetDriveFileId =
+      fileId ||
+      order.customPhoto?.driveFileId ||
+      order.customPhotos?.find((p: any) => p.driveFileId && p.uploadStatus === 'uploaded')?.driveFileId;
+
+    if (!targetDriveFileId) {
       return NextResponse.json({ error: 'No uploaded customer photo for this order' }, { status: 404 });
     }
 
-    const { stream, name: driveFileName, mimeType: driveMimeType } = await getDriveFileStream(customPhoto.driveFileId);
+    const matchedPhoto =
+      order.customPhotos?.find((p: any) => p.driveFileId === targetDriveFileId) || order.customPhoto;
+
+    const { stream, name: driveFileName, mimeType: driveMimeType } =
+      await getDriveFileStream(targetDriveFileId);
 
     const isDownload = req.nextUrl.searchParams.get('download') === 'true';
-    const filename = customPhoto.fileName || driveFileName || `order-${order.invoiceNumber || id}-photo.jpg`;
-    const mimeType = customPhoto.mimeType || driveMimeType || 'image/jpeg';
+    const filename =
+      matchedPhoto?.fileName || driveFileName || `order-${order.invoiceNumber || id}-photo.jpg`;
+    const mimeType = matchedPhoto?.mimeType || driveMimeType || 'image/jpeg';
 
     const webStream = Readable.toWeb(stream as unknown as Readable) as unknown as ReadableStream;
 
@@ -56,7 +66,7 @@ export async function GET(
 }
 
 export async function DELETE(
-  _req: NextRequest,
+  req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
@@ -67,6 +77,7 @@ export async function DELETE(
     }
 
     const { id } = await params;
+    const fileId = req.nextUrl.searchParams.get('fileId');
     await connectToDatabase();
 
     const order = await Order.findById(id);
@@ -74,11 +85,47 @@ export async function DELETE(
       return NextResponse.json({ error: 'Order not found' }, { status: 404 });
     }
 
-    if (order.customPhoto?.driveFileId) {
+    if (fileId) {
+      // Delete single photo from Drive
       try {
-        await deleteDriveFile(order.customPhoto.driveFileId);
+        await deleteDriveFile(fileId);
       } catch (driveErr) {
-        console.warn('[Admin Photo DELETE] Failed to delete from Drive:', driveErr);
+        console.warn('[Admin Photo DELETE] Failed to delete specific file from Drive:', driveErr);
+      }
+
+      // Filter out from customPhotos
+      const remaining = (order.customPhotos || []).filter((p: any) => p.driveFileId !== fileId);
+      order.customPhotos = remaining;
+      if (remaining.length > 0) {
+        order.customPhoto = remaining[0];
+      } else {
+        order.customPhoto = {
+          uploadStatus: 'not_required',
+          driveFileId: null,
+          driveFolderId: null,
+          fileName: null,
+          mimeType: null,
+          fileSize: null,
+          uploadedAt: null,
+          uploadError: null,
+        };
+      }
+      await order.save();
+      return NextResponse.json({ success: true, message: 'Photo deleted successfully' });
+    }
+
+    // Delete all photos
+    const filesToDelete = new Set<string>();
+    if (order.customPhoto?.driveFileId) filesToDelete.add(order.customPhoto.driveFileId);
+    (order.customPhotos || []).forEach((p: any) => {
+      if (p.driveFileId) filesToDelete.add(p.driveFileId);
+    });
+
+    for (const dId of filesToDelete) {
+      try {
+        await deleteDriveFile(dId);
+      } catch (driveErr) {
+        console.warn('[Admin Photo DELETE] Failed to delete file from Drive:', driveErr);
       }
     }
 
@@ -92,9 +139,10 @@ export async function DELETE(
       uploadedAt: null,
       uploadError: null,
     };
+    order.customPhotos = [];
     await order.save();
 
-    return NextResponse.json({ success: true, message: 'Photo deleted successfully' });
+    return NextResponse.json({ success: true, message: 'All photos deleted successfully' });
   } catch (error: unknown) {
     console.error('[Admin Photo DELETE] Error:', error);
     return NextResponse.json(
