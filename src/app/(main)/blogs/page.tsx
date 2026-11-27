@@ -6,10 +6,15 @@ import Link from 'next/link';
 
 async function getBlogs() {
   try {
-    await dbConnect();
-    return await BlogPost.find({ isPublished: true })
-      .sort({ publishedAt: -1 })
-      .lean();
+    const { getOrSetCached } = await import('@/lib/cache/redis-cache');
+    return await getOrSetCached('cache:blogs:listing', 300, async () => {
+      await dbConnect();
+      return await BlogPost.find({ isPublished: true })
+        .select('title slug excerpt featuredImage category publishedAt createdAt')
+        .sort({ publishedAt: -1 })
+        .limit(50)
+        .lean();
+    });
   } catch (error) {
     console.error("Failed to fetch blogs:", error);
     return [];
@@ -76,7 +81,7 @@ const BlogListingPage = async ({
 
       {/* ── Blog Post Grid ── */}
       <div className="px-4 sm:px-8 lg:px-[5vw] max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10 gap-y-16 pb-32">
-        {filteredPosts.map((post: any) => (
+        {filteredPosts.map((post: any, idx: number) => (
           <div key={post._id.toString()} className="group cursor-pointer flex flex-col gap-6">
             {/* Thumbnail */}
             <div className="w-full aspect-[3/4] relative overflow-hidden bg-zinc-200">
@@ -87,6 +92,8 @@ const BlogListingPage = async ({
                     alt={post.featuredImage.alt || post.title}
                     fill
                     sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+                    loading={idx < 3 ? "eager" : "lazy"}
+                    fetchPriority={idx === 0 ? "high" : "auto"}
                     className="object-cover transition-transform duration-700 ease-out group-hover:scale-[1.03]"
                   />
                 )}

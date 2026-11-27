@@ -16,7 +16,6 @@ interface PageProps {
 }
 
 const getProductData = cache(async (slug: string) => {
-  await connectToDatabase();
   const sanitizedSlug = typeof slug === 'string' ? slug : String(slug);
 
   const populateConfig = [
@@ -27,6 +26,8 @@ const getProductData = cache(async (slug: string) => {
   ];
 
   return getOrSetCached(KEYS.productIsrSlug(sanitizedSlug), 60, async () => {
+    if (!process.env.MONGODB_URI) return [null, []];
+    await connectToDatabase();
     return await Promise.all([
       Product.findOne({ slug: sanitizedSlug, isPublished: true })
         .populate(populateConfig)

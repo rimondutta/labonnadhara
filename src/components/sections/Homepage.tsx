@@ -281,31 +281,29 @@ export default function Homepage({
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-[1200px] mx-auto">
           {[
             {
-              productImg: "https://scontent.fcgp3-2.fna.fbcdn.net/v/t39.30808-6/788705149_1095884756115913_6096616204972118746_n.jpg?stp=dst-jpg_tt6&cstp=mx2048x2046&ctp=s2048x2046&_nc_cat=109&ccb=1-7&_nc_sid=6ee11a&_nc_eui2=AeHfewiS2FKAkuFYXynS1aabgJRSS139fyyAlFJLXf1_LOW9S-acBR9eI_LKKL3px4g_HIIh8y7CIjzx_nMAjzKr&_nc_ohc=lxmauW6-nrIQ7kNvwGbaydU&_nc_oc=Ado0TbnAdw-iRnSzxIJKAn1-DGtuSyjbEarRP7OikskplDfkbFPikOupUaeG_TZJwvM&_nc_zt=23&_nc_ht=scontent.fcgp3-2.fna&_nc_gid=GbM5w5pNLefC5ehA7GU_iQ&_nc_ss=7b2a8&oh=00_AQIwAPU9esUXsmiZAp9SsEm4b0T5K_L_LfchknP1AZxpmQ&oe=6AB09B30",
-              review: "জুয়েলারির কোয়ালিটি খুব ভালো। প্যাকেজিংও অসাধারণ ছিল। অবশ্যই আবার কিনবো।",
+              review: "\u099c\u09c1\u09af\u09bc\u09c7\u09b2\u09be\u09b0\u09bf\u09b0 \u0995\u09cb\u09af\u09bc\u09be\u09b2\u09bf\u099f\u09bf \u0996\u09c1\u09ac \u09ad\u09be\u09b2\u09cb\u09f7 \u09aa\u09cd\u09af\u09be\u0995\u09c7\u099c\u09bf\u0982\u0993 \u0985\u09b8\u09be\u09a7\u09be\u09b0\u09a3 \u099b\u09bf\u09b2\u09f7 \u0985\u09ac\u09b6\u09cd\u09af\u0987 \u0986\u09ac\u09be\u09b0 \u0995\u09bf\u09a8\u09ac\u09cb\u09f7",
               name: "Trishna Das",
               location: "Chattogram",
-              avatarImg: "https://scontent.fcgp3-2.fna.fbcdn.net/v/t39.30808-6/788705149_1095884756115913_6096616204972118746_n.jpg?stp=dst-jpg_tt6&cstp=mx2048x2046&ctp=s2048x2046&_nc_cat=109&ccb=1-7&_nc_sid=6ee11a&_nc_eui2=AeHfewiS2FKAkuFYXynS1aabgJRSS139fyyAlFJLXf1_LOW9S-acBR9eI_LKKL3px4g_HIIh8y7CIjzx_nMAjzKr&_nc_ohc=lxmauW6-nrIQ7kNvwGbaydU&_nc_oc=Ado0TbnAdw-iRnSzxIJKAn1-DGtuSyjbEarRP7OikskplDfkbFPikOupUaeG_TZJwvM&_nc_zt=23&_nc_ht=scontent.fcgp3-2.fna&_nc_gid=GbM5w5pNLefC5ehA7GU_iQ&_nc_ss=7b2a8&oh=00_AQIwAPU9esUXsmiZAp9SsEm4b0T5K_L_LfchknP1AZxpmQ&oe=6AB09B30"
+              initials: "TD",
             },
             {
-              productImg: "/placeholder.jpg",
-              review: "ডিজাইনগুলো খুবই সুন্দর এবং ইউনিক। দামও যেন রিজনেবল। Recommended!",
+              review: "\u09a1\u09bf\u099c\u09be\u0987\u09a8\u0997\u09c1\u09b2\u09cb \u0996\u09c1\u09ac\u0987 \u09b8\u09c1\u09a8\u09cd\u09a6\u09b0 \u098f\u09ac\u0982 \u0987\u0989\u09a8\u09bf\u0995\u09f7 \u09a6\u09be\u09ae\u0993 \u09af\u09c7\u09a8 \u09b0\u09bf\u099c\u09a8\u09c7\u09ac\u09b2\u09f7 Recommended!",
               name: "Nusrat Jahan",
-              location: "Chattogram",
-              avatarImg: "/placeholder.jpg"
+              location: "Dhaka",
+              initials: "NJ",
             },
             {
-              productImg: "/placeholder.jpg",
-              review: "আমি অনেক খুশি! পণ্যের মান এবং সার্ভিস দারুণ। ধন্যবাদ Labonnadhara 🤩",
+              review: "\u0986\u09ae\u09bf \u0985\u09a8\u09c7\u0995 \u0996\u09c1\u09b6\u09bf! \u09aa\u09a3\u09cd\u09af\u09c7\u09b0 \u09ae\u09be\u09a8 \u098f\u09ac\u0982 \u09b8\u09be\u09b0\u09cd\u09ad\u09bf\u09b8 \u09a6\u09be\u09b0\u09c1\u09a3\u09f7 \u09a7\u09a8\u09cd\u09af\u09ac\u09be\u09a6 Labonnadhara \uD83E\uDD29",
               name: "Rafiya Islam",
               location: "Chattogram",
-              avatarImg: "/placeholder.jpg"
+              initials: "RI",
             }
           ].map((item, i) => (
             <AnimatedReveal key={i} delay={i * 0.1}>
-              <div className="bg-[#FFF8FB] border border-[#F3D6E2] rounded-2xl p-5 sm:p-6 flex gap-5 items-center hover:shadow-md transition-shadow duration-300">
-                <div className="shrink-0 relative w-[80px] h-[80px] sm:w-[90px] sm:h-[90px] rounded-full overflow-hidden shadow-sm border-2 border-white">
-                  <Image src={item.productImg} alt="Customer product" fill loading="lazy" sizes="90px" className="object-cover" />
+              <div className="bg-[#FFF8FB] border border-[#F3D6E2] rounded-2xl p-5 sm:p-6 flex gap-4 items-start hover:shadow-md transition-shadow duration-300">
+                {/* Initials avatar — zero external image requests, renders instantly */}
+                <div className="shrink-0 w-[52px] h-[52px] rounded-full bg-gradient-to-br from-[#F3D6E2] to-[#D62B72]/30 flex items-center justify-center shadow-sm border-2 border-white">
+                  <span className="font-serif font-bold text-[16px] text-[#D62B72]">{item.initials}</span>
                 </div>
                 <div className="flex flex-col flex-1">
                   <div className="flex text-[#F59E0B] mb-2 gap-0.5">
@@ -314,16 +312,11 @@ export default function Homepage({
                     ))}
                   </div>
                   <p className="font-sans text-[13px] sm:text-[14px] font-medium text-[#4B5563] leading-relaxed mb-4 line-clamp-3">
-                    "{item.review}"
+                    &ldquo;{item.review}&rdquo;
                   </p>
-                  <div className="flex items-center gap-2.5">
-                    <div className="relative w-8 h-8 rounded-full overflow-hidden shadow-sm border border-white">
-                      <Image src={item.avatarImg} alt={item.name} fill loading="lazy" sizes="32px" className="object-cover" />
-                    </div>
-                    <div className="flex flex-col">
-                      <span className="font-sans font-bold text-[13px] text-[#252B3A] leading-none mb-1">{item.name}</span>
-                      <span className="font-sans text-[11px] text-gray-500 leading-none">{item.location}</span>
-                    </div>
+                  <div className="flex flex-col">
+                    <span className="font-sans font-bold text-[13px] text-[#252B3A] leading-none mb-1">{item.name}</span>
+                    <span className="font-sans text-[11px] text-gray-500 leading-none">{item.location}</span>
                   </div>
                 </div>
               </div>
