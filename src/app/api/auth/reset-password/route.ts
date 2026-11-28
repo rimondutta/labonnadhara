@@ -1,27 +1,30 @@
 /**
  * POST /api/auth/reset-password
- *
- * Accepts the reset token (from verify-reset-otp) and a new password.
- * Verifies the JWT purpose claim, hashes the new password with bcrypt,
- * and clears all OTP fields from the user.
+ * Consumes a single-use password reset JWT (`jti`), updates the user password,
+ * and revokes all active mobile refresh tokens (V-12).
  */
 import { NextResponse } from 'next/server';
-import jwt from 'jsonwebtoken';
+import { createHash } from 'crypto';
 import bcrypt from 'bcryptjs';
+import jwt from 'jsonwebtoken';
 import connectToDatabase from '@/lib/db';
 import User from '@/models/User';
 import { getJwtSecret } from '@/lib/jwt-secret';
 import { checkRateLimit, getClientIp } from '@/lib/ratelimit';
 import { mobileCorsHeaders } from '@/lib/cors';
+import { redis, hasRedis } from '@/lib/redis';
+import { revokeAllUserRefreshTokens } from '@/lib/refresh-token';
+import { PRIVATE_NO_STORE_HEADERS } from '@/lib/auth-guards';
+import { getSafeErrorMessage } from '@/lib/api-error';
 
 export async function POST(req: Request) {
-  const CORS = mobileCorsHeaders(req);
+  const CORS = { ...mobileCorsHeaders(req), ...PRIVATE_NO_STORE_HEADERS };
   try {
     const ip = getClientIp(req);
     const rateLimit = await checkRateLimit(ip, 'auth');
     if (rateLimit.isLimited) {
       return NextResponse.json(
-        { success: false, error: 'Too many password reset attempts. Please wait before retrying.' },
+        { success: false, error: 'Too many requests. Please wait before retrying.' },
         {
           status: 429,
           headers: {
@@ -32,30 +35,32 @@ export async function POST(req: Request) {
       );
     }
 
-    const body = await req.json();
-    const { resetToken, newPassword } = body;
+    const body = await req.json().catch(() => null);
+    if (!body || typeof body !== 'object') {
+      return NextResponse.json({ success: false, error: 'Invalid request body.' }, { status: 400, headers: CORS });
+    }
 
-    if (!resetToken || !newPassword) {
+    const resetToken = typeof body.resetToken === 'string' ? body.resetToken.trim() : '';
+    const newPassword = typeof body.newPassword === 'string' ? body.newPassword : '';
+
+    if (!resetToken) {
       return NextResponse.json(
-        { success: false, error: 'Reset token and new password are required.' },
+        { success: false, error: 'Reset token is required.' },
         { status: 400, headers: CORS }
       );
     }
 
-    // Validate password strength (min 8 chars)
-    if (typeof newPassword !== 'string' || newPassword.length < 8) {
+    if (newPassword.length < 8 || newPassword.length > 72) {
       return NextResponse.json(
-        { success: false, error: 'Password must be at least 8 characters.' },
+        { success: false, error: 'Password must be between 8 and 72 characters.' },
         { status: 400, headers: CORS }
       );
     }
 
     const secret = getJwtSecret();
-
-    // Verify JWT and check purpose
-    let payload: { id: string; email: string; purpose: string };
+    let payload: { id?: string; email?: string; purpose?: string; jti?: string };
     try {
-      payload = jwt.verify(resetToken, secret) as typeof payload;
+      payload = jwt.verify(resetToken, secret, { algorithms: ['HS256'] }) as typeof payload;
     } catch {
       return NextResponse.json(
         { success: false, error: 'Reset link has expired or is invalid. Please request a new one.' },
@@ -63,47 +68,77 @@ export async function POST(req: Request) {
       );
     }
 
-    if (payload.purpose !== 'password_reset') {
+    if (
+      payload.purpose !== 'password_reset' ||
+      !payload.id ||
+      typeof payload.jti !== 'string' ||
+      !payload.jti
+    ) {
       return NextResponse.json(
-        { success: false, error: 'Invalid token.' },
+        { success: false, error: 'Invalid or already consumed reset token.' },
         { status: 401, headers: CORS }
       );
     }
 
+    const resetJtiHash = createHash('sha256').update(payload.jti).digest('hex');
+
+    // Enforce atomic single-use JTI check in Redis when available
+    if (hasRedis && redis) {
+      const redisOwnerId = await redis.getdel<string>(`reset:jti:${resetJtiHash}`).catch(() => null);
+      if (redisOwnerId !== null && redisOwnerId !== payload.id) {
+        return NextResponse.json(
+          { success: false, error: 'Reset token has already been used or expired.' },
+          { status: 401, headers: CORS }
+        );
+      }
+    }
+
     await connectToDatabase();
 
-    const user = await User.findById(payload.id).select(
-      '+resetOtpHash +resetOtpExpiresAt +resetOtpAttempts +resetOtpRequestedAt'
-    );
+    const hashedPassword = await bcrypt.hash(newPassword, 12);
 
-    if (!user) {
+    // Atomic MongoDB single-use compare-and-clear so concurrent replays cannot reuse token even if Redis bypassed
+    const updatedUser = await User.findOneAndUpdate(
+      {
+        _id: payload.id,
+        resetTokenHash: resetJtiHash,
+        resetTokenExpiresAt: { $gt: new Date() },
+      },
+      {
+        $set: {
+          password: hashedPassword,
+          resetOtpAttempts: 0,
+        },
+        $unset: {
+          resetTokenHash: 1,
+          resetTokenExpiresAt: 1,
+          resetOtpHash: 1,
+          resetOtpExpiresAt: 1,
+          resetOtpRequestedAt: 1,
+        },
+      },
+      { returnDocument: 'after' }
+    ).select('_id');
+
+    if (!updatedUser) {
       return NextResponse.json(
-        { success: false, error: 'User not found.' },
-        { status: 404, headers: CORS }
+        { success: false, error: 'Reset token has already been used or has expired.' },
+        { status: 401, headers: CORS }
       );
     }
 
-    // Hash the new password
-    const hashedPassword = await bcrypt.hash(newPassword, 12);
-    user.password = hashedPassword;
-
-    // Clear all OTP fields
-    user.resetOtpHash = undefined;
-    user.resetOtpExpiresAt = undefined;
-    user.resetOtpAttempts = 0;
-    user.resetOtpRequestedAt = undefined;
-
-    await user.save();
+    // Revoke all existing mobile refresh tokens for this user
+    await revokeAllUserRefreshTokens(updatedUser._id.toString());
 
     return NextResponse.json(
       { success: true, message: 'Password updated successfully. You can now log in.' },
       { headers: CORS }
     );
   } catch (err) {
-    console.error('[reset-password]', err);
+    console.error('[reset-password]', getSafeErrorMessage(err));
     return NextResponse.json(
       { success: false, error: 'Internal server error.' },
-      { status: 500, headers: mobileCorsHeaders(req) }
+      { status: 500, headers: CORS }
     );
   }
 }

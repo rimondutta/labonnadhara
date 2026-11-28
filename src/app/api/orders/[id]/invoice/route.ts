@@ -7,18 +7,31 @@ import Order from '@/models/Order';
 import { getInvoiceBufferForOrder } from '@/lib/invoice/generateInvoicePdf';
 import { getBearerSession } from '@/lib/mobile-auth';
 import { verifyInvoiceToken } from '@/lib/invoice-token';
+import { isValidObjectId, PRIVATE_NO_STORE_HEADERS } from '@/lib/auth-guards';
+import { getSafeErrorMessage } from '@/lib/api-error';
 
 export async function GET(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    await connectToDatabase();
     const { id } = await params;
+    if (!isValidObjectId(id)) {
+      return NextResponse.json(
+        { error: 'Invalid order ID' },
+        { status: 400, headers: PRIVATE_NO_STORE_HEADERS }
+      );
+    }
 
-    const order = await Order.findById(id).select('+guestAccessTokenHash').lean() as any;
+    await connectToDatabase();
+
+    const order = await Order.findById(id).select('+guestAccessTokenHash').lean() as {
+      _id: unknown;
+      customerEmail?: string;
+      guestAccessTokenHash?: string;
+    } | null;
     if (!order) {
-      return NextResponse.json({ error: 'Order not found' }, { status: 404 });
+      return NextResponse.json({ error: 'Order not found' }, { status: 404, headers: PRIVATE_NO_STORE_HEADERS });
     }
 
     // ── Authentication & Authorization Verification ──
@@ -62,21 +75,23 @@ export async function GET(
     }
 
     // ── PDF Generation ──
-    const { buffer, filename } = await getInvoiceBufferForOrder(order);
+    const { buffer, filename } = await getInvoiceBufferForOrder(id);
+    const safeFilename = filename.replace(/[\r\n"\\\/]/g, '_');
 
     return new NextResponse(new Uint8Array(buffer), {
       status: 200,
       headers: {
         'Content-Type': 'application/pdf',
-        'Content-Disposition': `attachment; filename="${filename}"`,
+        'Content-Disposition': `attachment; filename="${safeFilename}"`,
+        'X-Content-Type-Options': 'nosniff',
         'Cache-Control': 'private, no-cache, no-store, must-revalidate',
       },
     });
   } catch (error: unknown) {
-    console.error('Error generating invoice PDF:', error);
+    console.error('Error generating invoice PDF:', getSafeErrorMessage(error));
     return NextResponse.json(
-      { error: (error as Error).message || 'Failed to generate invoice' },
-      { status: 500 }
+      { error: getSafeErrorMessage(error) },
+      { status: 500, headers: PRIVATE_NO_STORE_HEADERS }
     );
   }
 }

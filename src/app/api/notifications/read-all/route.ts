@@ -1,49 +1,35 @@
-/**
- * PATCH /api/notifications/read-all
- *
- * Marks all of the logged-in user's notifications as read.
- */
-import { NextResponse, NextRequest } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import connectToDatabase from '@/lib/db';
 import Notification from '@/models/Notification';
-import { getBearerSession } from '@/lib/mobile-auth';
-
-const CORS = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Methods': 'PATCH, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-};
+import { mobileCorsHeaders } from '@/lib/cors';
+import { requireAuthenticatedUser, PRIVATE_NO_STORE_HEADERS } from '@/lib/auth-guards';
+import { getSafeErrorMessage } from '@/lib/api-error';
 
 export async function PATCH(req: NextRequest) {
+  const headers = { ...mobileCorsHeaders(req), ...PRIVATE_NO_STORE_HEADERS };
   try {
-    const session = await getBearerSession(req);
-    if (!session) {
+    const auth = await requireAuthenticatedUser(req);
+    if (auth.errorResponse) {
       return NextResponse.json(
         { success: false, error: 'Unauthorized' },
-        { status: 401, headers: CORS }
+        { status: auth.errorResponse.status, headers }
       );
     }
 
     await connectToDatabase();
 
     const result = await Notification.updateMany(
-      { user: session.user.id, read: false },
+      { user: auth.session.user.id, read: false },
       { $set: { read: true } }
     );
 
-    return NextResponse.json(
-      { success: true, updated: result.modifiedCount },
-      { headers: CORS }
-    );
+    return NextResponse.json({ success: true, updated: result.modifiedCount }, { headers });
   } catch (err) {
-    console.error('[PATCH /api/notifications/read-all]', err);
-    return NextResponse.json(
-      { success: false, error: 'Internal server error.' },
-      { status: 500, headers: CORS }
-    );
+    console.error('[PATCH /api/notifications/read-all]', getSafeErrorMessage(err));
+    return NextResponse.json({ success: false, error: 'Internal server error.' }, { status: 500, headers });
   }
 }
 
-export async function OPTIONS() {
-  return new NextResponse(null, { status: 200, headers: CORS });
+export async function OPTIONS(req: Request) {
+  return new NextResponse(null, { status: 200, headers: mobileCorsHeaders(req) });
 }

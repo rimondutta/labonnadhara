@@ -1,14 +1,37 @@
-import { v2 as cloudinary } from "cloudinary";
+import type { v2 as CloudinaryV2 } from "cloudinary";
 
-cloudinary.config({
-  cloud_name: process.env.CLOUDINARY_URL
-    ? process.env.CLOUDINARY_URL.split("@")[1]
-    : "",
-  api_key: process.env.CLOUDINARY_API_KEY ?? "",
-  api_secret: process.env.CLOUDINARY_URL
-    ? process.env.CLOUDINARY_URL.split(":")[2]?.split("@")[0]
-    : "",
-  secure: true,
+let configuredClient: typeof CloudinaryV2 | null = null;
+
+function getCloudinaryClient(): typeof CloudinaryV2 {
+  if (configuredClient) return configuredClient;
+
+  const url = process.env.CLOUDINARY_URL?.trim();
+  const isValidUrl = Boolean(url && url.startsWith("cloudinary://"));
+  if (url && !isValidUrl) {
+    // Avoid crashing build-time route collection when local .env uses a placeholder string
+    delete process.env.CLOUDINARY_URL;
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const { v2 } = require("cloudinary") as { v2: typeof CloudinaryV2 };
+
+  v2.config({
+    cloud_name: isValidUrl && url ? url.split("@")[1] ?? "" : "",
+    api_key: process.env.CLOUDINARY_API_KEY ?? "",
+    api_secret: isValidUrl && url ? url.split(":")[2]?.split("@")[0] ?? "" : "",
+    secure: true,
+  });
+
+  configuredClient = v2;
+  return v2;
+}
+
+const cloudinary = new Proxy({} as typeof CloudinaryV2, {
+  get(_target, prop) {
+    const client = getCloudinaryClient();
+    const value = Reflect.get(client, prop);
+    return typeof value === "function" ? value.bind(client) : value;
+  },
 });
 
 export default cloudinary;
@@ -60,7 +83,7 @@ export async function uploadImage(
   file: string,
   folder = "products"
 ): Promise<string> {
-  const result = await cloudinary.uploader.upload(file, {
+  const result = await getCloudinaryClient().uploader.upload(file, {
     folder,
     resource_type: "image",
   });
@@ -90,5 +113,5 @@ export async function deleteImage(identifier: string) {
   }
 
   console.log(`Deleting Cloudinary image: ${publicId}`);
-  return cloudinary.uploader.destroy(publicId);
+  return getCloudinaryClient().uploader.destroy(publicId);
 }

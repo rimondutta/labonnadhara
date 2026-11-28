@@ -1,50 +1,68 @@
 import { NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
 import connectToDatabase from '@/lib/db';
 import Category from '@/models/Category';
+import { invalidateCategory } from '@/lib/cache/invalidation';
 import { getSafeErrorMessage } from '@/lib/api-error';
+import { requireAdminOrManager, PRIVATE_NO_STORE_HEADERS } from '@/lib/auth-guards';
+import { buildCategoryPayload } from '@/lib/validation/schemas';
 
-export async function GET() {
+export async function GET(req: Request) {
   try {
-    const session = await getServerSession(authOptions);
-    const role = (session?.user as { role?: string } | undefined)?.role;
-    if (!session || !role || !['admin', 'manager'].includes(role)) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+    const auth = await requireAdminOrManager(req);
+    if (auth.errorResponse) return auth.errorResponse;
 
     await connectToDatabase();
-    const categories = await Category.find({}).sort({ createdAt: -1 });
-
-    return NextResponse.json({ categories });
+    const categories = await Category.find().sort({ name: 1 }).lean();
+    return NextResponse.json({ categories }, { headers: PRIVATE_NO_STORE_HEADERS });
   } catch (error: unknown) {
-    console.error('Admin GET categories error:', error);
-    return NextResponse.json({ error: getSafeErrorMessage(error) }, { status: 500 });
+    console.error('Admin GET categories error:', getSafeErrorMessage(error));
+    return NextResponse.json(
+      { error: getSafeErrorMessage(error) },
+      { status: 500, headers: PRIVATE_NO_STORE_HEADERS }
+    );
   }
 }
 
 export async function POST(req: Request) {
   try {
-    const session = await getServerSession(authOptions);
-    const role = (session?.user as { role?: string } | undefined)?.role;
-    if (!session || !role || !['admin', 'manager'].includes(role)) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+    const auth = await requireAdminOrManager(req);
+    if (auth.errorResponse) return auth.errorResponse;
 
-    const data = await req.json();
-
-    await connectToDatabase();
-    const category = await Category.create(data);
-
-    return NextResponse.json({ category }, { status: 201 });
-  } catch (error: unknown) {
-    if (typeof error === 'object' && error !== null && 'code' in error && (error as { code: number }).code === 11000) {
+    const rawBody = await req.json().catch(() => null);
+    const parsed = buildCategoryPayload(rawBody, false);
+    if (!parsed.success) {
       return NextResponse.json(
-        { error: 'Category with this slug/name already exists' },
-        { status: 400 }
+        { error: parsed.error },
+        { status: 400, headers: PRIVATE_NO_STORE_HEADERS }
       );
     }
-    console.error('Admin POST category error:', error);
-    return NextResponse.json({ error: getSafeErrorMessage(error) }, { status: 500 });
+
+    await connectToDatabase();
+
+    const existing = await Category.findOne({ slug: parsed.data.slug }).select('_id').lean();
+    if (existing) {
+      return NextResponse.json(
+        { error: 'Category slug already exists' },
+        { status: 400, headers: PRIVATE_NO_STORE_HEADERS }
+      );
+    }
+
+    const category = await Category.create({
+      name: parsed.data.name,
+      slug: parsed.data.slug,
+      description: parsed.data.description,
+      image: parsed.data.image ?? '',
+      isActive: parsed.data.isActive !== false,
+    });
+
+    await invalidateCategory(category._id.toString(), category.slug);
+
+    return NextResponse.json({ category }, { status: 201, headers: PRIVATE_NO_STORE_HEADERS });
+  } catch (error: unknown) {
+    console.error('Admin POST category error:', getSafeErrorMessage(error));
+    return NextResponse.json(
+      { error: getSafeErrorMessage(error) },
+      { status: 500, headers: PRIVATE_NO_STORE_HEADERS }
+    );
   }
 }

@@ -1,51 +1,104 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
 import connectToDatabase from '@/lib/db';
 import Order from '@/models/Order';
+import { uploadCustomerPhotoToDrive, validateCustomerPhoto } from '@/lib/google-drive';
 import {
-  validateCustomerPhoto,
-  uploadCustomerPhotoToDrive,
-  sanitizePhotoFileName,
-} from '@/lib/google-drive';
+  requireAdminOrManager,
+  isValidObjectId,
+  PRIVATE_NO_STORE_HEADERS,
+} from '@/lib/auth-guards';
+import {
+  MAX_ORDER_PHOTOS_COUNT,
+  MAX_ORDER_REQUEST_BODY_BYTES,
+  isAllowedMutationOrigin,
+  isRequestContentLengthOverLimit,
+} from '@/lib/upload-security';
+import { getSafeErrorMessage } from '@/lib/api-error';
 
 export async function POST(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await getServerSession(authOptions);
-    const role = (session?.user as { role?: string } | undefined)?.role;
-    if (!session || !role || !['admin', 'manager'].includes(role)) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    const auth = await requireAdminOrManager(req);
+    if (auth.errorResponse) return auth.errorResponse;
+
+    if (!isAllowedMutationOrigin(req)) {
+      return NextResponse.json(
+        { error: 'Forbidden: Cross-origin upload rejected' },
+        { status: 403, headers: PRIVATE_NO_STORE_HEADERS }
+      );
     }
 
     const { id } = await params;
-    await connectToDatabase();
-
-    const order = await Order.findById(id);
-    if (!order) {
-      return NextResponse.json({ error: 'Order not found' }, { status: 404 });
+    if (!isValidObjectId(id)) {
+      return NextResponse.json(
+        { error: 'Invalid order ID' },
+        { status: 400, headers: PRIVATE_NO_STORE_HEADERS }
+      );
     }
 
     const contentType = req.headers.get('content-type') || '';
     if (!contentType.includes('multipart/form-data')) {
       return NextResponse.json(
         { error: 'Please provide photos using multipart/form-data.' },
-        { status: 400 }
+        { status: 400, headers: PRIVATE_NO_STORE_HEADERS }
+      );
+    }
+
+    if (isRequestContentLengthOverLimit(req, MAX_ORDER_REQUEST_BODY_BYTES)) {
+      return NextResponse.json(
+        { error: 'Uploaded payload exceeds maximum cumulative limit.' },
+        { status: 413, headers: PRIVATE_NO_STORE_HEADERS }
+      );
+    }
+
+    await connectToDatabase();
+
+    const order = await Order.findById(id);
+    if (!order) {
+      return NextResponse.json(
+        { error: 'Order not found' },
+        { status: 404, headers: PRIVATE_NO_STORE_HEADERS }
       );
     }
 
     const formData = await req.formData();
-    const rawFiles = formData.getAll('photos').concat(formData.getAll('photo'));
-    const photoFiles = rawFiles.filter((f) => f instanceof Blob) as (Blob & { name?: string })[];
+    const multiFiles: Array<Blob & { name?: string }> = [];
+    for (const f of formData.getAll('photos')) {
+      if (f instanceof Blob) {
+        multiFiles.push(f as Blob & { name?: string });
+      }
+    }
+    const singleFiles: Array<Blob & { name?: string }> = [];
+    if (multiFiles.length === 0) {
+      for (const f of formData.getAll('photo')) {
+        if (f instanceof Blob) {
+          singleFiles.push(f as Blob & { name?: string });
+        }
+      }
+    }
+    const photoFiles = multiFiles.length > 0 ? multiFiles : singleFiles;
 
     if (photoFiles.length === 0) {
-      return NextResponse.json({ error: 'No photo files provided.' }, { status: 400 });
+      return NextResponse.json(
+        { error: 'No photo files provided.' },
+        { status: 400, headers: PRIVATE_NO_STORE_HEADERS }
+      );
+    }
+
+    const existingPhotos = Array.isArray(order.customPhotos) ? order.customPhotos : [];
+    if (existingPhotos.length + photoFiles.length > MAX_ORDER_PHOTOS_COUNT) {
+      return NextResponse.json(
+        {
+          error: `Maximum ${MAX_ORDER_PHOTOS_COUNT} customer photos per order allowed (currently ${existingPhotos.length}).`,
+        },
+        { status: 400, headers: PRIVATE_NO_STORE_HEADERS }
+      );
     }
 
     const orderNumber = order.invoiceNumber || order._id.toString().slice(-8).toUpperCase();
-    const uploadedResults: any[] = [];
+    const uploadedResults: Array<Record<string, unknown>> = [];
     const errors: string[] = [];
 
     for (let i = 0; i < photoFiles.length; i++) {
@@ -56,63 +109,71 @@ export async function POST(
       const photoMimeType = file.type || 'image/jpeg';
       const photoFileSize = photoBuffer.length;
 
-      const validation = validateCustomerPhoto(photoFileSize, photoMimeType, originalFileName);
-      if (!validation.valid) {
-        errors.push(`${originalFileName}: ${validation.error}`);
+      const validation = validateCustomerPhoto(photoFileSize, photoMimeType, originalFileName, photoBuffer);
+      if (!validation.valid || !validation.detectedMime) {
+        errors.push(`${originalFileName}: ${validation.error || 'Invalid image'}`);
         continue;
       }
-
-      const sanitizedName = sanitizePhotoFileName(originalFileName);
 
       try {
         const uploadResult = await uploadCustomerPhotoToDrive({
           orderId: order._id.toString(),
           orderNumber,
           fileBuffer: photoBuffer,
-          fileName: sanitizedName,
-          mimeType: photoMimeType,
+          fileName: originalFileName,
+          mimeType: validation.detectedMime,
         });
 
         uploadedResults.push({
           driveFileId: uploadResult.driveFileId,
           driveFolderId: uploadResult.driveFolderId,
           fileName: uploadResult.fileName,
-          mimeType: photoMimeType,
+          mimeType: validation.detectedMime,
           fileSize: photoFileSize,
           uploadStatus: 'uploaded',
           uploadedAt: new Date(),
           uploadError: null,
         });
       } catch (uploadErr: unknown) {
-        const msg = uploadErr instanceof Error ? uploadErr.message : 'Upload failed';
-        errors.push(`${sanitizedName}: ${msg}`);
+        const errMsg = getSafeErrorMessage(uploadErr);
+        errors.push(`${originalFileName}: ${errMsg}`);
+        uploadedResults.push({
+          fileName: originalFileName,
+          mimeType: validation.detectedMime,
+          fileSize: photoFileSize,
+          uploadStatus: 'failed',
+          uploadError: errMsg,
+        });
       }
     }
 
     if (uploadedResults.length > 0) {
-      const existingPhotos = order.customPhotos || [];
       const updatedPhotos = [...existingPhotos, ...uploadedResults];
       order.customPhotos = updatedPhotos;
       order.customPhoto = updatedPhotos[0];
       await order.save();
 
-      return NextResponse.json({
-        success: true,
-        message: `${uploadedResults.length} photo(s) uploaded successfully to Google Drive`,
-        customPhotos: order.customPhotos,
-        errors: errors.length > 0 ? errors : undefined,
-      });
+      return NextResponse.json(
+        {
+          success: true,
+          message: `${uploadedResults.length} photo(s) processed for Google Drive`,
+          customPhoto: order.customPhoto,
+          customPhotos: order.customPhotos,
+          errors: errors.length > 0 ? errors : undefined,
+        },
+        { headers: PRIVATE_NO_STORE_HEADERS }
+      );
     }
 
     return NextResponse.json(
-      { error: `Google Drive upload failed: ${errors.join(', ')}` },
-      { status: 502 }
+      { error: errors.join('; ') || 'All photo uploads failed validation.' },
+      { status: 400, headers: PRIVATE_NO_STORE_HEADERS }
     );
   } catch (error: unknown) {
-    console.error('[Admin Photo Retry POST] Error:', error);
+    console.error('[Admin Photo Retry POST]:', getSafeErrorMessage(error));
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'Server error during photo upload' },
-      { status: 500 }
+      { error: getSafeErrorMessage(error) },
+      { status: 500, headers: PRIVATE_NO_STORE_HEADERS }
     );
   }
 }

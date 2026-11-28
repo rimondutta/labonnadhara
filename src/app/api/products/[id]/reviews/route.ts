@@ -1,74 +1,172 @@
 import { NextResponse } from 'next/server';
+import { getServerSession } from 'next-auth';
+import { revalidatePath } from 'next/cache';
 import connectToDatabase from '@/lib/db';
 import Product from '@/models/Product';
-import { revalidatePath } from 'next/cache';
+import Review from '@/models/Review';
+import Order from '@/models/Order';
+import { authOptions } from '@/lib/auth';
+import { getBearerSession } from '@/lib/mobile-auth';
+import { mobileCorsHeaders } from '@/lib/cors';
+import { checkRateLimit, getClientIp } from '@/lib/ratelimit';
+import { redis, hasRedis } from '@/lib/redis';
+import { isValidObjectId } from '@/lib/auth-guards';
+import { hasUnsafeObjectKeys, productReviewInputSchema } from '@/lib/validation/schemas';
+import { isAllowedMutationOrigin } from '@/lib/upload-security';
+import { getSafeErrorMessage } from '@/lib/api-error';
 
-const CORS_HEADERS = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Methods': 'POST, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-};
-
-export async function OPTIONS() {
-  return new NextResponse(null, { status: 200, headers: CORS_HEADERS });
+export async function OPTIONS(req: Request) {
+  return new NextResponse(null, { status: 200, headers: mobileCorsHeaders(req) });
 }
 
 export async function POST(
   req: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const CORS_HEADERS = mobileCorsHeaders(req);
   try {
-    const { id } = await params;
-    const body = await req.json();
-    const { rating, title, text, name } = body;
-
-    // Basic validation
-    if (!rating || rating < 1 || rating > 5) {
-      return NextResponse.json({ error: 'Valid rating between 1 and 5 is required' }, { status: 400 });
+    const ip = getClientIp(req);
+    const rateLimit = await checkRateLimit(ip, 'strict');
+    if (rateLimit.isLimited) {
+      return NextResponse.json(
+        { error: 'Too many review submissions. Please try again later.' },
+        {
+          status: 429,
+          headers: {
+            ...CORS_HEADERS,
+            'Retry-After': String(Math.max(1, Math.ceil((rateLimit.reset - Date.now()) / 1000))),
+          },
+        }
+      );
     }
-    if (!title || !text || !name) {
-      return NextResponse.json({ error: 'Title, review text, and name are required' }, { status: 400 });
+
+    if (!isAllowedMutationOrigin(req)) {
+      return NextResponse.json(
+        { error: 'Forbidden: Invalid request origin' },
+        { status: 403, headers: CORS_HEADERS }
+      );
+    }
+
+    const { id } = await params;
+    if (!isValidObjectId(id)) {
+      return NextResponse.json({ error: 'Invalid product ID' }, { status: 400, headers: CORS_HEADERS });
+    }
+
+    const rawBody = await req.json().catch(() => null);
+    if (!rawBody || typeof rawBody !== 'object' || Array.isArray(rawBody) || hasUnsafeObjectKeys(rawBody)) {
+      return NextResponse.json({ error: 'Invalid review payload' }, { status: 400, headers: CORS_HEADERS });
+    }
+
+    const candidate = {
+      rating: typeof (rawBody as Record<string, unknown>).rating === 'string'
+        ? Number((rawBody as Record<string, unknown>).rating)
+        : (rawBody as Record<string, unknown>).rating,
+      title: (rawBody as Record<string, unknown>).title,
+      text: (rawBody as Record<string, unknown>).text,
+      name: (rawBody as Record<string, unknown>).name,
+    };
+
+    const parsed = productReviewInputSchema.safeParse(candidate);
+    if (!parsed.success) {
+      return NextResponse.json(
+        { error: parsed.error.issues[0]?.message || 'Invalid review submission' },
+        { status: 400, headers: CORS_HEADERS }
+      );
+    }
+
+    // Per-IP per-product submission cooldown (prevents spam flooding onto a single product)
+    const cooldownKey = `review:cooldown:${id}:${ip}`;
+    if (hasRedis && redis) {
+      try {
+        const acquired = await redis.set(cooldownKey, '1', { ex: 600, nx: true });
+        if (!acquired) {
+          return NextResponse.json(
+            { error: 'You have recently submitted a review for this product. Please try again later.' },
+            { status: 429, headers: CORS_HEADERS }
+          );
+        }
+      } catch (redisErr) {
+        console.warn('[Reviews] Cooldown check failed; continuing:', getSafeErrorMessage(redisErr));
+      }
     }
 
     await connectToDatabase();
 
-    const product = await Product.findById(id);
-    if (!product) {
-      return NextResponse.json({ error: 'Product not found' }, { status: 404 });
+    const product = await Product.findById(id).select('_id slug isPublished').lean() as {
+      _id: unknown;
+      slug?: string;
+      isPublished?: boolean;
+    } | null;
+
+    if (!product || product.isPublished === false) {
+      return NextResponse.json({ error: 'Product not found' }, { status: 404, headers: CORS_HEADERS });
     }
 
-    // Add the new review with pending status (requires admin approval before it counts)
-    const newReview = {
-      rating: Number(rating),
-      title: title.trim(),
-      text: text.trim(),
-      name: name.trim(),
-      date: new Date(),
+    const session = (await getBearerSession(req)) || (await getServerSession(authOptions));
+    const userId = (session?.user as { id?: string } | undefined)?.id ?? null;
+    const userEmail = (session?.user as { email?: string } | undefined)?.email?.toLowerCase();
+
+    if (userId) {
+      const existingReview = await Review.findOne({ productId: product._id, userId }).select('_id').lean();
+      if (existingReview) {
+        return NextResponse.json(
+          { error: 'You have already reviewed this product' },
+          { status: 400, headers: CORS_HEADERS }
+        );
+      }
+    }
+
+    let isVerifiedPurchase = false;
+    if (userEmail || userId) {
+      const orderQuery: Record<string, unknown> = {
+        'items.productId': product._id,
+        fulfillmentStatus: { $ne: 'cancelled' },
+      };
+      if (userEmail) {
+        orderQuery.customerEmail = userEmail;
+      }
+      isVerifiedPurchase = Boolean(await Order.exists(orderQuery));
+    }
+
+    const review = await Review.create({
+      productId: product._id,
+      userId,
+      userName: parsed.data.name,
+      title: parsed.data.title,
+      rating: parsed.data.rating,
+      comment: parsed.data.text,
+      isVerifiedPurchase,
       status: 'pending',
-    };
+    });
 
-    product.reviews.push(newReview);
-
-    // Recalculate average rating using ONLY published reviews.
-    // Pending or rejected reviews must not affect the public product rating.
-    const publishedReviews = product.reviews.filter((r: { status: string }) => r.status === 'published');
-    product.rating = publishedReviews.length > 0
-      ? Number((publishedReviews.reduce((sum: number, r: { rating: number }) => sum + r.rating, 0) / publishedReviews.length).toFixed(1))
-      : 0;
-    product.reviewCount = publishedReviews.length;
-
-    await product.save();
-
-    // Clear cache so the storefront updates instantly
     revalidatePath('/');
     revalidatePath('/products');
     if (product.slug) {
       revalidatePath(`/products/${product.slug}`);
     }
 
-    return NextResponse.json({ success: true, product });
+    // Never return the full Product document — return only safe review summary fields
+    return NextResponse.json(
+      {
+        success: true,
+        review: {
+          id: review._id.toString(),
+          rating: review.rating,
+          title: review.title,
+          text: review.comment,
+          name: review.userName,
+          status: review.status,
+          isVerifiedPurchase: review.isVerifiedPurchase,
+          createdAt: review.createdAt,
+        },
+      },
+      { status: 201, headers: CORS_HEADERS }
+    );
   } catch (error: unknown) {
-    console.error('Error submitting review:', error);
-    return NextResponse.json({ error: 'Failed to submit review' }, { status: 500 });
+    console.error('Error submitting review:', getSafeErrorMessage(error));
+    return NextResponse.json(
+      { error: getSafeErrorMessage(error) },
+      { status: 500, headers: CORS_HEADERS }
+    );
   }
 }

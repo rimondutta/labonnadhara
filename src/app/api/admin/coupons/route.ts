@@ -1,105 +1,151 @@
-import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
-import connectToDatabase from "@/lib/db";
-import Coupon from "@/models/Coupon";
-import { getSafeErrorMessage } from "@/lib/api-error";
-
-// Auth helper — reusable guard for all handlers
-async function requireAdmin() {
-  const session = await getServerSession(authOptions);
-  const role = (session?.user as { role?: string } | undefined)?.role;
-  if (!session || !role || !['admin', 'manager'].includes(role)) {
-    return null;
-  }
-  return session;
-}
+import { NextRequest, NextResponse } from 'next/server';
+import connectToDatabase from '@/lib/db';
+import Coupon from '@/models/Coupon';
+import { getSafeErrorMessage } from '@/lib/api-error';
+import { requireAdminOrManager, isValidObjectId, PRIVATE_NO_STORE_HEADERS } from '@/lib/auth-guards';
+import { buildCouponCreatePayload, buildCouponPatchPayload } from '@/lib/validation/schemas';
 
 // GET all coupons
-export async function GET() {
+export async function GET(req: NextRequest) {
   try {
-    const session = await requireAdmin();
-    if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    const auth = await requireAdminOrManager(req);
+    if (auth.errorResponse) return auth.errorResponse;
 
     await connectToDatabase();
     const coupons = await Coupon.find().sort({ createdAt: -1 }).lean();
-    return NextResponse.json(coupons);
+    return NextResponse.json(coupons, { headers: PRIVATE_NO_STORE_HEADERS });
   } catch (error: unknown) {
-    console.error("Admin GET coupons error:", error);
-    return NextResponse.json({ error: getSafeErrorMessage(error) }, { status: 500 });
+    console.error('Admin GET coupons error:', getSafeErrorMessage(error));
+    return NextResponse.json(
+      { error: getSafeErrorMessage(error) },
+      { status: 500, headers: PRIVATE_NO_STORE_HEADERS }
+    );
   }
 }
 
-// POST create a new coupon
+// POST create a new coupon (allowlisted Zod fields only)
 export async function POST(req: NextRequest) {
   try {
-    const session = await requireAdmin();
-    if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    const auth = await requireAdminOrManager(req);
+    if (auth.errorResponse) return auth.errorResponse;
+
+    const rawBody = await req.json().catch(() => null);
+    const parsed = buildCouponCreatePayload(rawBody);
+    if (!parsed.success) {
+      return NextResponse.json(
+        { error: parsed.error },
+        { status: 400, headers: PRIVATE_NO_STORE_HEADERS }
+      );
+    }
 
     await connectToDatabase();
-    const body = await req.json();
 
-    // Check if code already exists
-    const existing = await Coupon.findOne({ code: body.code?.toUpperCase() });
+    const existing = await Coupon.findOne({ code: parsed.data.code }).select('_id').lean();
     if (existing) {
-      return NextResponse.json({ error: "Coupon code already exists" }, { status: 400 });
+      return NextResponse.json(
+        { error: 'Coupon code already exists' },
+        { status: 400, headers: PRIVATE_NO_STORE_HEADERS }
+      );
     }
 
     const coupon = await Coupon.create({
-      code: body.code,
-      discountType: body.discountType || "percentage",
-      discountValue: body.discountValue,
-      minOrderAmount: body.minOrderAmount || 0,
-      maxUses: body.maxUses || 0,
-      isActive: body.isActive !== false,
-      expiresAt: body.expiresAt || null,
+      code: parsed.data.code,
+      discountType: parsed.data.discountType,
+      discountValue: parsed.data.discountValue,
+      minOrderAmount: parsed.data.minOrderAmount,
+      maxUses: parsed.data.maxUses,
+      isActive: parsed.data.isActive,
+      expiresAt: parsed.data.expiresAt,
+      usedCount: 0,
     });
 
-    return NextResponse.json(coupon, { status: 201 });
+    return NextResponse.json(coupon, { status: 201, headers: PRIVATE_NO_STORE_HEADERS });
   } catch (error: unknown) {
-    console.error("Admin POST coupon error:", error);
-    return NextResponse.json({ error: getSafeErrorMessage(error) }, { status: 500 });
+    console.error('Admin POST coupon error:', getSafeErrorMessage(error));
+    return NextResponse.json(
+      { error: getSafeErrorMessage(error) },
+      { status: 500, headers: PRIVATE_NO_STORE_HEADERS }
+    );
   }
 }
 
 // DELETE a coupon
 export async function DELETE(req: NextRequest) {
   try {
-    const session = await requireAdmin();
-    if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    const auth = await requireAdminOrManager(req);
+    if (auth.errorResponse) return auth.errorResponse;
+
+    const { searchParams } = new URL(req.url);
+    const id = searchParams.get('id');
+
+    if (!isValidObjectId(id)) {
+      return NextResponse.json(
+        { error: 'Valid coupon ID is required' },
+        { status: 400, headers: PRIVATE_NO_STORE_HEADERS }
+      );
+    }
 
     await connectToDatabase();
-    const { searchParams } = new URL(req.url);
-    const id = searchParams.get("id");
+    const deleted = await Coupon.findByIdAndDelete(id);
+    if (!deleted) {
+      return NextResponse.json(
+        { error: 'Coupon not found' },
+        { status: 404, headers: PRIVATE_NO_STORE_HEADERS }
+      );
+    }
 
-    if (!id) return NextResponse.json({ error: "ID required" }, { status: 400 });
-
-    await Coupon.findByIdAndDelete(id);
-    return NextResponse.json({ success: true });
+    return NextResponse.json({ success: true }, { headers: PRIVATE_NO_STORE_HEADERS });
   } catch (error: unknown) {
-    console.error("Admin DELETE coupon error:", error);
-    return NextResponse.json({ error: getSafeErrorMessage(error) }, { status: 500 });
+    console.error('Admin DELETE coupon error:', getSafeErrorMessage(error));
+    return NextResponse.json(
+      { error: getSafeErrorMessage(error) },
+      { status: 500, headers: PRIVATE_NO_STORE_HEADERS }
+    );
   }
 }
 
-// PATCH update a coupon
+// PATCH update a coupon (explicit $set allowlisted fields only; usedCount protected)
 export async function PATCH(req: NextRequest) {
   try {
-    const session = await requireAdmin();
-    if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    const auth = await requireAdminOrManager(req);
+    if (auth.errorResponse) return auth.errorResponse;
+
+    const rawBody = await req.json().catch(() => null);
+    const parsed = buildCouponPatchPayload(rawBody);
+    if (!parsed.success) {
+      return NextResponse.json(
+        { error: parsed.error },
+        { status: 400, headers: PRIVATE_NO_STORE_HEADERS }
+      );
+    }
+
+    if (Object.keys(parsed.updates).length === 0) {
+      return NextResponse.json(
+        { error: 'No valid updatable coupon fields provided' },
+        { status: 400, headers: PRIVATE_NO_STORE_HEADERS }
+      );
+    }
 
     await connectToDatabase();
-    const body = await req.json();
-    const { id, ...updates } = body;
+    const coupon = await Coupon.findByIdAndUpdate(
+      parsed.id,
+      { $set: parsed.updates },
+      { returnDocument: 'after', runValidators: true }
+    );
 
-    if (!id) return NextResponse.json({ error: "ID required" }, { status: 400 });
+    if (!coupon) {
+      return NextResponse.json(
+        { error: 'Coupon not found' },
+        { status: 404, headers: PRIVATE_NO_STORE_HEADERS }
+      );
+    }
 
-    const coupon = await Coupon.findByIdAndUpdate(id, updates, { returnDocument: 'after' });
-    if (!coupon) return NextResponse.json({ error: "Coupon not found" }, { status: 404 });
-
-    return NextResponse.json(coupon);
+    return NextResponse.json(coupon, { headers: PRIVATE_NO_STORE_HEADERS });
   } catch (error: unknown) {
-    console.error("Admin PATCH coupon error:", error);
-    return NextResponse.json({ error: getSafeErrorMessage(error) }, { status: 500 });
+    console.error('Admin PATCH coupon error:', getSafeErrorMessage(error));
+    return NextResponse.json(
+      { error: getSafeErrorMessage(error) },
+      { status: 500, headers: PRIVATE_NO_STORE_HEADERS }
+    );
   }
 }

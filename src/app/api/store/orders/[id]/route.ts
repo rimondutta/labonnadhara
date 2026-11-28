@@ -1,33 +1,58 @@
 import { NextRequest, NextResponse } from 'next/server';
 import connectToDatabase from '@/lib/db';
 import Order from '@/models/Order';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
-import { getBearerSession } from '@/lib/mobile-auth';
+import {
+  isValidObjectId,
+  requireAuthenticatedUser,
+  PRIVATE_NO_STORE_HEADERS,
+} from '@/lib/auth-guards';
+import { getSafeErrorMessage } from '@/lib/api-error';
 
-export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+export async function GET(
+  req: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
   try {
-    const session = await getBearerSession(req) || await getServerSession(authOptions);
+    const auth = await requireAuthenticatedUser(req);
+    if (auth.errorResponse) return auth.errorResponse;
+
+    if (!auth.session.user.email) {
+      return NextResponse.json(
+        { error: 'Unauthorized access' },
+        { status: 401, headers: PRIVATE_NO_STORE_HEADERS }
+      );
+    }
+
     const { id } = await params;
-    
-    if (!session?.user?.email) {
-      return NextResponse.json({ error: 'Unauthorized access' }, { status: 401 });
+    if (!isValidObjectId(id)) {
+      return NextResponse.json(
+        { error: 'Invalid order ID' },
+        { status: 400, headers: PRIVATE_NO_STORE_HEADERS }
+      );
     }
 
     await connectToDatabase();
 
-    const order = await Order.findOne({ 
+    const order = await Order.findOne({
       _id: id,
-      customerEmail: session.user.email 
-    }).lean();
+      customerEmail: auth.session.user.email.toLowerCase(),
+    })
+      .select('-guestAccessTokenHash')
+      .lean();
 
     if (!order) {
-      return NextResponse.json({ error: 'Order not found' }, { status: 404 });
+      return NextResponse.json(
+        { error: 'Order not found' },
+        { status: 404, headers: PRIVATE_NO_STORE_HEADERS }
+      );
     }
 
-    return NextResponse.json({ order });
-  } catch (error: any) {
-    console.error('Single Order Fetch error:', error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ order }, { headers: PRIVATE_NO_STORE_HEADERS });
+  } catch (error: unknown) {
+    console.error('Single Order Fetch error:', getSafeErrorMessage(error));
+    return NextResponse.json(
+      { error: getSafeErrorMessage(error) },
+      { status: 500, headers: PRIVATE_NO_STORE_HEADERS }
+    );
   }
 }

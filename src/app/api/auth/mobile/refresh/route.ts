@@ -86,7 +86,12 @@ export async function POST(req: Request) {
         name: user.name,
       },
       secret,
-      { expiresIn: "7d" }
+      {
+        expiresIn: "7d",
+        algorithm: "HS256",
+        issuer: "labonnadhara-api",
+        audience: "labonnadhara-mobile",
+      }
     );
 
     // Issue rotated refresh token (new opaque token stored in Redis)

@@ -1,17 +1,13 @@
 import { NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
 import connectToDatabase from '@/lib/db';
 import Order from '@/models/Order';
 import { getSafeErrorMessage } from '@/lib/api-error';
+import { requireAdminOrManager, PRIVATE_NO_STORE_HEADERS } from '@/lib/auth-guards';
 
 export async function GET(req: Request) {
   try {
-    const session = await getServerSession(authOptions);
-    const role = (session?.user as { role?: string } | undefined)?.role;
-    if (!session || !role || !['admin', 'manager'].includes(role)) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+    const auth = await requireAdminOrManager(req);
+    if (auth.errorResponse) return auth.errorResponse;
 
     const { searchParams } = new URL(req.url);
     const page = Math.max(1, parseInt(searchParams.get('page') || '1', 10));
@@ -21,21 +17,32 @@ export async function GET(req: Request) {
     await connectToDatabase();
 
     const [orders, total] = await Promise.all([
-      Order.find({}).sort({ createdAt: -1 }).skip(skip).limit(limit).lean(),
+      Order.find({})
+        .select('-guestAccessTokenHash')
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit)
+        .lean(),
       Order.countDocuments({}),
     ]);
 
-    return NextResponse.json({
-      orders,
-      pagination: {
-        page,
-        limit,
-        total,
-        totalPages: Math.ceil(total / limit),
+    return NextResponse.json(
+      {
+        orders,
+        pagination: {
+          page,
+          limit,
+          total,
+          totalPages: Math.ceil(total / limit),
+        },
       },
-    });
+      { headers: PRIVATE_NO_STORE_HEADERS }
+    );
   } catch (error: unknown) {
-    console.error('Admin GET orders error:', error);
-    return NextResponse.json({ error: getSafeErrorMessage(error) }, { status: 500 });
+    console.error('Admin GET orders error:', getSafeErrorMessage(error));
+    return NextResponse.json(
+      { error: getSafeErrorMessage(error) },
+      { status: 500, headers: PRIVATE_NO_STORE_HEADERS }
+    );
   }
 }

@@ -1,18 +1,19 @@
 import { google } from 'googleapis';
+import {
+  ALLOWED_IMAGE_MIME_TYPES,
+  ALLOWED_IMAGE_EXTENSIONS,
+  MAX_ORDER_PHOTO_SIZE_BYTES,
+  validateImageBuffer,
+} from './upload-security';
 import { Readable } from 'node:stream';
 import path from 'node:path';
 
 // Allowed MIME types and extensions for customer photos
-export const ALLOWED_PHOTO_MIME_TYPES = [
-  'image/jpeg',
-  'image/jpg',
-  'image/png',
-  'image/webp',
-];
+export const ALLOWED_PHOTO_MIME_TYPES: readonly string[] = [...ALLOWED_IMAGE_MIME_TYPES, 'image/jpg'];
 
-export const ALLOWED_PHOTO_EXTENSIONS = ['.jpg', '.jpeg', '.png', '.webp'];
+export const ALLOWED_PHOTO_EXTENSIONS: readonly string[] = [...ALLOWED_IMAGE_EXTENSIONS];
 
-export const MAX_PHOTO_SIZE_BYTES = 15 * 1024 * 1024; // 15 Megabytes
+export const MAX_PHOTO_SIZE_BYTES = MAX_ORDER_PHOTO_SIZE_BYTES; // 5 Megabytes
 
 export const ROOT_FOLDER_NAME = 'Photo Frame Orders';
 
@@ -29,13 +30,22 @@ export function sanitizePhotoFileName(rawFileName: string): string {
 }
 
 /**
- * Validates a photo's MIME type and size.
+ * Validates a photo's MIME type, file extension, size, and optional binary magic bytes.
  */
 export function validateCustomerPhoto(
   fileSize: number,
   mimeType: string,
-  fileName: string
-): { valid: boolean; error?: string } {
+  fileName: string,
+  fileBuffer?: Buffer
+): { valid: boolean; detectedMime?: string; error?: string } {
+  if (fileBuffer) {
+    return validateImageBuffer(fileBuffer, {
+      declaredMime: mimeType,
+      fileName,
+      maxBytes: MAX_PHOTO_SIZE_BYTES,
+    });
+  }
+
   if (fileSize <= 0) {
     return { valid: false, error: 'Uploaded photo file is empty.' };
   }
@@ -44,7 +54,7 @@ export function validateCustomerPhoto(
     const sizeMB = (fileSize / (1024 * 1024)).toFixed(1);
     return {
       valid: false,
-      error: `Photo file size (${sizeMB} MB) exceeds maximum allowed limit of 15 MB.`,
+      error: `Photo file size (${sizeMB} MB) exceeds maximum allowed limit of 5 MB.`,
     };
   }
 
@@ -203,7 +213,7 @@ export interface UploadPhotoResult {
 export async function uploadCustomerPhotoToDrive(params: UploadPhotoParams): Promise<UploadPhotoResult> {
   const { orderId, orderNumber, fileBuffer, fileName, mimeType } = params;
 
-  const validation = validateCustomerPhoto(fileBuffer.length, mimeType, fileName);
+  const validation = validateCustomerPhoto(fileBuffer.length, mimeType, fileName, fileBuffer);
   if (!validation.valid) {
     throw new Error(validation.error || 'Invalid photo file');
   }
@@ -267,7 +277,7 @@ export async function getDriveFileStream(driveFileId: string) {
   );
 
   return {
-    stream: response.data as unknown as NodeJS.ReadableStream,
+    stream: response.data as unknown as Readable,
     name: meta.data.name || 'customer-photo.jpg',
     mimeType: meta.data.mimeType || 'image/jpeg',
     size: meta.data.size ? Number(meta.data.size) : undefined,

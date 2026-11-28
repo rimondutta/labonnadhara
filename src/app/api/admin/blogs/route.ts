@@ -1,23 +1,13 @@
 import { NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
-import { getBearerSession } from '@/lib/mobile-auth';
 import dbConnect from '@/lib/db';
 import BlogPost from '@/models/BlogPost';
 import { getSafeErrorMessage } from '@/lib/api-error';
+import { requireAdminOrManager, PRIVATE_NO_STORE_HEADERS } from '@/lib/auth-guards';
 
 export async function GET(req: Request) {
   try {
-    // 1. Defense-in-depth Authentication & Authorization
-    const session = (await getBearerSession(req)) || (await getServerSession(authOptions));
-    if (!session) {
-      return NextResponse.json({ error: 'Unauthenticated' }, { status: 401 });
-    }
-
-    const role = (session.user as { role?: string })?.role;
-    if (role !== 'admin' && role !== 'manager') {
-      return NextResponse.json({ error: 'Forbidden: Admin or manager access required' }, { status: 403 });
-    }
+    const auth = await requireAdminOrManager(req);
+    if (auth.errorResponse) return auth.errorResponse;
 
     await dbConnect();
     // Fetch all blogs, regardless of published status (for admin management)
@@ -25,12 +15,12 @@ export async function GET(req: Request) {
       .sort({ createdAt: -1 })
       .lean();
 
-    return NextResponse.json(posts);
+    return NextResponse.json(posts, { headers: PRIVATE_NO_STORE_HEADERS });
   } catch (error: unknown) {
-    console.error('Admin GET blogs error:', error);
+    console.error('[GET /api/admin/blogs]', getSafeErrorMessage(error));
     return NextResponse.json(
       { error: getSafeErrorMessage(error) },
-      { status: 500 }
+      { status: 500, headers: PRIVATE_NO_STORE_HEADERS }
     );
   }
 }

@@ -51,4 +51,18 @@ const SettingsSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-export default mongoose.models.Settings || mongoose.model('Settings', SettingsSchema);
+const Settings = mongoose.models.Settings || mongoose.model('Settings', SettingsSchema);
+
+/**
+ * Returns the singleton global Settings document, creating it with defaults if absent.
+ * Always call connectToDatabase() before this helper.
+ */
+export async function getSettings() {
+  return Settings.findOneAndUpdate(
+    { key: 'global' },
+    { $setOnInsert: { key: 'global' } },
+    { upsert: true, returnDocument: 'after', setDefaultsOnInsert: true }
+  );
+}
+
+export default Settings;

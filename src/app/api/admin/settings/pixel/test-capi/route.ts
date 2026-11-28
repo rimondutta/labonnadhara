@@ -1,19 +1,12 @@
 import { NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
 import { sendCapiEvent } from '@/lib/capi';
+import { requireAdminOrManager, PRIVATE_NO_STORE_HEADERS } from '@/lib/auth-guards';
+import { getSafeErrorMessage } from '@/lib/api-error';
 
-/**
- * POST /api/admin/settings/pixel/test-capi
- * Fires a test Purchase event to the Meta Conversions API.
- * Admin-only. Useful to verify CAPI token + pixel ID are correct.
- */
 export async function POST(req: Request) {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session || !['admin', 'manager'].includes((session.user as any).role)) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+    const auth = await requireAdminOrManager(req);
+    if (auth.errorResponse) return auth.errorResponse;
 
     const result = await sendCapiEvent({
       eventName: 'Purchase',
@@ -24,23 +17,34 @@ export async function POST(req: Request) {
         em: 'test@labonnadhara.shop',
         ph: '01700000000',
         client_ip_address: '127.0.0.1',
-        client_user_agent: 'Mozilla/5.0 (Admin Test)',
+        client_user_agent: 'Labonnadhara-CAPI-Test/1.0',
       },
       customData: {
-        value: 1500,
+        value: 100,
         currency: 'BDT',
-        order_id: `test_${Date.now()}`,
-        content_ids: ['test-product-id'],
         content_type: 'product',
       },
     });
 
     if (!result.success) {
-      return NextResponse.json({ error: result.error }, { status: 400 });
+      return NextResponse.json(
+        { error: result.error || 'Failed to send test event to Meta CAPI' },
+        { status: 400, headers: PRIVATE_NO_STORE_HEADERS }
+      );
     }
 
-    return NextResponse.json({ success: true, data: result.data });
-  } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json(
+      {
+        message: 'Test CAPI event sent successfully! Check Meta Events Manager -> Test Events.',
+        data: result.data,
+      },
+      { headers: PRIVATE_NO_STORE_HEADERS }
+    );
+  } catch (error: unknown) {
+    console.error('[Admin Pixel Test CAPI]:', getSafeErrorMessage(error));
+    return NextResponse.json(
+      { error: getSafeErrorMessage(error) },
+      { status: 500, headers: PRIVATE_NO_STORE_HEADERS }
+    );
   }
 }

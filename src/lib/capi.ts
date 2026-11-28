@@ -1,6 +1,7 @@
 import crypto from 'crypto';
 import connectToDatabase from '@/lib/db';
 import Settings from '@/models/Settings';
+import { decryptSettingSecret } from '@/lib/crypto-settings';
 
 export interface CapiEventData {
   eventName: string;
@@ -49,7 +50,8 @@ export async function sendCapiEvent(eventData: CapiEventData) {
       return { success: false, error: 'No pixel config found' };
     }
 
-    const { pixelId, accessToken, enabled, testEventCode } = settingsDoc.facebookPixel;
+    const { pixelId, enabled, testEventCode } = settingsDoc.facebookPixel;
+    const accessToken = decryptSettingSecret(settingsDoc.facebookPixel.accessToken);
 
     if (!enabled) {
       console.warn(`${logPrefix} SKIPPED — pixel is disabled in admin settings`);
@@ -115,10 +117,14 @@ export async function sendCapiEvent(eventData: CapiEventData) {
       payload.test_event_code = testEventCode;
     }
 
-    const apiUrl = `https://graph.facebook.com/v19.0/${pixelId}/events?access_token=${accessToken}`;
+    // Send Meta Conversions API request with Bearer Authorization header (never leak token in URL query string)
+    const apiUrl = `https://graph.facebook.com/v19.0/${encodeURIComponent(pixelId)}/events`;
     const response = await fetch(apiUrl, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${accessToken}`,
+      },
       body: JSON.stringify(payload),
     });
 

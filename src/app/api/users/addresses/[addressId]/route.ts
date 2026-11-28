@@ -1,88 +1,137 @@
-import { NextResponse } from 'next/server';
-import User from '@/models/User';
+import { NextRequest, NextResponse } from 'next/server';
 import connectToDatabase from '@/lib/db';
-import { getBearerSession } from '@/lib/mobile-auth';
-import { NextRequest } from 'next/server';
+import User from '@/models/User';
+import { mobileCorsHeaders } from '@/lib/cors';
+import {
+  isValidObjectId,
+  requireAuthenticatedUser,
+  PRIVATE_NO_STORE_HEADERS,
+} from '@/lib/auth-guards';
+import { addressPatchSchema, hasUnsafeObjectKeys } from '@/lib/validation/schemas';
+import { getSafeErrorMessage } from '@/lib/api-error';
 
-const CORS_HEADERS = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Methods': 'PUT, DELETE, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-};
+export async function OPTIONS(req: Request) {
+  return new NextResponse(null, { status: 200, headers: mobileCorsHeaders(req) });
+}
 
-// ─────────────────────────────────────────────────────────────
-// PUT /api/users/addresses/[addressId] — update a specific address
-// DELETE /api/users/addresses/[addressId] — delete a specific address
-// Auth: Bearer JWT required
-// ─────────────────────────────────────────────────────────────
-
-export async function PUT(req: NextRequest, { params }: { params: Promise<{ addressId: string }> }) {
+export async function PUT(
+  req: NextRequest,
+  { params }: { params: Promise<{ addressId: string }> }
+) {
+  const headers = { ...mobileCorsHeaders(req), ...PRIVATE_NO_STORE_HEADERS };
   try {
-    const session = await getBearerSession(req);
-    if (!session) {
-      return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401, headers: CORS_HEADERS });
+    const auth = await requireAuthenticatedUser(req);
+    if (auth.errorResponse) {
+      return NextResponse.json(
+        { success: false, error: 'Unauthorized' },
+        { status: auth.errorResponse.status, headers }
+      );
     }
 
     const { addressId } = await params;
-    const body = await req.json();
+    if (!isValidObjectId(addressId)) {
+      return NextResponse.json({ success: false, error: 'Invalid address ID' }, { status: 400, headers });
+    }
+
+    const rawBody = await req.json().catch(() => null);
+    if (!rawBody || typeof rawBody !== 'object' || hasUnsafeObjectKeys(rawBody)) {
+      return NextResponse.json({ success: false, error: 'Invalid address update payload' }, { status: 400, headers });
+    }
+
+    const parsed = addressPatchSchema.safeParse(rawBody);
+    if (!parsed.success) {
+      return NextResponse.json(
+        { success: false, error: parsed.error.issues[0]?.message || 'Invalid address fields' },
+        { status: 400, headers }
+      );
+    }
+
+    const entries = Object.entries(parsed.data).filter(([, v]) => v !== undefined);
+    if (entries.length === 0) {
+      return NextResponse.json(
+        { success: false, error: 'No valid updatable fields provided' },
+        { status: 400, headers }
+      );
+    }
 
     await connectToDatabase();
 
-    const updateFields: Record<string, any> = {};
-    for (const [key, val] of Object.entries(body)) {
-      updateFields[`addresses.$.${key}`] = val;
+    if (parsed.data.isDefault === true) {
+      await User.updateOne(
+        { _id: auth.session.user.id },
+        { $set: { 'addresses.$[].isDefault': false } }
+      );
     }
 
-    const user = await User.findOneAndUpdate(
-      { _id: session.user.id, 'addresses._id': addressId },
+    // Explicitly construct allowlisted subdocument $set paths
+    const updateFields: Record<string, string | boolean> = {};
+    for (const [key, val] of entries) {
+      if (val !== undefined) {
+        updateFields[`addresses.$.${key}`] = val as string | boolean;
+      }
+    }
+
+    const user = (await User.findOneAndUpdate(
+      { _id: auth.session.user.id, 'addresses._id': addressId },
       { $set: updateFields },
-      { returnDocument: 'after' }
-    ).select('addresses').lean() as any;
+      { returnDocument: 'after', runValidators: true }
+    )
+      .select('addresses')
+      .lean()) as { addresses?: unknown[] } | null;
 
     if (!user) {
-      return NextResponse.json({ success: false, error: 'Address not found' }, { status: 404, headers: CORS_HEADERS });
+      return NextResponse.json({ success: false, error: 'Address not found' }, { status: 404, headers });
     }
 
     return NextResponse.json(
-      { success: true, data: user.addresses, addresses: user.addresses },
-      { headers: CORS_HEADERS }
+      { success: true, data: user.addresses ?? [], addresses: user.addresses ?? [] },
+      { headers }
     );
-  } catch (error: any) {
-    console.error('[PUT /api/users/addresses/[id]]', error);
-    return NextResponse.json({ success: false, error: 'Internal Server Error' }, { status: 500, headers: CORS_HEADERS });
+  } catch (error: unknown) {
+    console.error('[PUT /api/users/addresses/[addressId]]', getSafeErrorMessage(error));
+    return NextResponse.json({ success: false, error: 'Internal Server Error' }, { status: 500, headers });
   }
 }
 
-export async function DELETE(req: NextRequest, { params }: { params: Promise<{ addressId: string }> }) {
+export async function DELETE(
+  req: NextRequest,
+  { params }: { params: Promise<{ addressId: string }> }
+) {
+  const headers = { ...mobileCorsHeaders(req), ...PRIVATE_NO_STORE_HEADERS };
   try {
-    const session = await getBearerSession(req);
-    if (!session) {
-      return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401, headers: CORS_HEADERS });
+    const auth = await requireAuthenticatedUser(req);
+    if (auth.errorResponse) {
+      return NextResponse.json(
+        { success: false, error: 'Unauthorized' },
+        { status: auth.errorResponse.status, headers }
+      );
     }
 
     const { addressId } = await params;
+    if (!isValidObjectId(addressId)) {
+      return NextResponse.json({ success: false, error: 'Invalid address ID' }, { status: 400, headers });
+    }
+
     await connectToDatabase();
 
-    const user = await User.findByIdAndUpdate(
-      session.user.id,
+    const user = (await User.findOneAndUpdate(
+      { _id: auth.session.user.id, 'addresses._id': addressId },
       { $pull: { addresses: { _id: addressId } } },
       { returnDocument: 'after' }
-    ).select('addresses').lean() as any;
+    )
+      .select('addresses')
+      .lean()) as { addresses?: unknown[] } | null;
 
     if (!user) {
-      return NextResponse.json({ success: false, error: 'User not found' }, { status: 404, headers: CORS_HEADERS });
+      return NextResponse.json({ success: false, error: 'Address not found' }, { status: 404, headers });
     }
 
     return NextResponse.json(
-      { success: true, data: user.addresses, addresses: user.addresses },
-      { headers: CORS_HEADERS }
+      { success: true, data: user.addresses ?? [], addresses: user.addresses ?? [] },
+      { headers }
     );
-  } catch (error: any) {
-    console.error('[DELETE /api/users/addresses/[id]]', error);
-    return NextResponse.json({ success: false, error: 'Internal Server Error' }, { status: 500, headers: CORS_HEADERS });
+  } catch (error: unknown) {
+    console.error('[DELETE /api/users/addresses/[addressId]]', getSafeErrorMessage(error));
+    return NextResponse.json({ success: false, error: 'Internal Server Error' }, { status: 500, headers });
   }
-}
-
-export async function OPTIONS() {
-  return new NextResponse(null, { status: 200, headers: CORS_HEADERS });
 }

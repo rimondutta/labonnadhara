@@ -21,6 +21,12 @@ export default function RegisterPage() {
     setLoading(true);
     setError("");
 
+    if (password.length < 8 || password.length > 72) {
+      setError("Password must be between 8 and 72 characters");
+      setLoading(false);
+      return;
+    }
+
     if (password !== confirmPassword) {
       setError("Passwords do not match");
       setLoading(false);
@@ -107,6 +113,8 @@ export default function RegisterPage() {
                   <label className="block text-sm font-medium text-gray-900">Password</label>
                   <input
                     type="password"
+                    minLength={8}
+                    maxLength={72}
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     className="w-full bg-white text-gray-900 rounded-lg border border-gray-300 px-3 py-2.5 text-sm focus:border-gray-500 focus:ring-1 focus:ring-gray-500 outline-none transition-shadow placeholder:text-gray-400"

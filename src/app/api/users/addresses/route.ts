@@ -1,88 +1,103 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import connectToDatabase from '@/lib/db';
 import User from '@/models/User';
-import { getBearerSession } from '@/lib/mobile-auth';
-import { NextRequest } from 'next/server';
-import mongoose from 'mongoose';
+import { mobileCorsHeaders } from '@/lib/cors';
+import { requireAuthenticatedUser, PRIVATE_NO_STORE_HEADERS } from '@/lib/auth-guards';
+import { addressCreateSchema, hasUnsafeObjectKeys } from '@/lib/validation/schemas';
+import { getSafeErrorMessage } from '@/lib/api-error';
 
-const CORS_HEADERS = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-};
+export async function OPTIONS(req: Request) {
+  return new NextResponse(null, { status: 200, headers: mobileCorsHeaders(req) });
+}
 
-// ─────────────────────────────────────────────────────────────
-// GET /api/users/addresses — returns the user's saved addresses
-// POST /api/users/addresses — add a new address
-// Auth: Bearer JWT required
-// ─────────────────────────────────────────────────────────────
 export async function GET(req: NextRequest) {
+  const headers = { ...mobileCorsHeaders(req), ...PRIVATE_NO_STORE_HEADERS };
   try {
-    const session = await getBearerSession(req);
-    if (!session) {
-      return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401, headers: CORS_HEADERS });
+    const auth = await requireAuthenticatedUser(req);
+    if (auth.errorResponse) {
+      return NextResponse.json(
+        { success: false, error: 'Unauthorized' },
+        { status: auth.errorResponse.status, headers }
+      );
     }
 
     await connectToDatabase();
-    const user = await User.findById(session.user.id).select('addresses').lean() as any;
+    const user = (await User.findById(auth.session.user.id).select('addresses').lean()) as {
+      addresses?: unknown[];
+    } | null;
+
     if (!user) {
-      return NextResponse.json({ success: false, error: 'User not found' }, { status: 404, headers: CORS_HEADERS });
+      return NextResponse.json({ success: false, error: 'User not found' }, { status: 404, headers });
     }
 
     return NextResponse.json(
       { success: true, data: user.addresses ?? [], addresses: user.addresses ?? [] },
-      { headers: CORS_HEADERS }
+      { headers }
     );
-  } catch (error: any) {
-    console.error('[GET /api/users/addresses]', error);
-    return NextResponse.json({ success: false, error: 'Internal Server Error' }, { status: 500, headers: CORS_HEADERS });
+  } catch (error: unknown) {
+    console.error('[GET /api/users/addresses]', getSafeErrorMessage(error));
+    return NextResponse.json({ success: false, error: 'Internal Server Error' }, { status: 500, headers });
   }
 }
 
 export async function POST(req: NextRequest) {
+  const headers = { ...mobileCorsHeaders(req), ...PRIVATE_NO_STORE_HEADERS };
   try {
-    const session = await getBearerSession(req);
-    if (!session) {
-      return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401, headers: CORS_HEADERS });
+    const auth = await requireAuthenticatedUser(req);
+    if (auth.errorResponse) {
+      return NextResponse.json(
+        { success: false, error: 'Unauthorized' },
+        { status: auth.errorResponse.status, headers }
+      );
     }
 
-    const body = await req.json();
-    const { label, fullName, streetAddress, city, state, zipCode, phoneNumber, isDefault } = body;
+    const rawBody = await req.json().catch(() => null);
+    if (!rawBody || typeof rawBody !== 'object' || hasUnsafeObjectKeys(rawBody)) {
+      return NextResponse.json({ success: false, error: 'Invalid address payload' }, { status: 400, headers });
+    }
 
-    if (!fullName || !streetAddress || !city) {
-      return NextResponse.json({ success: false, error: 'Missing required address fields' }, { status: 400, headers: CORS_HEADERS });
+    const parsed = addressCreateSchema.safeParse(rawBody);
+    if (!parsed.success) {
+      return NextResponse.json(
+        { success: false, error: parsed.error.issues[0]?.message || 'Invalid address fields' },
+        { status: 400, headers }
+      );
     }
 
     await connectToDatabase();
 
+    if (parsed.data.isDefault) {
+      await User.updateOne(
+        { _id: auth.session.user.id },
+        { $set: { 'addresses.$[].isDefault': false } }
+      );
+    }
+
     const newAddress = {
-      _id: new mongoose.Types.ObjectId(),
-      label: label ?? 'Home',
-      fullName,
-      streetAddress,
-      city,
-      state: state ?? '',
-      zipCode: zipCode ?? '',
-      phoneNumber: phoneNumber ?? '',
-      isDefault: isDefault ?? false,
+      label: parsed.data.label,
+      fullName: parsed.data.fullName,
+      streetAddress: parsed.data.streetAddress,
+      city: parsed.data.city,
+      state: parsed.data.state,
+      zipCode: parsed.data.zipCode,
+      phoneNumber: parsed.data.phoneNumber,
+      isDefault: parsed.data.isDefault,
     };
 
-    const user = await User.findByIdAndUpdate(
-      session.user.id,
+    const user = (await User.findByIdAndUpdate(
+      auth.session.user.id,
       { $push: { addresses: newAddress } },
-      { returnDocument: 'after' }
-    ).select('addresses').lean() as any;
+      { returnDocument: 'after', runValidators: true }
+    )
+      .select('addresses')
+      .lean()) as { addresses?: unknown[] } | null;
 
     return NextResponse.json(
       { success: true, data: user?.addresses ?? [], addresses: user?.addresses ?? [] },
-      { status: 201, headers: CORS_HEADERS }
+      { status: 201, headers }
     );
-  } catch (error: any) {
-    console.error('[POST /api/users/addresses]', error);
-    return NextResponse.json({ success: false, error: 'Internal Server Error' }, { status: 500, headers: CORS_HEADERS });
+  } catch (error: unknown) {
+    console.error('[POST /api/users/addresses]', getSafeErrorMessage(error));
+    return NextResponse.json({ success: false, error: 'Internal Server Error' }, { status: 500, headers });
   }
-}
-
-export async function OPTIONS() {
-  return new NextResponse(null, { status: 200, headers: CORS_HEADERS });
 }

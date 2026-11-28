@@ -6,10 +6,23 @@ import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { Loader2 } from "lucide-react";
 
+function getSafeCallbackUrl(raw: string | null): string {
+  if (!raw) return "/account";
+  const trimmed = raw.trim();
+  // Only allow safe internal relative paths starting with single `/` (block `//evil.com`, `/\evil.com`, `https://evil.com`)
+  if (trimmed.startsWith("/") && !trimmed.startsWith("//") && !trimmed.startsWith("/\\")) {
+    if (trimmed.startsWith("/login") || trimmed.startsWith("/register")) {
+      return "/account";
+    }
+    return trimmed;
+  }
+  return "/account";
+}
+
 function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const callbackUrl = searchParams.get("callbackUrl") || "/account";
+  const callbackUrl = getSafeCallbackUrl(searchParams.get("callbackUrl"));
   
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");

@@ -50,6 +50,8 @@ const UserSchema = new mongoose.Schema(
     resetOtpExpiresAt: { type: Date, select: false },
     resetOtpAttempts: { type: Number, default: 0, select: false },
     resetOtpRequestedAt: { type: Date, select: false },
+    resetTokenHash: { type: String, select: false },
+    resetTokenExpiresAt: { type: Date, select: false },
     // ──────────────────────────────────────────────────────
     addresses: {
       type: [AddressSchema],

@@ -256,7 +256,7 @@ function TrackOrderContent() {
                 </div>
               )}
 
-              {orderData.courier.trackingUrl && (
+              {orderData.courier.trackingUrl && /^https?:\/\//i.test(orderData.courier.trackingUrl) && (
                 <a
                   href={orderData.courier.trackingUrl}
                   target="_blank"

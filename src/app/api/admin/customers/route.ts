@@ -1,35 +1,33 @@
 import { NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
 import connectToDatabase from '@/lib/db';
 import User from '@/models/User';
-import { escapeRegex } from '@/lib/regex-utils';
 import { getSafeErrorMessage } from '@/lib/api-error';
-// Ensure Order model is registered for the aggregation $lookup
-import '@/models/Order';
+import { requireAdminOrManager, PRIVATE_NO_STORE_HEADERS } from '@/lib/auth-guards';
+
+function escapeRegex(str: string): string {
+  return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
 
 export async function GET(req: Request) {
   try {
-    const session = await getServerSession(authOptions);
-    const role = (session?.user as { role?: string } | undefined)?.role;
-    if (!session || !role || !['admin', 'manager'].includes(role)) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+    const auth = await requireAdminOrManager(req);
+    if (auth.errorResponse) return auth.errorResponse;
 
     await connectToDatabase();
 
     const { searchParams } = new URL(req.url);
-    const page  = Math.max(1, parseInt(searchParams.get('page')  ?? '1',  10));
+    const page = Math.max(1, parseInt(searchParams.get('page') ?? '1', 10));
     const limit = Math.min(100, Math.max(1, parseInt(searchParams.get('limit') ?? '20', 10)));
-    const search = (searchParams.get('search') ?? '').trim();
+    const search = (searchParams.get('search') ?? '').trim().slice(0, 100);
     const skip = (page - 1) * limit;
 
-    const matchStage = search
+    const escapedSearch = search ? escapeRegex(search) : '';
+    const matchStage = escapedSearch
       ? {
           role: 'customer',
           $or: [
-            { name:  { $regex: escapeRegex(search), $options: 'i' } },
-            { email: { $regex: escapeRegex(search), $options: 'i' } },
+            { name: { $regex: escapedSearch, $options: 'i' } },
+            { email: { $regex: escapedSearch, $options: 'i' } },
           ],
         }
       : { role: 'customer' };
@@ -49,8 +47,8 @@ export async function GET(req: Request) {
               {
                 $group: {
                   _id: null,
-                  count:         { $sum: 1 },
-                  totalSpent:    { $sum: '$totalAmount' },
+                  count: { $sum: 1 },
+                  totalSpent: { $sum: '$totalAmount' },
                   lastOrderDate: { $max: '$createdAt' },
                 },
               },
@@ -60,30 +58,36 @@ export async function GET(req: Request) {
         },
         {
           $project: {
-            _id:           1,
-            name:          1,
-            email:         1,
-            createdAt:     1,
-            ordersCount:   { $ifNull: [{ $first: '$orderStats.count' },         0]    },
-            totalSpent:    { $ifNull: [{ $first: '$orderStats.totalSpent' },     0]    },
-            lastOrderDate: { $ifNull: [{ $first: '$orderStats.lastOrderDate' },  null] },
+            _id: 1,
+            name: 1,
+            email: 1,
+            createdAt: 1,
+            ordersCount: { $ifNull: [{ $first: '$orderStats.count' }, 0] },
+            totalSpent: { $ifNull: [{ $first: '$orderStats.totalSpent' }, 0] },
+            lastOrderDate: { $ifNull: [{ $first: '$orderStats.lastOrderDate' }, null] },
           },
         },
       ]),
       User.countDocuments(matchStage),
     ]);
 
-    return NextResponse.json({
-      customers,
-      pagination: {
-        page,
-        limit,
-        total,
-        totalPages: Math.ceil(total / limit),
+    return NextResponse.json(
+      {
+        customers,
+        pagination: {
+          page,
+          limit,
+          total,
+          totalPages: Math.ceil(total / limit),
+        },
       },
-    });
+      { headers: PRIVATE_NO_STORE_HEADERS }
+    );
   } catch (error: unknown) {
-    console.error('Admin GET customers error:', error);
-    return NextResponse.json({ error: getSafeErrorMessage(error) }, { status: 500 });
+    console.error('Admin GET customers error:', getSafeErrorMessage(error));
+    return NextResponse.json(
+      { error: getSafeErrorMessage(error) },
+      { status: 500, headers: PRIVATE_NO_STORE_HEADERS }
+    );
   }
 }

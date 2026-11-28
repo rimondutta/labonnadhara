@@ -66,7 +66,12 @@ export async function POST(req: Request) {
         name: user.name,
       },
       secret,
-      { expiresIn: "7d" }
+      {
+        expiresIn: "7d",
+        algorithm: "HS256",
+        issuer: "labonnadhara-api",
+        audience: "labonnadhara-mobile",
+      }
     );
 
     // Refresh token: 30-day revocable token stored in Redis

@@ -1,12 +1,25 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
+import { z } from 'zod';
 import connectToDatabase from '@/lib/db';
 import Coupon from '@/models/Coupon';
 import { checkRateLimit, getClientIp } from '@/lib/ratelimit';
-import { NextRequest } from 'next/server';
+import { hasUnsafeObjectKeys } from '@/lib/validation/schemas';
+import { getSafeErrorMessage } from '@/lib/api-error';
+
+const couponValidateSchema = z
+  .object({
+    code: z
+      .string()
+      .trim()
+      .min(1, 'Coupon code is required')
+      .max(40, 'Invalid coupon code')
+      .regex(/^[A-Za-z0-9_-]+$/, 'Invalid coupon code characters'),
+    orderTotal: z.number().finite().min(0, 'Order total must be non-negative').max(100_000_000),
+  })
+  .strict();
 
 export async function POST(req: NextRequest) {
   try {
-    // Rate limit: prevent coupon brute-force enumeration (60 req / 1 min per IP)
     const ip = getClientIp(req);
     const rateLimit = await checkRateLimit(ip, 'global');
     if (rateLimit.isLimited) {
@@ -21,15 +34,41 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const { code, orderTotal } = await req.json();
-
-    if (!code || orderTotal === undefined) {
-      return NextResponse.json({ error: 'Code and orderTotal are required' }, { status: 400 });
+    const rawBody = await req.json().catch(() => null);
+    if (!rawBody || typeof rawBody !== 'object' || Array.isArray(rawBody) || hasUnsafeObjectKeys(rawBody)) {
+      return NextResponse.json({ error: 'Invalid coupon request' }, { status: 400 });
     }
+
+    const bodyObj = rawBody as Record<string, unknown>;
+    const candidate = {
+      code: bodyObj.code,
+      orderTotal:
+        typeof bodyObj.orderTotal === 'string' ? Number(bodyObj.orderTotal) : bodyObj.orderTotal,
+    };
+
+    const parsed = couponValidateSchema.safeParse(candidate);
+    if (!parsed.success) {
+      return NextResponse.json(
+        { error: parsed.error.issues[0]?.message || 'Code and orderTotal are required' },
+        { status: 400 }
+      );
+    }
+
+    const { code, orderTotal } = parsed.data;
 
     await connectToDatabase();
 
-    const coupon = await Coupon.findOne({ code: code.toUpperCase(), isActive: true });
+    const coupon = (await Coupon.findOne({
+      code: code.toUpperCase(),
+      isActive: true,
+    }).lean()) as {
+      discountType: 'percentage' | 'fixed';
+      discountValue: number;
+      minOrderAmount?: number;
+      maxUses?: number;
+      usedCount?: number;
+      expiresAt?: Date | string | null;
+    } | null;
 
     if (!coupon) {
       return NextResponse.json({ valid: false, message: 'Invalid or inactive coupon code' }, { status: 400 });
@@ -39,20 +78,22 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ valid: false, message: 'Coupon has expired' }, { status: 400 });
     }
 
-    if (coupon.maxUses && coupon.usedCount >= coupon.maxUses) {
+    if (coupon.maxUses && (coupon.usedCount ?? 0) >= coupon.maxUses) {
       return NextResponse.json({ valid: false, message: 'Coupon usage limit reached' }, { status: 400 });
     }
 
     if (coupon.minOrderAmount && orderTotal < coupon.minOrderAmount) {
-      return NextResponse.json({ valid: false, message: `Minimum order amount is ৳${coupon.minOrderAmount}` }, { status: 400 });
+      return NextResponse.json(
+        { valid: false, message: `Minimum order amount is ৳${coupon.minOrderAmount}` },
+        { status: 400 }
+      );
     }
 
-    // Calculate discount
     let discountAmount = 0;
     if (coupon.discountType === 'percentage') {
-      discountAmount = (orderTotal * coupon.discountValue) / 100;
+      discountAmount = Math.min(orderTotal, (orderTotal * coupon.discountValue) / 100);
     } else {
-      discountAmount = coupon.discountValue;
+      discountAmount = Math.min(orderTotal, coupon.discountValue);
     }
 
     return NextResponse.json({
@@ -62,7 +103,7 @@ export async function POST(req: NextRequest) {
       discountAmount,
     });
   } catch (error: unknown) {
-    console.error('Coupon validation error:', error);
+    console.error('Coupon validation error:', getSafeErrorMessage(error));
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

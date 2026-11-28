@@ -141,37 +141,36 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   const CORS_HEADERS = mobileCorsHeaders(req);
   try {
-    // Accept both NextAuth session (web admin) and Bearer JWT (mobile admin)
-    const session =
-      (await getBearerSession(req)) ??
-      (await getServerSession(authOptions));
+    const { requireAdminOrManager, PRIVATE_NO_STORE_HEADERS } = await import('@/lib/auth-guards');
+    const { buildProductCreatePayload } = await import('@/lib/validation/schemas');
+    const { invalidateProduct } = await import('@/lib/cache/invalidation');
 
-    const role = (session?.user as { role?: string } | undefined)?.role;
-    if (!session || !role || !['admin', 'manager'].includes(role)) {
+    const auth = await requireAdminOrManager(req);
+    if (auth.errorResponse) {
       return NextResponse.json(
-        { success: false, error: 'Unauthorized' },
-        { status: 401, headers: CORS_HEADERS }
+        { success: false, error: auth.errorResponse.status === 403 ? 'Forbidden' : 'Unauthorized' },
+        { status: auth.errorResponse.status, headers: { ...CORS_HEADERS, ...PRIVATE_NO_STORE_HEADERS } }
       );
     }
 
-    const data = await req.json();
-
-    // Sanitize image URLs
-    if (data.images && Array.isArray(data.images)) {
-      data.images = data.images.filter(
-        (img: { url?: string }) => img.url && (img.url.startsWith('http') || img.url.startsWith('/'))
+    const rawBody = await req.json().catch(() => null);
+    const parsed = buildProductCreatePayload(rawBody);
+    if (!parsed.success) {
+      return NextResponse.json(
+        { success: false, error: parsed.error },
+        { status: 400, headers: { ...CORS_HEADERS, ...PRIVATE_NO_STORE_HEADERS } }
       );
     }
 
     await connectToDatabase();
-    const product = await Product.create(data);
+    const product = await Product.create(parsed.data);
 
-    // Bump the last-updated timestamp so mobile apps detect the change
     await touchProductsTimestamp();
+    await invalidateProduct(product._id.toString(), product.slug);
 
     return NextResponse.json(
       { success: true, data: product },
-      { status: 201, headers: CORS_HEADERS }
+      { status: 201, headers: { ...CORS_HEADERS, ...PRIVATE_NO_STORE_HEADERS } }
     );
   } catch (error: unknown) {
     if (typeof error === 'object' && error !== null && 'code' in error && (error as { code: number }).code === 11000) {

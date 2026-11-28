@@ -1,66 +1,147 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
+import { Readable } from 'stream';
 import connectToDatabase from '@/lib/db';
 import Order from '@/models/Order';
 import { getDriveFileStream, deleteDriveFile } from '@/lib/google-drive';
-import { Readable } from 'stream';
+import { getSafeErrorMessage } from '@/lib/api-error';
+import {
+  isValidObjectId,
+  requireAdmin,
+  requireAdminOrManager,
+  PRIVATE_NO_STORE_HEADERS,
+} from '@/lib/auth-guards';
+
+const DRIVE_FILE_ID_REGEX = /^[a-zA-Z0-9_-]{10,128}$/;
+
+interface OrderPhotoEntry {
+  uploadStatus?: string;
+  driveFileId?: string | null;
+  driveFolderId?: string | null;
+  fileName?: string | null;
+  mimeType?: string | null;
+  fileSize?: number | null;
+  uploadedAt?: Date | null;
+  uploadError?: string | null;
+}
+
+function collectOrderDriveFileIds(order: {
+  customPhoto?: OrderPhotoEntry | null;
+  customPhotos?: OrderPhotoEntry[] | null;
+}): Set<string> {
+  const allowedIds = new Set<string>();
+  if (order.customPhoto?.driveFileId) {
+    allowedIds.add(order.customPhoto.driveFileId);
+  }
+  if (Array.isArray(order.customPhotos)) {
+    for (const entry of order.customPhotos) {
+      if (entry?.driveFileId) {
+        allowedIds.add(entry.driveFileId);
+      }
+    }
+  }
+  return allowedIds;
+}
 
 export async function GET(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await getServerSession(authOptions);
-    const role = (session?.user as { role?: string } | undefined)?.role;
-    if (!session || !role || !['admin', 'manager'].includes(role)) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+    const auth = await requireAdminOrManager(req);
+    if (auth.errorResponse) return auth.errorResponse;
 
     const { id } = await params;
-    await connectToDatabase();
-
-    const order = await Order.findById(id).select('customPhoto customPhotos invoiceNumber');
-    if (!order) {
-      return NextResponse.json({ error: 'Order not found' }, { status: 404 });
+    if (!isValidObjectId(id)) {
+      return NextResponse.json(
+        { error: 'Invalid order ID' },
+        { status: 400, headers: PRIVATE_NO_STORE_HEADERS }
+      );
     }
 
-    const fileId = req.nextUrl.searchParams.get('fileId');
-    const targetDriveFileId =
-      fileId ||
-      order.customPhoto?.driveFileId ||
-      order.customPhotos?.find((p: any) => p.driveFileId && p.uploadStatus === 'uploaded')?.driveFileId;
+    const requestedFileId = req.nextUrl.searchParams.get('fileId');
+    if (requestedFileId !== null && !DRIVE_FILE_ID_REGEX.test(requestedFileId)) {
+      return NextResponse.json(
+        { error: 'Invalid Google Drive file ID format' },
+        { status: 400, headers: PRIVATE_NO_STORE_HEADERS }
+      );
+    }
+
+    await connectToDatabase();
+
+    const order = await Order.findById(id)
+      .select('customPhoto customPhotos invoiceNumber')
+      .lean() as {
+      invoiceNumber?: string;
+      customPhoto?: OrderPhotoEntry | null;
+      customPhotos?: OrderPhotoEntry[] | null;
+    } | null;
+
+    if (!order) {
+      return NextResponse.json(
+        { error: 'Order not found' },
+        { status: 404, headers: PRIVATE_NO_STORE_HEADERS }
+      );
+    }
+
+    const authorizedFileIds = collectOrderDriveFileIds(order);
+
+    let targetDriveFileId: string | null = null;
+    if (requestedFileId) {
+      if (!authorizedFileIds.has(requestedFileId)) {
+        return NextResponse.json(
+          { error: 'Forbidden: Requested file does not belong to this order' },
+          { status: 403, headers: PRIVATE_NO_STORE_HEADERS }
+        );
+      }
+      targetDriveFileId = requestedFileId;
+    } else {
+      targetDriveFileId =
+        order.customPhoto?.driveFileId ||
+        order.customPhotos?.find((p) => p.driveFileId && p.uploadStatus === 'uploaded')?.driveFileId ||
+        null;
+    }
 
     if (!targetDriveFileId) {
-      return NextResponse.json({ error: 'No uploaded customer photo for this order' }, { status: 404 });
+      return NextResponse.json(
+        { error: 'No uploaded customer photo for this order' },
+        { status: 404, headers: PRIVATE_NO_STORE_HEADERS }
+      );
     }
 
     const matchedPhoto =
-      order.customPhotos?.find((p: any) => p.driveFileId === targetDriveFileId) || order.customPhoto;
+      order.customPhotos?.find((p) => p.driveFileId === targetDriveFileId) ||
+      (order.customPhoto?.driveFileId === targetDriveFileId ? order.customPhoto : undefined);
 
     const { stream, name: driveFileName, mimeType: driveMimeType } =
       await getDriveFileStream(targetDriveFileId);
 
     const isDownload = req.nextUrl.searchParams.get('download') === 'true';
-    const filename =
+    const rawFilename =
       matchedPhoto?.fileName || driveFileName || `order-${order.invoiceNumber || id}-photo.jpg`;
-    const mimeType = matchedPhoto?.mimeType || driveMimeType || 'image/jpeg';
+    const safeFilename = rawFilename.replace(/[\r\n"\\\/]/g, '_');
 
-    const webStream = Readable.toWeb(stream as unknown as Readable) as unknown as ReadableStream;
+    const safeMimeType = ['image/jpeg', 'image/png', 'image/webp'].includes(
+      matchedPhoto?.mimeType || driveMimeType
+    )
+      ? matchedPhoto?.mimeType || driveMimeType
+      : 'application/octet-stream';
 
-    return new Response(webStream, {
+    const webStream = Readable.toWeb(stream) as unknown as ReadableStream;
+
+    return new NextResponse(webStream, {
+      status: 200,
       headers: {
-        'Content-Type': mimeType,
-        'Content-Disposition': `${isDownload ? 'attachment' : 'inline'}; filename="${encodeURIComponent(filename)}"`,
-        'Cache-Control': 'private, no-cache, no-store, must-revalidate',
+        'Content-Type': safeMimeType,
+        'Content-Disposition': `${isDownload ? 'attachment' : 'inline'}; filename="${safeFilename}"`,
         'X-Content-Type-Options': 'nosniff',
+        'Cache-Control': 'private, no-store, max-age=0',
       },
     });
   } catch (error: unknown) {
-    console.error('[Admin Photo GET] Error:', error);
+    console.error('[Admin Photo GET] Error streaming file:', getSafeErrorMessage(error));
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'Failed to retrieve photo' },
-      { status: 500 }
+      { error: 'Failed to retrieve customer photo' },
+      { status: 500, headers: PRIVATE_NO_STORE_HEADERS }
     );
   }
 }
@@ -70,31 +151,57 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await getServerSession(authOptions);
-    const role = (session?.user as { role?: string } | undefined)?.role;
-    if (!session || !role || role !== 'admin') {
-      return NextResponse.json({ error: 'Unauthorized: Admin role required' }, { status: 403 });
-    }
+    const auth = await requireAdmin(req, true);
+    if (auth.errorResponse) return auth.errorResponse;
 
     const { id } = await params;
-    const fileId = req.nextUrl.searchParams.get('fileId');
+    if (!isValidObjectId(id)) {
+      return NextResponse.json(
+        { error: 'Invalid order ID' },
+        { status: 400, headers: PRIVATE_NO_STORE_HEADERS }
+      );
+    }
+
+    const requestedFileId = req.nextUrl.searchParams.get('fileId');
+    if (requestedFileId !== null && !DRIVE_FILE_ID_REGEX.test(requestedFileId)) {
+      return NextResponse.json(
+        { error: 'Invalid Google Drive file ID format' },
+        { status: 400, headers: PRIVATE_NO_STORE_HEADERS }
+      );
+    }
+
     await connectToDatabase();
 
     const order = await Order.findById(id);
     if (!order) {
-      return NextResponse.json({ error: 'Order not found' }, { status: 404 });
+      return NextResponse.json(
+        { error: 'Order not found' },
+        { status: 404, headers: PRIVATE_NO_STORE_HEADERS }
+      );
     }
 
-    if (fileId) {
-      // Delete single photo from Drive
-      try {
-        await deleteDriveFile(fileId);
-      } catch (driveErr) {
-        console.warn('[Admin Photo DELETE] Failed to delete specific file from Drive:', driveErr);
+    const authorizedFileIds = collectOrderDriveFileIds(order);
+
+    if (requestedFileId) {
+      if (!authorizedFileIds.has(requestedFileId)) {
+        return NextResponse.json(
+          { error: 'Forbidden: Requested file does not belong to this order' },
+          { status: 403, headers: PRIVATE_NO_STORE_HEADERS }
+        );
       }
 
-      // Filter out from customPhotos
-      const remaining = (order.customPhotos || []).filter((p: any) => p.driveFileId !== fileId);
+      try {
+        await deleteDriveFile(requestedFileId);
+      } catch (driveErr) {
+        console.warn(
+          '[Admin Photo DELETE] Failed to delete specific file from Drive:',
+          getSafeErrorMessage(driveErr)
+        );
+      }
+
+      const remaining = (order.customPhotos || []).filter(
+        (p: OrderPhotoEntry) => p.driveFileId !== requestedFileId
+      );
       order.customPhotos = remaining;
       if (remaining.length > 0) {
         order.customPhoto = remaining[0];
@@ -111,21 +218,21 @@ export async function DELETE(
         };
       }
       await order.save();
-      return NextResponse.json({ success: true, message: 'Photo deleted successfully' });
+      return NextResponse.json(
+        { success: true, message: 'Customer photo deleted successfully' },
+        { headers: PRIVATE_NO_STORE_HEADERS }
+      );
     }
 
-    // Delete all photos
-    const filesToDelete = new Set<string>();
-    if (order.customPhoto?.driveFileId) filesToDelete.add(order.customPhoto.driveFileId);
-    (order.customPhotos || []).forEach((p: any) => {
-      if (p.driveFileId) filesToDelete.add(p.driveFileId);
-    });
-
+    const filesToDelete = Array.from(authorizedFileIds);
     for (const dId of filesToDelete) {
       try {
         await deleteDriveFile(dId);
       } catch (driveErr) {
-        console.warn('[Admin Photo DELETE] Failed to delete file from Drive:', driveErr);
+        console.warn(
+          '[Admin Photo DELETE] Failed to delete file from Drive:',
+          getSafeErrorMessage(driveErr)
+        );
       }
     }
 
@@ -142,12 +249,15 @@ export async function DELETE(
     order.customPhotos = [];
     await order.save();
 
-    return NextResponse.json({ success: true, message: 'All photos deleted successfully' });
-  } catch (error: unknown) {
-    console.error('[Admin Photo DELETE] Error:', error);
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'Failed to delete photo' },
-      { status: 500 }
+      { success: true, message: 'All customer photos deleted successfully' },
+      { headers: PRIVATE_NO_STORE_HEADERS }
+    );
+  } catch (error: unknown) {
+    console.error('[Admin Photo DELETE] Error:', getSafeErrorMessage(error));
+    return NextResponse.json(
+      { error: 'Failed to delete customer photo' },
+      { status: 500, headers: PRIVATE_NO_STORE_HEADERS }
     );
   }
 }

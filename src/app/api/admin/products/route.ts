@@ -1,18 +1,16 @@
 import { NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
 import connectToDatabase from '@/lib/db';
 import Product from '@/models/Product';
 import { touchProductsTimestamp } from '@/lib/lastUpdated';
+import { invalidateProduct } from '@/lib/cache/invalidation';
 import { getSafeErrorMessage } from '@/lib/api-error';
+import { requireAdminOrManager, PRIVATE_NO_STORE_HEADERS } from '@/lib/auth-guards';
+import { buildProductCreatePayload } from '@/lib/validation/schemas';
 
 export async function GET(req: Request) {
   try {
-    const session = await getServerSession(authOptions);
-    const role = (session?.user as { role?: string } | undefined)?.role;
-    if (!session || !role || !['admin', 'manager'].includes(role)) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+    const auth = await requireAdminOrManager(req);
+    if (auth.errorResponse) return auth.errorResponse;
 
     const { searchParams } = new URL(req.url);
     const page = Math.max(1, parseInt(searchParams.get('page') || '1', 10));
@@ -20,61 +18,64 @@ export async function GET(req: Request) {
     const skip = (page - 1) * limit;
 
     await connectToDatabase();
-
     const [products, total] = await Promise.all([
-      Product.find({}).select('-__v').populate('category', 'name').sort({ createdAt: -1 }).skip(skip).limit(limit).lean(),
-      Product.countDocuments({}),
+      Product.find()
+        .populate('category', 'name slug')
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit)
+        .lean(),
+      Product.countDocuments(),
     ]);
 
-    return NextResponse.json({
-      products,
-      pagination: {
-        page,
-        limit,
-        total,
-        totalPages: Math.ceil(total / limit),
+    return NextResponse.json(
+      {
+        products,
+        pagination: { page, limit, total, pages: Math.ceil(total / limit) },
       },
-    });
+      { headers: PRIVATE_NO_STORE_HEADERS }
+    );
   } catch (error: unknown) {
-    console.error('Admin GET products error:', error);
-    return NextResponse.json({ error: getSafeErrorMessage(error) }, { status: 500 });
+    console.error('Admin GET products error:', getSafeErrorMessage(error));
+    return NextResponse.json(
+      { error: getSafeErrorMessage(error) },
+      { status: 500, headers: PRIVATE_NO_STORE_HEADERS }
+    );
   }
 }
 
 export async function POST(req: Request) {
   try {
-    const session = await getServerSession(authOptions);
-    const role = (session?.user as { role?: string } | undefined)?.role;
-    if (!session || !role || !['admin', 'manager'].includes(role)) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+    const auth = await requireAdminOrManager(req);
+    if (auth.errorResponse) return auth.errorResponse;
 
-    const data = await req.json();
-
-    // Sanitize image URLs to prevent next/image crash
-    if (data.images && Array.isArray(data.images)) {
-      data.images = data.images.filter((img: { url?: string }) => img.url && (img.url.startsWith('http') || img.url.startsWith('/')));
+    const rawBody = await req.json().catch(() => null);
+    const parsed = buildProductCreatePayload(rawBody);
+    if (!parsed.success) {
+      return NextResponse.json(
+        { error: parsed.error },
+        { status: 400, headers: PRIVATE_NO_STORE_HEADERS }
+      );
     }
 
     await connectToDatabase();
-    const product = await Product.create(data);
+    const product = await Product.create(parsed.data);
 
-    // Bump last-updated timestamp so mobile polling detects this new product
     await touchProductsTimestamp();
+    await invalidateProduct(product._id.toString(), product.slug);
 
-    // Invalidate Redis caches
-    const { invalidateCache } = await import('@/lib/cache');
-    await invalidateCache('products:*', 'product:*');
-
-    return NextResponse.json({ product }, { status: 201 });
+    return NextResponse.json({ product }, { status: 201, headers: PRIVATE_NO_STORE_HEADERS });
   } catch (error: unknown) {
     if (typeof error === 'object' && error !== null && 'code' in error && (error as { code: number }).code === 11000) {
       return NextResponse.json(
         { error: 'Product with this slug already exists' },
-        { status: 400 }
+        { status: 400, headers: PRIVATE_NO_STORE_HEADERS }
       );
     }
-    console.error('Admin POST products error:', error);
-    return NextResponse.json({ error: getSafeErrorMessage(error) }, { status: 500 });
+    console.error('Admin POST products error:', getSafeErrorMessage(error));
+    return NextResponse.json(
+      { error: getSafeErrorMessage(error) },
+      { status: 500, headers: PRIVATE_NO_STORE_HEADERS }
+    );
   }
 }

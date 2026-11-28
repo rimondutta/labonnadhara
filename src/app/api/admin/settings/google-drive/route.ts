@@ -1,15 +1,12 @@
 import { NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
 import { testGoogleDriveConnection } from '@/lib/google-drive';
+import { requireAdminOrManager, PRIVATE_NO_STORE_HEADERS } from '@/lib/auth-guards';
+import { getSafeErrorMessage } from '@/lib/api-error';
 
-export async function GET() {
+export async function GET(req: Request) {
   try {
-    const session = await getServerSession(authOptions);
-    const role = (session?.user as { role?: string } | undefined)?.role;
-    if (!session || !role || !['admin', 'manager'].includes(role)) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+    const auth = await requireAdminOrManager(req);
+    if (auth.errorResponse) return auth.errorResponse;
 
     const envStatus = {
       clientIdConfigured: Boolean(process.env.GOOGLE_CLIENT_ID),
@@ -19,32 +16,37 @@ export async function GET() {
       rootFolderIdConfigured: Boolean(process.env.GOOGLE_DRIVE_ROOT_FOLDER_ID),
     };
 
-    const isMissingConfig =
+    if (
       !envStatus.clientIdConfigured ||
       !envStatus.clientSecretConfigured ||
-      !envStatus.refreshTokenConfigured;
-
-    if (isMissingConfig) {
-      return NextResponse.json({
-        connected: false,
-        error: 'Missing required Google OAuth credentials in environment variables.',
-        envStatus,
-      });
+      !envStatus.refreshTokenConfigured
+    ) {
+      return NextResponse.json(
+        {
+          connected: false,
+          envStatus,
+          error: 'Required Google Drive environment variables are missing.',
+        },
+        { headers: PRIVATE_NO_STORE_HEADERS }
+      );
     }
 
     const result = await testGoogleDriveConnection();
-    return NextResponse.json({
-      ...result,
-      envStatus,
-    });
+    return NextResponse.json(
+      {
+        ...result,
+        envStatus,
+      },
+      { headers: PRIVATE_NO_STORE_HEADERS }
+    );
   } catch (error: unknown) {
-    console.error('[Google Drive Settings API] Error:', error);
+    console.error('[Admin Settings Google Drive]:', getSafeErrorMessage(error));
     return NextResponse.json(
       {
         connected: false,
-        error: error instanceof Error ? error.message : 'Failed to test Google Drive connection',
+        error: getSafeErrorMessage(error),
       },
-      { status: 500 }
+      { status: 500, headers: PRIVATE_NO_STORE_HEADERS }
     );
   }
 }

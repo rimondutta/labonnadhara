@@ -37,15 +37,20 @@ export const KEYS = {
   categoryById:     (id: string)   => `cache:category:id:${id}`,
   categoryBySlug:   (slug: string) => `cache:category:slug:${slug}`,
   categoriesList:   ()             => 'cache:categories:list',
+  categories:       ()             => 'cache:api:categories:list',
   categoryProducts: (id: string)   => `cache:category-products:${id}`,
 
   // Homepage
   homepage:         ()             => 'cache:home:data',
   homepageLegacy:   ()             => 'cache:home:isr:data',
 
+  // Product detail (store API — keyed by slug or id)
+  productDetail:    (slug: string) => `cache:product:detail:${slug}`,
+
   // Settings / Navigation
   settings:         ()             => 'cache:settings:global',
   shipping:         ()             => 'cache:settings:shipping',
+  sizeGuide:        ()             => 'cache:settings:size-guide',
   navigation:       ()             => 'cache:navigation:data',
   pixel:            ()             => 'cache:settings:pixel',
 
@@ -72,6 +77,7 @@ export async function invalidateProduct(productId: string, slug?: string): Promi
 
     const keysToDelete: string[] = [
       KEYS.productById(productId),
+      KEYS.productDetail(productId),
       KEYS.productsList(),
       KEYS.productsIsrList(),
       KEYS.featuredProducts(),
@@ -83,6 +89,7 @@ export async function invalidateProduct(productId: string, slug?: string): Promi
     if (slug) {
       keysToDelete.push(KEYS.productBySlug(slug));
       keysToDelete.push(KEYS.productIsrSlug(slug));
+      keysToDelete.push(KEYS.productDetail(slug));
     }
 
     await deleteCached(...keysToDelete);
@@ -197,9 +204,10 @@ export async function invalidateHomepage(): Promise<void> {
 
 export async function invalidateSettings(): Promise<void> {
   try {
-    await deleteCached(KEYS.settings(), KEYS.shipping(), KEYS.pixel());
+    await deleteCached(KEYS.settings(), KEYS.shipping(), KEYS.pixel(), KEYS.sizeGuide());
     const { revalidatePath } = await import('next/cache');
     revalidatePath('/api/settings/shipping');
+    revalidatePath('/api/settings/size-guide');
   } catch (err) {
     cacheLog('ERROR', '[invalidateSettings]', undefined, err);
     console.error('[cache] invalidateSettings failed:', err);

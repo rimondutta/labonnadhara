@@ -1,15 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
 import connectToDatabase from '@/lib/db';
 import User from '@/models/User';
 import bcrypt from 'bcryptjs';
 import nodemailer from 'nodemailer';
 import { randomBytes } from 'node:crypto';
 import { getSafeErrorMessage } from '@/lib/api-error';
-
-// ── Session type helper ───────────────────────────────────────
-interface SessionUser { role?: string; id?: string }
+import { requireAdmin, isValidObjectId, PRIVATE_NO_STORE_HEADERS } from '@/lib/auth-guards';
+import { escapeHtml } from '@/lib/sanitize';
 
 /**
  * Generates a cryptographically secure 10-character temporary password.
@@ -47,12 +44,10 @@ const SITE_URL = process.env.NEXTAUTH_URL || 'https://labonnadhara.shop';
 const FROM_EMAIL = process.env.EMAIL_FROM || process.env.EMAIL_USER;
 
 // ── GET: List all admin/manager users ────────────────────────
-export async function GET() {
+export async function GET(req: Request) {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session || (session.user as SessionUser).role !== 'admin') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+    const auth = await requireAdmin(req);
+    if (auth.errorResponse) return auth.errorResponse;
 
     await connectToDatabase();
 
@@ -61,20 +56,18 @@ export async function GET() {
       .sort({ createdAt: -1 })
       .lean();
 
-    return NextResponse.json({ admins });
+    return NextResponse.json({ admins }, { headers: PRIVATE_NO_STORE_HEADERS });
   } catch (error: unknown) {
     console.error('[GET /api/admin/invite]', error);
-    return NextResponse.json({ error: getSafeErrorMessage(error) }, { status: 500 });
+    return NextResponse.json({ error: getSafeErrorMessage(error) }, { status: 500, headers: PRIVATE_NO_STORE_HEADERS });
   }
 }
 
 // ── POST: Invite a new admin ──────────────────────────────────
 export async function POST(req: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session || (session.user as SessionUser).role !== 'admin') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+    const auth = await requireAdmin(req);
+    if (auth.errorResponse) return auth.errorResponse;
 
     const { email, name, role } = await req.json();
 
@@ -126,7 +119,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({
       success: true,
       message: emailSent
-        ? `Invitation email sent to ${email}`
+        ? `Invitation email sent to ${escapeHtml(email)}`
         : `Admin account created but the invitation email could not be delivered. Please contact your system administrator to resend it.`,
       admin: {
         id: newUser._id,
@@ -136,25 +129,23 @@ export async function POST(req: NextRequest) {
       },
       emailSent,
       // tempPassword is intentionally NEVER included in the response
-    });
+    }, { headers: PRIVATE_NO_STORE_HEADERS });
   } catch (error: unknown) {
     console.error('[POST /api/admin/invite]', error);
-    return NextResponse.json({ error: getSafeErrorMessage(error) }, { status: 500 });
+    return NextResponse.json({ error: getSafeErrorMessage(error) }, { status: 500, headers: PRIVATE_NO_STORE_HEADERS });
   }
 }
 
 // ── PATCH: Reset an admin's password ─────────────────────────
 export async function PATCH(req: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session || (session.user as SessionUser).role !== 'admin') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+    const auth = await requireAdmin(req);
+    if (auth.errorResponse) return auth.errorResponse;
 
     const { userId } = await req.json();
 
-    if (!userId) {
-      return NextResponse.json({ error: 'User ID required' }, { status: 400 });
+    if (!userId || !isValidObjectId(String(userId))) {
+      return NextResponse.json({ error: 'Valid user ID required' }, { status: 400, headers: PRIVATE_NO_STORE_HEADERS });
     }
 
     await connectToDatabase();
@@ -192,44 +183,43 @@ export async function PATCH(req: NextRequest) {
     return NextResponse.json({
       success: true,
       message: emailSent
-        ? `New temporary password sent to ${user.email}`
+        ? `New temporary password sent to ${escapeHtml(user.email)}`
         : `Password was reset but the notification email could not be delivered. Please contact the user directly to arrange login.`,
       emailSent,
       // tempPassword is intentionally NEVER included in the response
-    });
+    }, { headers: PRIVATE_NO_STORE_HEADERS });
   } catch (error: unknown) {
     console.error('[PATCH /api/admin/invite]', error);
-    return NextResponse.json({ error: getSafeErrorMessage(error) }, { status: 500 });
+    return NextResponse.json({ error: getSafeErrorMessage(error) }, { status: 500, headers: PRIVATE_NO_STORE_HEADERS });
   }
 }
 
 // ── DELETE: Remove an admin user ─────────────────────────────
 export async function DELETE(req: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session || (session.user as SessionUser).role !== 'admin') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+    const auth = await requireAdmin(req);
+    if (auth.errorResponse) return auth.errorResponse;
+    const session = auth.session;
 
     const { searchParams } = new URL(req.url);
     const userId = searchParams.get('id');
 
-    if (!userId) {
-      return NextResponse.json({ error: 'User ID required' }, { status: 400 });
+    if (!userId || !isValidObjectId(userId)) {
+      return NextResponse.json({ error: 'Valid user ID required' }, { status: 400, headers: PRIVATE_NO_STORE_HEADERS });
     }
 
     // Prevent self-deletion
-    if (userId === (session.user as SessionUser).id) {
-      return NextResponse.json({ error: 'You cannot remove yourself' }, { status: 400 });
+    if (userId === session.user.id) {
+      return NextResponse.json({ error: 'You cannot remove yourself' }, { status: 400, headers: PRIVATE_NO_STORE_HEADERS });
     }
 
     await connectToDatabase();
     await User.findByIdAndDelete(userId);
 
-    return NextResponse.json({ success: true, message: 'Admin removed' });
+    return NextResponse.json({ success: true, message: 'Admin removed' }, { headers: PRIVATE_NO_STORE_HEADERS });
   } catch (error: unknown) {
     console.error('[DELETE /api/admin/invite]', error);
-    return NextResponse.json({ error: getSafeErrorMessage(error) }, { status: 500 });
+    return NextResponse.json({ error: getSafeErrorMessage(error) }, { status: 500, headers: PRIVATE_NO_STORE_HEADERS });
   }
 }
 
@@ -243,6 +233,14 @@ async function sendInviteEmail(opts: {
   loginUrl: string;
 }) {
   const transporter = createTransport();
+  // All user-supplied values are HTML-escaped before interpolation
+  const safeName = escapeHtml(opts.toName);
+  const safeEmail = escapeHtml(opts.toEmail);
+  const safePw = escapeHtml(opts.tempPassword);
+  const safeLoginUrl = opts.loginUrl.startsWith('https://') || opts.loginUrl.startsWith('http://')
+    ? opts.loginUrl : '#';
+  const roleLabel = opts.role === 'admin' ? 'Full Admin' : 'Manager';
+
   const html = `
     <div style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; max-width: 600px; margin: 0 auto; color: #333333; line-height: 1.6;">
       <div style="padding: 40px 20px; text-align: center; background-color: #000000; color: #ffffff;">
@@ -252,19 +250,19 @@ async function sendInviteEmail(opts: {
 
       <div style="padding: 40px 20px; background-color: #ffffff;">
         <h2 style="font-size: 20px; font-weight: bold; margin-bottom: 20px;">You've Been Invited!</h2>
-        <p>Hi ${opts.toName},</p>
-        <p>You've been invited to join the <strong>Labonnadhara</strong> admin dashboard as a <strong>${opts.role === 'admin' ? 'Full Admin' : 'Manager'}</strong>.</p>
+        <p>Hi ${safeName},</p>
+        <p>You've been invited to join the <strong>Labonnadhara</strong> admin dashboard as a <strong>${roleLabel}</strong>.</p>
 
         <div style="margin: 30px 0; padding: 20px; background-color: #f9f9f9; border-left: 4px solid #000000;">
           <p style="margin: 0 0 10px; font-size: 14px; font-weight: bold;">Your Login Credentials:</p>
-          <p style="margin: 0; font-size: 14px;">Email: <strong>${opts.toEmail}</strong></p>
-          <p style="margin: 0; font-size: 14px;">Temporary Password: <strong>${opts.tempPassword}</strong></p>
+          <p style="margin: 0; font-size: 14px;">Email: <strong>${safeEmail}</strong></p>
+          <p style="margin: 0; font-size: 14px;">Temporary Password: <strong>${safePw}</strong></p>
         </div>
 
         <p style="font-size: 13px; color: #666;">Please change your password after your first login for security.</p>
 
         <div style="text-align: center; margin-top: 40px;">
-          <a href="${opts.loginUrl}" style="display: inline-block; padding: 15px 30px; background-color: #000000; color: #ffffff; text-decoration: none; font-weight: bold; font-size: 12px; text-transform: uppercase; letter-spacing: 2px;">Go to Dashboard</a>
+          <a href="${safeLoginUrl}" style="display: inline-block; padding: 15px 30px; background-color: #000000; color: #ffffff; text-decoration: none; font-weight: bold; font-size: 12px; text-transform: uppercase; letter-spacing: 2px;">Go to Dashboard</a>
         </div>
       </div>
 
@@ -289,6 +287,13 @@ async function sendPasswordResetEmail(opts: {
   loginUrl: string;
 }) {
   const transporter = createTransport();
+  // All user-supplied values are HTML-escaped before interpolation
+  const safeName = escapeHtml(opts.toName);
+  const safeEmail = escapeHtml(opts.toEmail);
+  const safePw = escapeHtml(opts.tempPassword);
+  const safeLoginUrl = opts.loginUrl.startsWith('https://') || opts.loginUrl.startsWith('http://')
+    ? opts.loginUrl : '#';
+
   const html = `
     <div style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; max-width: 600px; margin: 0 auto; color: #333333; line-height: 1.6;">
       <div style="padding: 40px 20px; text-align: center; background-color: #000000; color: #ffffff;">
@@ -298,19 +303,19 @@ async function sendPasswordResetEmail(opts: {
 
       <div style="padding: 40px 20px; background-color: #ffffff;">
         <h2 style="font-size: 20px; font-weight: bold; margin-bottom: 20px;">Your Password Has Been Reset</h2>
-        <p>Hi ${opts.toName},</p>
+        <p>Hi ${safeName},</p>
         <p>An administrator has reset your password for the <strong>Labonnadhara</strong> dashboard. Please use the new credentials below to log in.</p>
 
         <div style="margin: 30px 0; padding: 20px; background-color: #f9f9f9; border-left: 4px solid #000000;">
           <p style="margin: 0 0 10px; font-size: 14px; font-weight: bold;">Your New Login Credentials:</p>
-          <p style="margin: 0; font-size: 14px;">Email: <strong>${opts.toEmail}</strong></p>
-          <p style="margin: 0; font-size: 14px;">New Password: <strong>${opts.tempPassword}</strong></p>
+          <p style="margin: 0; font-size: 14px;">Email: <strong>${safeEmail}</strong></p>
+          <p style="margin: 0; font-size: 14px;">New Password: <strong>${safePw}</strong></p>
         </div>
 
         <p style="font-size: 13px; color: #666;">Please change your password after logging in for security.</p>
 
         <div style="text-align: center; margin-top: 40px;">
-          <a href="${opts.loginUrl}" style="display: inline-block; padding: 15px 30px; background-color: #000000; color: #ffffff; text-decoration: none; font-weight: bold; font-size: 12px; text-transform: uppercase; letter-spacing: 2px;">Go to Dashboard</a>
+          <a href="${safeLoginUrl}" style="display: inline-block; padding: 15px 30px; background-color: #000000; color: #ffffff; text-decoration: none; font-weight: bold; font-size: 12px; text-transform: uppercase; letter-spacing: 2px;">Go to Dashboard</a>
         </div>
       </div>
 

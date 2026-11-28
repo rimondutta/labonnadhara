@@ -1,10 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
-import { getBearerSession } from '@/lib/mobile-auth';
 import dbConnect from '@/lib/db';
 import BlogPost from '@/models/BlogPost';
-import mongoose from 'mongoose';
+import {
+  requireAdminOrManager,
+  isValidObjectId,
+  PRIVATE_NO_STORE_HEADERS,
+} from '@/lib/auth-guards';
+import { hasUnsafeObjectKeys, isSafeImageUrl } from '@/lib/validation/schemas';
+import { getSafeErrorMessage } from '@/lib/api-error';
 
 // GET — fetch single blog post by slug (public storefront)
 export async function GET(
@@ -16,7 +19,7 @@ export async function GET(
     const { slug } = await params;
 
     const post = await BlogPost.findOne({
-      slug: slug,
+      slug: String(slug).trim(),
       isPublished: true,
     }).lean();
 
@@ -29,6 +32,7 @@ export async function GET(
 
     return NextResponse.json(post);
   } catch (error: unknown) {
+    console.error('[GET /api/blogs/[slug]]', getSafeErrorMessage(error));
     return NextResponse.json(
       { error: 'Failed to fetch blog post' },
       { status: 500 }
@@ -42,28 +46,27 @@ export async function PATCH(
   { params }: { params: Promise<{ slug: string }> }
 ) {
   try {
-    // 1. Authentication & Authorization
-    const session = (await getBearerSession(req)) || (await getServerSession(authOptions));
-    if (!session) {
-      return NextResponse.json({ error: 'Unauthenticated' }, { status: 401 });
+    const auth = await requireAdminOrManager(req);
+    if (auth.errorResponse) return auth.errorResponse;
+
+    const { slug: id } = await params;
+    if (!isValidObjectId(id)) {
+      return NextResponse.json(
+        { error: 'Invalid blog post ID format' },
+        { status: 400, headers: PRIVATE_NO_STORE_HEADERS }
+      );
     }
 
-    const role = (session.user as { role?: string })?.role;
-    if (role !== 'admin' && role !== 'manager') {
-      return NextResponse.json({ error: 'Forbidden: Admin or manager access required' }, { status: 403 });
+    const body = await req.json().catch(() => null);
+    if (!body || typeof body !== 'object' || Array.isArray(body) || hasUnsafeObjectKeys(body)) {
+      return NextResponse.json(
+        { error: 'Invalid blog update payload' },
+        { status: 400, headers: PRIVATE_NO_STORE_HEADERS }
+      );
     }
 
     await dbConnect();
-    const { slug: id } = await params;
 
-    // 2. Validate MongoDB ObjectId
-    if (!mongoose.Types.ObjectId.isValid(id)) {
-      return NextResponse.json({ error: 'Invalid blog post ID format' }, { status: 400 });
-    }
-
-    const body = await req.json();
-
-    // 3. Strict Field Whitelisting (No Mass Assignment)
     const updateData: Record<string, unknown> = {};
 
     if (typeof body.isPublished === 'boolean') {
@@ -73,29 +76,42 @@ export async function PATCH(
       }
     }
     if (typeof body.title === 'string' && body.title.trim()) {
-      updateData.title = body.title.trim();
+      updateData.title = body.title.trim().slice(0, 200);
     }
     if (typeof body.content === 'string' && body.content.trim()) {
       updateData.content = body.content;
     }
     if (typeof body.excerpt === 'string') {
-      updateData.excerpt = body.excerpt.trim();
+      updateData.excerpt = body.excerpt.trim().slice(0, 500);
     }
     if (body.featuredImage && typeof body.featuredImage.url === 'string') {
+      const imgUrl = body.featuredImage.url.trim();
+      if (!isSafeImageUrl(imgUrl)) {
+        return NextResponse.json(
+          { error: 'Invalid featured image URL' },
+          { status: 400, headers: PRIVATE_NO_STORE_HEADERS }
+        );
+      }
       updateData.featuredImage = {
-        url: body.featuredImage.url.trim(),
-        alt: body.featuredImage.alt ? String(body.featuredImage.alt).trim() : undefined,
+        url: imgUrl,
+        alt: body.featuredImage.alt ? String(body.featuredImage.alt).trim().slice(0, 200) : undefined,
       };
     }
     if (typeof body.category === 'string') {
-      updateData.category = body.category.trim();
+      updateData.category = body.category.trim().slice(0, 80);
     }
     if (Array.isArray(body.tags)) {
-      updateData.tags = body.tags.filter((t: unknown): t is string => typeof t === 'string').map((t: string) => t.trim());
+      updateData.tags = body.tags
+        .filter((t: unknown): t is string => typeof t === 'string')
+        .map((t: string) => t.trim().slice(0, 50))
+        .slice(0, 20);
     }
 
     if (Object.keys(updateData).length === 0) {
-      return NextResponse.json({ error: 'No valid fields provided for update' }, { status: 400 });
+      return NextResponse.json(
+        { error: 'No valid fields provided for update' },
+        { status: 400, headers: PRIVATE_NO_STORE_HEADERS }
+      );
     }
 
     const post = await BlogPost.findByIdAndUpdate(
@@ -105,12 +121,19 @@ export async function PATCH(
     );
 
     if (!post) {
-      return NextResponse.json({ error: 'Blog post not found' }, { status: 404 });
+      return NextResponse.json(
+        { error: 'Blog post not found' },
+        { status: 404, headers: PRIVATE_NO_STORE_HEADERS }
+      );
     }
 
-    return NextResponse.json(post);
+    return NextResponse.json(post, { headers: PRIVATE_NO_STORE_HEADERS });
   } catch (error: unknown) {
-    return NextResponse.json({ error: (error as Error).message }, { status: 500 });
+    console.error('[PATCH /api/blogs/[slug]]', getSafeErrorMessage(error));
+    return NextResponse.json(
+      { error: getSafeErrorMessage(error) },
+      { status: 500, headers: PRIVATE_NO_STORE_HEADERS }
+    );
   }
 }
 
@@ -120,33 +143,37 @@ export async function DELETE(
   { params }: { params: Promise<{ slug: string }> }
 ) {
   try {
-    // 1. Authentication & Authorization
-    const session = (await getBearerSession(req)) || (await getServerSession(authOptions));
-    if (!session) {
-      return NextResponse.json({ error: 'Unauthenticated' }, { status: 401 });
-    }
+    const auth = await requireAdminOrManager(req);
+    if (auth.errorResponse) return auth.errorResponse;
 
-    const role = (session.user as { role?: string })?.role;
-    if (role !== 'admin' && role !== 'manager') {
-      return NextResponse.json({ error: 'Forbidden: Admin or manager access required' }, { status: 403 });
+    const { slug: id } = await params;
+    if (!isValidObjectId(id)) {
+      return NextResponse.json(
+        { error: 'Invalid blog post ID format' },
+        { status: 400, headers: PRIVATE_NO_STORE_HEADERS }
+      );
     }
 
     await dbConnect();
-    const { slug: id } = await params;
-
-    // 2. Validate MongoDB ObjectId
-    if (!mongoose.Types.ObjectId.isValid(id)) {
-      return NextResponse.json({ error: 'Invalid blog post ID format' }, { status: 400 });
-    }
 
     const post = await BlogPost.findByIdAndDelete(id);
 
     if (!post) {
-      return NextResponse.json({ error: 'Blog post not found' }, { status: 404 });
+      return NextResponse.json(
+        { error: 'Blog post not found' },
+        { status: 404, headers: PRIVATE_NO_STORE_HEADERS }
+      );
     }
 
-    return NextResponse.json({ success: true, message: 'Blog post deleted successfully' });
+    return NextResponse.json(
+      { success: true, message: 'Blog post deleted successfully' },
+      { headers: PRIVATE_NO_STORE_HEADERS }
+    );
   } catch (error: unknown) {
-    return NextResponse.json({ error: (error as Error).message }, { status: 500 });
+    console.error('[DELETE /api/blogs/[slug]]', getSafeErrorMessage(error));
+    return NextResponse.json(
+      { error: getSafeErrorMessage(error) },
+      { status: 500, headers: PRIVATE_NO_STORE_HEADERS }
+    );
   }
 }

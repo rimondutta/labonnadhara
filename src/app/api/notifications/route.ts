@@ -1,78 +1,72 @@
-/**
- * GET /api/notifications
- *
- * Returns the logged-in customer's notifications, most recent first.
- * Supports pagination via ?page=1&limit=20 query params.
- */
-import { NextResponse, NextRequest } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import connectToDatabase from '@/lib/db';
 import Notification from '@/models/Notification';
-import User from '@/models/User';
-import { getBearerSession } from '@/lib/mobile-auth';
-
-const CORS = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Methods': 'GET, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-};
+import { mobileCorsHeaders } from '@/lib/cors';
+import { requireAuthenticatedUser, PRIVATE_NO_STORE_HEADERS } from '@/lib/auth-guards';
+import { getSafeErrorMessage } from '@/lib/api-error';
 
 export async function GET(req: NextRequest) {
+  const headers = { ...mobileCorsHeaders(req), ...PRIVATE_NO_STORE_HEADERS };
   try {
-    const session = await getBearerSession(req);
-    if (!session) {
+    const auth = await requireAuthenticatedUser(req);
+    if (auth.errorResponse) {
       return NextResponse.json(
         { success: false, error: 'Unauthorized' },
-        { status: 401, headers: CORS }
+        { status: auth.errorResponse.status, headers }
       );
     }
 
     const url = new URL(req.url);
     const page = Math.max(1, parseInt(url.searchParams.get('page') ?? '1', 10));
-    const limit = Math.min(50, parseInt(url.searchParams.get('limit') ?? '20', 10));
+    const limit = Math.min(50, Math.max(1, parseInt(url.searchParams.get('limit') ?? '20', 10)));
     const skip = (page - 1) * limit;
 
     await connectToDatabase();
 
-    // Find the user's MongoDB _id from their email (JWT has id directly)
-    const notifications = await Notification.find({ user: session.user.id })
-      .sort({ createdAt: -1 })
-      .skip(skip)
-      .limit(limit)
-      .lean();
-
-    const total = await Notification.countDocuments({ user: session.user.id });
+    const [notifications, total] = await Promise.all([
+      Notification.find({ user: auth.session.user.id })
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit)
+        .lean() as Promise<
+        Array<{
+          _id: { toString(): string };
+          title: string;
+          body: string;
+          type?: string;
+          data?: unknown;
+          read: boolean;
+          createdAt: Date;
+        }>
+      >,
+      Notification.countDocuments({ user: auth.session.user.id }),
+    ]);
 
     return NextResponse.json(
       {
         success: true,
-        data: notifications.map((n: any) => ({
+        data: notifications.map((n) => ({
           _id: n._id.toString(),
           title: n.title,
           body: n.body,
           type: n.type,
+          data: n.data,
           read: n.read,
-          orderId: n.order?.toString() ?? null,
-          createdAt: n.createdAt?.toISOString(),
+          createdAt: n.createdAt,
         })),
-        pagination: {
-          page,
-          limit,
-          total,
-          totalPages: Math.ceil(total / limit),
-          hasMore: skip + limit < total,
-        },
+        pagination: { page, limit, total, pages: Math.ceil(total / limit) },
       },
-      { headers: CORS }
+      { headers }
     );
   } catch (err) {
-    console.error('[GET /api/notifications]', err);
+    console.error('[GET /api/notifications]', getSafeErrorMessage(err));
     return NextResponse.json(
       { success: false, error: 'Internal server error.' },
-      { status: 500, headers: CORS }
+      { status: 500, headers }
     );
   }
 }
 
-export async function OPTIONS() {
-  return new NextResponse(null, { status: 200, headers: CORS });
+export async function OPTIONS(req: Request) {
+  return new NextResponse(null, { status: 200, headers: mobileCorsHeaders(req) });
 }

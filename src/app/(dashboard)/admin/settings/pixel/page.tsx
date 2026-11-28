@@ -6,6 +6,7 @@ import { useState, useEffect } from "react";
 interface PixelConfig {
   pixelId: string;
   accessToken: string;
+  hasAccessToken?: boolean;
   enabled: boolean;
   testEventCode: string;
 }
@@ -17,6 +18,7 @@ export default function PixelSettingsPage() {
     enabled: false,
     testEventCode: "",
   });
+  const [showToken, setShowToken] = useState(false);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [status, setStatus] = useState<{
@@ -167,14 +169,23 @@ export default function PixelSettingsPage() {
             <label htmlFor="accessToken" className="block text-sm font-medium text-gray-900">
               Conversions API Access Token
             </label>
-            <input
-              id="accessToken"
-              type="text"
-              value={config.accessToken}
-              onChange={(e) => setConfig((p) => ({ ...p, accessToken: e.target.value }))}
-              placeholder="e.g. EAA..."
-              className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg bg-white text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-900 transition"
-            />
+            <div className="relative">
+              <input
+                id="accessToken"
+                type={showToken ? "text" : "password"}
+                value={config.accessToken}
+                onChange={(e) => setConfig((p) => ({ ...p, accessToken: e.target.value }))}
+                placeholder={config.hasAccessToken ? "Stored securely on server — enter new token to replace" : "e.g. EAA..."}
+                className="w-full px-3 py-2 pr-16 text-sm border border-gray-300 rounded-lg bg-white text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-900 transition"
+              />
+              <button
+                type="button"
+                onClick={() => setShowToken((v) => !v)}
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-xs text-gray-500 hover:text-gray-900 font-medium"
+              >
+                {showToken ? "Hide" : "Show"}
+              </button>
+            </div>
             <p className="text-xs text-gray-400">
               Required for Server-Side Tracking. Generate this in Meta Events Manager → Settings → Generate access token.
             </p>

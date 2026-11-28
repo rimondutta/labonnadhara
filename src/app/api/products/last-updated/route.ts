@@ -1,44 +1,37 @@
 import { NextResponse } from 'next/server';
 import { getProductsTimestamp } from '@/lib/lastUpdated';
+import { mobileCorsHeaders } from '@/lib/cors';
+import { getSafeErrorMessage } from '@/lib/api-error';
 
-/**
- * GET /api/products/last-updated
- *
- * Lightweight endpoint polled by the mobile app to detect when products have
- * changed. Returns a Unix millisecond timestamp that is bumped whenever a
- * product is created, updated, or deleted via the API.
- *
- * Mobile: compare the returned timestamp against the last known value;
- * if it changed, call queryClient.invalidateQueries(['products']).
- */
-export async function GET() {
-  const timestamp = await getProductsTimestamp();
+export async function GET(req: Request) {
+  const CORS_HEADERS = mobileCorsHeaders(req);
+  try {
+    const timestamp = await getProductsTimestamp();
 
-  return NextResponse.json(
-    {
-      success: true,
-      data: {
-        timestamp,
-        iso: timestamp ? new Date(timestamp).toISOString() : null,
+    return NextResponse.json(
+      {
+        success: true,
+        data: {
+          timestamp,
+          iso: timestamp ? new Date(timestamp).toISOString() : null,
+        },
       },
-    },
-    {
-      headers: {
-        // Cache at CDN edge for 60 s — reduces serverless invocations on Vercel Hobby
-        'Cache-Control': 's-maxage=60, stale-while-revalidate=30',
-        'Access-Control-Allow-Origin': '*',
-      },
-    }
-  );
+      {
+        headers: {
+          ...CORS_HEADERS,
+          'Cache-Control': 's-maxage=60, stale-while-revalidate=30',
+        },
+      }
+    );
+  } catch (error: unknown) {
+    console.error('[GET /api/products/last-updated]', getSafeErrorMessage(error));
+    return NextResponse.json(
+      { success: false, error: getSafeErrorMessage(error) },
+      { status: 500, headers: CORS_HEADERS }
+    );
+  }
 }
 
-export async function OPTIONS() {
-  return new NextResponse(null, {
-    status: 200,
-    headers: {
-      'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Methods': 'GET, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-    },
-  });
+export async function OPTIONS(req: Request) {
+  return new NextResponse(null, { status: 200, headers: mobileCorsHeaders(req) });
 }

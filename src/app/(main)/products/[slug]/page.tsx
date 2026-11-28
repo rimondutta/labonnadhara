@@ -5,6 +5,7 @@ import "@/models/VariationType";
 import "@/models/VariationValue";
 import { notFound } from "next/navigation";
 import ProductDetailsClient from "@/components/product/ProductDetailsClient";
+import { getMergedPublishedReviews } from "@/lib/review-helpers";
 import { Metadata } from "next";
 import { cache } from "react";
 import { getOrSetCached } from "@/lib/cache/redis-cache";
@@ -25,20 +26,46 @@ const getProductData = cache(async (slug: string) => {
     { path: 'variants.combination.variationValue' }
   ];
 
-  return getOrSetCached(KEYS.productIsrSlug(sanitizedSlug), 60, async () => {
-    if (!process.env.MONGODB_URI) return [null, []];
-    await connectToDatabase();
-    return await Promise.all([
-      Product.findOne({ slug: sanitizedSlug, isPublished: true })
-        .populate(populateConfig)
-        .select('-__v')
-        .lean(),
-      Product.find({ isPublished: true })
-        .select('title price compareAtPrice slug images category inventory rating reviewCount')
-        .limit(8)
-        .lean(),
-    ]);
-  });
+  return getOrSetCached<[Record<string, unknown> | null, Array<Record<string, unknown>>]>(
+    KEYS.productIsrSlug(sanitizedSlug),
+    60,
+    async () => {
+      if (!process.env.MONGODB_URI) return [null, []];
+      await connectToDatabase();
+      const [rawProduct, relatedProducts] = await Promise.all([
+        Product.findOne({ slug: sanitizedSlug, isPublished: true })
+          .populate(populateConfig)
+          .select('-__v')
+          .lean(),
+        Product.find({ isPublished: true })
+          .select('title price compareAtPrice slug images category inventory rating reviewCount')
+          .limit(8)
+          .lean(),
+      ]);
+
+      const relatedList = (relatedProducts || []) as unknown as Array<Record<string, unknown>>;
+
+      if (!rawProduct) {
+        return [null, relatedList];
+      }
+
+      const prod = rawProduct as Record<string, unknown> & {
+        _id: unknown;
+        reviews?: Array<{
+          _id?: unknown;
+          rating: number;
+          title?: string;
+          text?: string;
+          name?: string;
+          date?: Date | string;
+          status?: string;
+        }>;
+      };
+
+      const mergedReviews = await getMergedPublishedReviews(prod._id as string, prod.reviews);
+      return [{ ...prod, reviews: mergedReviews }, relatedList];
+    }
+  );
 });
 
 /**

@@ -1,23 +1,38 @@
-import { NextResponse } from "next/server";
-import { OAuth2Client } from "google-auth-library";
-import connectToDatabase from "@/lib/db";
-import User from "@/models/User";
-import bcrypt from "bcryptjs";
-import jwt from "jsonwebtoken";
-import { randomUUID } from "crypto";
-import { getAuthSecret } from "@/lib/jwt-secret";
-import { checkRateLimit, getClientIp } from "@/lib/ratelimit";
-import { mobileCorsHeaders } from "@/lib/cors";
-import { createRefreshToken } from "@/lib/refresh-token";
+import { NextResponse } from 'next/server';
+import { OAuth2Client } from 'google-auth-library';
+import jwt from 'jsonwebtoken';
+import bcrypt from 'bcryptjs';
+import { randomUUID } from 'crypto';
+import { z } from 'zod';
+import connectToDatabase from '@/lib/db';
+import User from '@/models/User';
+import { checkRateLimit, getClientIp } from '@/lib/ratelimit';
+import { mobileCorsHeaders } from '@/lib/cors';
+import { getJwtSecret } from '@/lib/jwt-secret';
+import { createRefreshToken } from '@/lib/refresh-token';
+import { JWT_ISSUER, JWT_AUDIENCE } from '@/lib/bearer-token';
+import { getSafeErrorMessage } from '@/lib/api-error';
+
+const ALLOWED_GOOGLE_ISSUERS = new Set(['https://accounts.google.com', 'accounts.google.com']);
+
+const googleAuthBodySchema = z
+  .object({
+    accessToken: z.string().trim().min(10).max(4096).optional(),
+    idToken: z.string().trim().min(10).max(8192).optional(),
+  })
+  .strict()
+  .refine((data) => Boolean(data.accessToken || data.idToken), {
+    message: 'Google access token or ID token is required',
+  });
 
 export async function OPTIONS(request: Request) {
   return new NextResponse(null, { status: 200, headers: mobileCorsHeaders(request) });
 }
 
 function getAllowedClientIds(): string[] {
-  const envVal = process.env.GOOGLE_CLIENT_IDS || process.env.GOOGLE_CLIENT_ID || "";
+  const envVal = process.env.GOOGLE_CLIENT_IDS || process.env.GOOGLE_CLIENT_ID || '';
   return envVal
-    .split(",")
+    .split(',')
     .map((s) => s.trim())
     .filter(Boolean);
 }
@@ -29,7 +44,7 @@ export async function POST(req: Request) {
     const rateLimit = await checkRateLimit(ip, 'auth');
     if (rateLimit.isLimited) {
       return NextResponse.json(
-        { success: false, error: "Too many authentication attempts. Please try again later." },
+        { success: false, error: 'Too many authentication attempts. Please try again later.' },
         {
           status: 429,
           headers: {
@@ -40,124 +55,196 @@ export async function POST(req: Request) {
       );
     }
 
-    const body = await req.json();
-    const { accessToken, idToken } = body;
-
-    if (!accessToken && !idToken) {
+    const allowedClientIds = getAllowedClientIds();
+    if (allowedClientIds.length === 0) {
+      console.error('[Google Auth] Configuration error: GOOGLE_CLIENT_ID(S) is not configured');
       return NextResponse.json(
-        { success: false, error: "Google access token or ID token is required" },
+        { success: false, error: 'Google authentication is not configured on this server' },
+        { status: 500, headers: CORS_HEADERS }
+      );
+    }
+
+    const rawBody = await req.json().catch(() => null);
+    const parsed = googleAuthBodySchema.safeParse(rawBody);
+    if (!parsed.success) {
+      return NextResponse.json(
+        { success: false, error: parsed.error.issues[0]?.message || 'Invalid request payload' },
         { status: 400, headers: CORS_HEADERS }
       );
     }
 
-    const allowedClientIds = getAllowedClientIds();
+    const { accessToken, idToken } = parsed.data;
 
-    let email = "";
-    let name = "";
-    let picture = "";
+    let email = '';
+    let name = '';
+    let picture = '';
     let emailVerified = false;
 
-    // 1. If idToken is provided, verify using OAuth2Client
     if (idToken) {
       try {
         const authClient = new OAuth2Client();
         const ticket = await authClient.verifyIdToken({
-          idToken: String(idToken).trim(),
-          audience: allowedClientIds.length > 0 ? allowedClientIds : undefined,
+          idToken,
+          audience: allowedClientIds,
         });
         const payload = ticket.getPayload();
-        if (payload) {
-          email = payload.email || "";
-          name = payload.name || "";
-          picture = payload.picture || "";
-          emailVerified = Boolean(payload.email_verified);
+        const tokenAud = typeof payload?.aud === 'string' ? payload.aud : '';
+        const tokenIss = typeof payload?.iss === 'string' ? payload.iss : '';
+        const tokenExp = typeof payload?.exp === 'number' ? payload.exp : 0;
+
+        if (
+          !payload ||
+          !allowedClientIds.includes(tokenAud) ||
+          !ALLOWED_GOOGLE_ISSUERS.has(tokenIss) ||
+          tokenExp * 1000 <= Date.now()
+        ) {
+          return NextResponse.json(
+            { success: false, error: 'Invalid Google ID token claims' },
+            { status: 401, headers: CORS_HEADERS }
+          );
         }
+
+        email = (payload.email || '').trim().toLowerCase();
+        name = payload.name || '';
+        picture = payload.picture || '';
+        emailVerified = payload.email_verified === true;
       } catch (idErr) {
-        console.error("[Google Auth] ID Token verification failed:", idErr);
+        console.error('[Google Auth] ID Token verification failed:', getSafeErrorMessage(idErr));
         return NextResponse.json(
-          { success: false, error: "Invalid Google ID token or audience mismatch." },
+          { success: false, error: 'Invalid Google ID token or audience mismatch' },
           { status: 401, headers: CORS_HEADERS }
         );
       }
     } else if (accessToken) {
-      // 2. Access Token verification
-      if (allowedClientIds.length > 0) {
-        try {
-          const tokenInfoRes = await fetch(
-            `https://oauth2.googleapis.com/tokeninfo?access_token=${encodeURIComponent(accessToken)}`
-          );
-          if (!tokenInfoRes.ok) {
-            return NextResponse.json(
-              { success: false, error: "Failed to verify Google access token validity." },
-              { status: 401, headers: CORS_HEADERS }
-            );
-          }
-          const tokenInfo = await tokenInfoRes.json() as { aud?: string; issued_to?: string; azp?: string };
-          const tokenAud = tokenInfo.aud || tokenInfo.issued_to || tokenInfo.azp;
-
-          if (!tokenAud || !allowedClientIds.includes(tokenAud)) {
-            console.error('[Google Auth] Audience mismatch:', tokenAud, 'Expected one of:', allowedClientIds);
-            return NextResponse.json(
-              { success: false, error: "Invalid token audience. Confused deputy prevented." },
-              { status: 401, headers: CORS_HEADERS }
-            );
-          }
-        } catch (tokenInfoErr) {
-          console.error('[Google Auth] Tokeninfo network error:', tokenInfoErr);
+      let tokenInfoEmail = '';
+      try {
+        const tokenInfoRes = await fetch(
+          `https://oauth2.googleapis.com/tokeninfo?access_token=${encodeURIComponent(accessToken)}`
+        );
+        if (!tokenInfoRes.ok) {
           return NextResponse.json(
-            { success: false, error: "Failed to verify token with Google auth servers." },
-            { status: 502, headers: CORS_HEADERS }
+            { success: false, error: 'Failed to verify Google access token' },
+            { status: 401, headers: CORS_HEADERS }
           );
         }
-      }
 
-      const googleRes = await fetch(
-        `https://www.googleapis.com/oauth2/v3/userinfo?access_token=${encodeURIComponent(accessToken)}`
-      );
+        const tokenInfo = (await tokenInfoRes.json()) as {
+          aud?: string;
+          issued_to?: string;
+          azp?: string;
+          exp?: string | number;
+          expires_in?: string | number;
+          email?: string;
+          email_verified?: string | boolean;
+        };
 
-      if (!googleRes.ok) {
+        const tokenAud = tokenInfo.aud || tokenInfo.issued_to || tokenInfo.azp || '';
+        if (!tokenAud || !allowedClientIds.includes(tokenAud)) {
+          return NextResponse.json(
+            { success: false, error: 'Invalid token audience' },
+            { status: 401, headers: CORS_HEADERS }
+          );
+        }
+
+        const expiresIn = Number(tokenInfo.expires_in ?? 0);
+        const expUnix = Number(tokenInfo.exp ?? 0);
+        const isUnexpired =
+          (Number.isFinite(expiresIn) && expiresIn > 0) ||
+          (Number.isFinite(expUnix) && expUnix * 1000 > Date.now());
+
+        if (!isUnexpired) {
+          return NextResponse.json(
+            { success: false, error: 'Expired Google access token' },
+            { status: 401, headers: CORS_HEADERS }
+          );
+        }
+
+        tokenInfoEmail = (tokenInfo.email || '').trim().toLowerCase();
+      } catch (verifyErr) {
+        console.error('[Google Auth] Access token verification error:', getSafeErrorMessage(verifyErr));
         return NextResponse.json(
-          { success: false, error: "Invalid or expired Google access token" },
+          { success: false, error: 'Failed to validate Google token' },
           { status: 401, headers: CORS_HEADERS }
         );
       }
 
-      const googleUser = await googleRes.json() as { email?: string; name?: string; picture?: string; email_verified?: boolean };
-      email = googleUser.email || "";
-      name = googleUser.name || "";
-      picture = googleUser.picture || "";
-      emailVerified = Boolean(googleUser.email_verified);
+      const googleRes = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+        },
+      });
+
+      if (!googleRes.ok) {
+        return NextResponse.json(
+          { success: false, error: 'Invalid or expired Google access token' },
+          { status: 401, headers: CORS_HEADERS }
+        );
+      }
+
+      const googleUser = (await googleRes.json()) as {
+        email?: string;
+        name?: string;
+        picture?: string;
+        email_verified?: boolean;
+      };
+
+      email = (googleUser.email || '').trim().toLowerCase();
+      name = googleUser.name || '';
+      picture = googleUser.picture || '';
+      emailVerified = googleUser.email_verified === true;
+
+      if (tokenInfoEmail && email && tokenInfoEmail !== email) {
+        return NextResponse.json(
+          { success: false, error: 'Google account identity mismatch' },
+          { status: 401, headers: CORS_HEADERS }
+        );
+      }
     }
 
-    // Require verified email
     if (!email || !emailVerified) {
       return NextResponse.json(
-        { success: false, error: "Google account email is not verified" },
+        { success: false, error: 'Google account email is not verified' },
         { status: 400, headers: CORS_HEADERS }
       );
     }
 
     await connectToDatabase();
 
-    // Upsert user — create on first login, update profile photo on subsequent
+    // Prevent OAuth account auto-linking from bypassing password security on admin/manager accounts
+    const existingStaff = await User.findOne({
+      email,
+      role: { $in: ['admin', 'manager'] },
+    })
+      .select('_id role')
+      .lean();
+
+    if (existingStaff) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'Privileged accounts must sign in using password authentication',
+        },
+        { status: 403, headers: CORS_HEADERS }
+      );
+    }
+
     const passwordHash = await bcrypt.hash(randomUUID(), 10);
     const user = await User.findOneAndUpdate(
-      { email: email.toLowerCase().trim() },
+      { email },
       {
         $setOnInsert: {
-          name: name || email.split("@")[0],
-          email: email.toLowerCase().trim(),
+          name: name || email.split('@')[0],
+          email,
           password: passwordHash,
-          role: "customer",
+          role: 'customer',
         },
-        $set: { image: picture },
+        ...(picture ? { $set: { image: picture } } : {}),
       },
       { upsert: true, returnDocument: 'after' }
     );
 
-    const secret = getAuthSecret();
+    const secret = getJwtSecret();
 
-    // Access token: 7 days (reduced from 30d for security)
     const token = jwt.sign(
       {
         id: user._id.toString(),
@@ -166,10 +253,14 @@ export async function POST(req: Request) {
         name: user.name,
       },
       secret,
-      { expiresIn: "7d" }
+      {
+        expiresIn: '7d',
+        algorithm: 'HS256',
+        issuer: JWT_ISSUER,
+        audience: JWT_AUDIENCE,
+      }
     );
 
-    // Refresh token: 30-day revocable token stored in Redis
     const refreshToken = await createRefreshToken(user._id.toString());
 
     return NextResponse.json(
@@ -177,24 +268,24 @@ export async function POST(req: Request) {
         success: true,
         data: {
           token,
-          ...(refreshToken ? { refreshToken } : {}),
+          refreshToken,
           expiresIn: 7 * 24 * 60 * 60,
           user: {
             id: user._id.toString(),
             name: user.name,
             email: user.email,
             role: user.role,
-            image: user.image || picture,
+            image: user.image,
           },
         },
       },
-      { headers: CORS_HEADERS }
+      { headers: { ...CORS_HEADERS, 'Cache-Control': 'private, no-store, max-age=0' } }
     );
   } catch (error: unknown) {
-    console.error("Mobile Google login error:", error);
+    console.error('Mobile Google Auth Error:', getSafeErrorMessage(error));
     return NextResponse.json(
-      { success: false, error: "Internal server error" },
-      { status: 500, headers: mobileCorsHeaders(req) }
+      { success: false, error: getSafeErrorMessage(error) },
+      { status: 500, headers: CORS_HEADERS }
     );
   }
 }

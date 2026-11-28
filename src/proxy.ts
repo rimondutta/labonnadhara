@@ -2,6 +2,9 @@ import { NextResponse, NextRequest } from "next/server";
 import { getToken } from "next-auth/jwt";
 import { Ratelimit } from "@upstash/ratelimit";
 import { Redis } from "@upstash/redis";
+import { getClientIp } from "./lib/client-ip";
+import { verifyBearerRequest } from "./lib/bearer-token";
+import { getJwtSecret } from "./lib/jwt-secret";
 
 function isValidRedisConfig(url?: string, token?: string): boolean {
   if (!url || !token) return false;
@@ -91,20 +94,41 @@ async function getVerifiedSessionToken(req: NextRequest) {
   return await getToken({ req, secret, secureCookie: !primarySecure });
 }
 
+const PUBLIC_CACHEABLE_GET_PREFIXES = [
+  "/api/auth/session",
+  "/api/products",
+  "/api/store/products",
+  "/api/store/categories",
+  "/api/categories",
+  "/api/blogs",
+  "/api/settings/",
+  "/api/v1/products",
+  "/api/v1/categories",
+  "/api/mobile/app-version",
+] as const;
+
+function shouldSkipEdgeRateLimit(req: NextRequest, pathname: string): boolean {
+  if (req.method !== "GET" && req.method !== "HEAD" && req.method !== "OPTIONS") {
+    return false;
+  }
+  return PUBLIC_CACHEABLE_GET_PREFIXES.some(
+    (prefix) => pathname === prefix || pathname.startsWith(prefix)
+  );
+}
+
 /**
  * Next.js 16 Proxy / Middleware
  */
 export default async function proxy(req: NextRequest) {
   const pathname = req.nextUrl.pathname;
 
-  // 1. Rate limiting on /api/* routes
-  if (pathname.startsWith('/api/')) {
+  // 1. Edge rate limiting on non-cacheable / mutating / sensitive /api/* routes (V-06 + P-04)
+  if (pathname.startsWith("/api/") && !shouldSkipEdgeRateLimit(req, pathname)) {
     const limiter = isSensitiveAuthRequest(req, pathname) ? authEdgeRatelimit : generalRatelimit;
 
     if (limiter) {
       try {
-        const forwarded = req.headers.get("x-forwarded-for");
-        const ip = forwarded ? forwarded.split(",")[0]?.trim() : (req.headers.get("x-real-ip") ?? "127.0.0.1");
+        const ip = getClientIp(req);
         const { success, limit, reset, remaining } = await limiter.limit(ip);
 
         if (!success) {
@@ -113,10 +137,10 @@ export default async function proxy(req: NextRequest) {
             {
               status: 429,
               headers: {
-                'Retry-After': String(Math.max(1, Math.ceil((reset - Date.now()) / 1000))),
-                'X-RateLimit-Limit': limit.toString(),
-                'X-RateLimit-Remaining': remaining.toString(),
-                'X-RateLimit-Reset': reset.toString(),
+                "Retry-After": String(Math.max(1, Math.ceil((reset - Date.now()) / 1000))),
+                "X-RateLimit-Limit": limit.toString(),
+                "X-RateLimit-Remaining": remaining.toString(),
+                "X-RateLimit-Reset": reset.toString(),
               },
             }
           );
@@ -127,27 +151,45 @@ export default async function proxy(req: NextRequest) {
     }
   }
 
-  // 2. Admin API Guard (/api/admin/*)
-  if (pathname.startsWith('/api/admin')) {
-    // If client passes a Bearer token, let it through to handler-level mobile/custom auth
+  // 2. Admin API Guard (/api/admin/*) — strict JWT signature + role check (V-01)
+  if (pathname.startsWith("/api/admin")) {
     const authHeader = req.headers.get("authorization");
-    if (authHeader && authHeader.startsWith("Bearer ")) {
+    if (authHeader && /^Bearer\s+/i.test(authHeader)) {
+      const bearerSession = await verifyBearerRequest(req);
+      if (!bearerSession) {
+        return NextResponse.json(
+          { error: "Unauthorized: Invalid or expired Bearer token" },
+          { status: 401, headers: { "Cache-Control": "private, no-store, max-age=0" } }
+        );
+      }
+      if (bearerSession.user.role !== "admin" && bearerSession.user.role !== "manager") {
+        return NextResponse.json(
+          { error: "Forbidden: Admin or manager access required" },
+          { status: 403, headers: { "Cache-Control": "private, no-store, max-age=0" } }
+        );
+      }
       return NextResponse.next();
     }
 
     const token = await getVerifiedSessionToken(req);
-    const role = (token as { role?: string } | null)?.role;
+    if (!token) {
+      return NextResponse.json(
+        { error: "Unauthorized: Authentication required" },
+        { status: 401, headers: { "Cache-Control": "private, no-store, max-age=0" } }
+      );
+    }
 
+    const role = (token as { role?: string } | null)?.role;
     if (role !== "admin" && role !== "manager") {
       return NextResponse.json(
-        { error: "Unauthorized: Admin or manager access required" },
-        { status: 401 }
+        { error: "Forbidden: Admin or manager access required" },
+        { status: 403, headers: { "Cache-Control": "private, no-store, max-age=0" } }
       );
     }
   }
 
   // 3. Admin Dashboard Pages Guard (/admin/*)
-  if (pathname.startsWith('/admin') && !pathname.startsWith('/admin/login')) {
+  if (pathname.startsWith("/admin") && !pathname.startsWith("/admin/login")) {
     const token = await getVerifiedSessionToken(req);
     const role = (token as { role?: string } | null)?.role;
 

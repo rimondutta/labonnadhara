@@ -54,19 +54,38 @@ export const authOptions: NextAuthOptions = {
     }),
   ],
   callbacks: {
-    async signIn({ user, account }) {
+    async signIn({ user, account, profile }) {
       // Handle Google OAuth — auto-create customer account on first login
       if (account?.provider === 'google') {
         try {
+          const googleProfile = profile as { email_verified?: boolean } | undefined;
+          if (!user.email || googleProfile?.email_verified === false) {
+            return false;
+          }
+
+          const normalizedEmail = user.email.trim().toLowerCase();
           await connectToDatabase();
-          // Generate a random placeholder password for Google-only users
+
+          // Prevent Google OAuth from bypassing password auth on admin/manager accounts
+          const existingPrivileged = await User.findOne({
+            email: normalizedEmail,
+            role: { $in: ['admin', 'manager'] },
+          })
+            .select('_id')
+            .lean();
+
+          if (existingPrivileged) {
+            return false;
+          }
+
+          // Generate a random placeholder password for Google-only customer users
           const passwordHash = await bcrypt.hash(randomUUID(), 10);
           const dbUser = await User.findOneAndUpdate(
-            { email: user.email },
+            { email: normalizedEmail },
             {
               $setOnInsert: {
                 name: user.name,
-                email: user.email,
+                email: normalizedEmail,
                 password: passwordHash,
                 role: 'customer',
               },

@@ -1,80 +1,124 @@
 import { NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
-import { getBearerSession } from '@/lib/mobile-auth';
+import { z } from 'zod';
 import connectToDatabase from '@/lib/db';
-import Settings from '@/models/Settings';
+import Settings, { getSettings } from '@/models/Settings';
 import { invalidateSettings } from '@/lib/cache/invalidation';
+import { requireAdminOrManager, PRIVATE_NO_STORE_HEADERS } from '@/lib/auth-guards';
+import {
+  encryptSettingSecret,
+  isMaskedSecretPlaceholder,
+  maskSettingSecret,
+} from '@/lib/crypto-settings';
+import { getSafeErrorMessage } from '@/lib/api-error';
 
-async function getSettings() {
-  return Settings.findOneAndUpdate(
-    { key: 'global' },
-    { $setOnInsert: { key: 'global' } },
-    { upsert: true, returnDocument: 'after', setDefaultsOnInsert: true }
-  );
+const pixelSettingsUpdateSchema = z
+  .object({
+    pixelId: z
+      .string()
+      .trim()
+      .max(30)
+      .refine((v) => v === '' || /^\d{5,20}$/.test(v), 'Meta Pixel ID must be a 5-20 digit numeric string')
+      .optional(),
+    accessToken: z.string().max(1000).optional(),
+    enabled: z.boolean().optional(),
+    testEventCode: z.string().trim().max(50).optional(),
+  })
+  .strict();
+
+function serializePixelResponse(pixel?: {
+  pixelId?: string;
+  accessToken?: string;
+  enabled?: boolean;
+  testEventCode?: string;
+}) {
+  const maskedToken = maskSettingSecret(pixel?.accessToken);
+  return {
+    pixelId: pixel?.pixelId || '',
+    accessToken: maskedToken,
+    hasAccessToken: Boolean(maskedToken),
+    enabled: Boolean(pixel?.enabled),
+    testEventCode: pixel?.testEventCode || '',
+  };
 }
 
 export async function GET(req: Request) {
   try {
-    const session = (await getBearerSession(req)) || (await getServerSession(authOptions));
-    if (!session || !['admin', 'manager'].includes((session.user as { role?: string }).role ?? '')) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+    const auth = await requireAdminOrManager(req, true);
+    if (auth.errorResponse) return auth.errorResponse;
 
     await connectToDatabase();
     const settings = await getSettings();
 
-    return NextResponse.json({ facebookPixel: settings.facebookPixel });
+    return NextResponse.json(
+      { facebookPixel: serializePixelResponse(settings.facebookPixel) },
+      { headers: PRIVATE_NO_STORE_HEADERS }
+    );
   } catch (error: unknown) {
-    return NextResponse.json({ error: (error as Error).message }, { status: 500 });
+    console.error('[Admin Pixel GET]:', getSafeErrorMessage(error));
+    return NextResponse.json(
+      { error: getSafeErrorMessage(error) },
+      { status: 500, headers: PRIVATE_NO_STORE_HEADERS }
+    );
   }
 }
 
 export async function PUT(req: Request) {
   try {
-    const session = (await getBearerSession(req)) || (await getServerSession(authOptions));
-    if (!session || !['admin', 'manager'].includes((session.user as { role?: string }).role ?? '')) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+    const auth = await requireAdminOrManager(req, true);
+    if (auth.errorResponse) return auth.errorResponse;
 
-    const body = await req.json();
-    const { pixelId, accessToken, enabled, testEventCode } = body;
+    const rawBody = await req.json().catch(() => null);
+    const bodyObj = rawBody && typeof rawBody === 'object' ? (rawBody as Record<string, unknown>) : null;
+    const candidate = bodyObj
+      ? {
+          pixelId: bodyObj.pixelId,
+          accessToken: bodyObj.accessToken,
+          enabled: bodyObj.enabled,
+          testEventCode: bodyObj.testEventCode,
+        }
+      : null;
 
-    const trimmedPixelId = pixelId ? String(pixelId).trim() : '';
-
-    // Validate: Meta Pixel IDs must be 5 to 20 digits numeric string
-    if (trimmedPixelId && !/^\d{5,20}$/.test(trimmedPixelId)) {
+    const parsed = pixelSettingsUpdateSchema.safeParse(candidate);
+    if (!parsed.success) {
       return NextResponse.json(
-        { error: 'Pixel ID must be a numeric string between 5 and 20 digits.' },
-        { status: 400 }
-      );
-    }
-
-    if (enabled && !trimmedPixelId) {
-      return NextResponse.json(
-        { error: 'Cannot enable Facebook Pixel without a valid numeric Pixel ID.' },
-        { status: 400 }
+        { error: parsed.error.issues[0]?.message || 'Invalid pixel settings' },
+        { status: 400, headers: PRIVATE_NO_STORE_HEADERS }
       );
     }
 
     await connectToDatabase();
+
+    const updateSet: Record<string, unknown> = {
+      'facebookPixel.pixelId': parsed.data.pixelId ?? '',
+      'facebookPixel.enabled': Boolean(parsed.data.enabled),
+      'facebookPixel.testEventCode': parsed.data.testEventCode ?? '',
+    };
+
+    // Only overwrite stored accessToken when caller submits a non-masked value
+    if (parsed.data.accessToken !== undefined && !isMaskedSecretPlaceholder(parsed.data.accessToken)) {
+      updateSet['facebookPixel.accessToken'] = encryptSettingSecret(parsed.data.accessToken);
+    }
+
     const settings = await Settings.findOneAndUpdate(
       { key: 'global' },
-      {
-        $set: {
-          'facebookPixel.pixelId': trimmedPixelId,
-          'facebookPixel.accessToken': accessToken ? String(accessToken).trim() : '',
-          'facebookPixel.enabled': Boolean(enabled),
-          'facebookPixel.testEventCode': testEventCode ? String(testEventCode).trim() : '',
-        },
-      },
-      { upsert: true, returnDocument: 'after' }
+      { $set: updateSet },
+      { upsert: true, returnDocument: 'after', setDefaultsOnInsert: true }
     );
 
     await invalidateSettings();
 
-    return NextResponse.json({ success: true, facebookPixel: settings.facebookPixel });
+    return NextResponse.json(
+      {
+        message: 'Facebook Pixel settings updated successfully',
+        facebookPixel: serializePixelResponse(settings.facebookPixel),
+      },
+      { headers: PRIVATE_NO_STORE_HEADERS }
+    );
   } catch (error: unknown) {
-    return NextResponse.json({ error: (error as Error).message }, { status: 500 });
+    console.error('[Admin Pixel PUT]:', getSafeErrorMessage(error));
+    return NextResponse.json(
+      { error: getSafeErrorMessage(error) },
+      { status: 500, headers: PRIVATE_NO_STORE_HEADERS }
+    );
   }
 }

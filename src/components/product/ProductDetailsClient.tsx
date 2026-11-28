@@ -11,7 +11,8 @@ import { useWishlist } from "@/store/wishlistStore";
 import { useToast } from "@/components/playshelf/Toast";
 import ProductGridRimon from "@/components/ui/product-grid-rimon";
 import { Star, Truck, RefreshCcw, ChevronLeft, ChevronRight } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { cn, getOptimizedCloudinaryUrl } from "@/lib/utils";
+import { sanitizeSizeGuideHtml } from "@/lib/sanitize";
 import { trackViewContent, trackAddToCart, trackAddToWishlist } from "@/lib/fbPixel";
 
 // ─── Breadcrumb underline link ───
@@ -764,7 +765,7 @@ export default function ProductDetailsClient({ product: initialProduct, relatedP
                   </h3>
                   <div
                     className="prose prose-sm max-w-none text-gray-700 font-mono"
-                    dangerouslySetInnerHTML={{ __html: sizeGuide?.content || '' }}
+                    dangerouslySetInnerHTML={{ __html: sanitizeSizeGuideHtml(sizeGuide?.content || '') }}
                   />
                 </DialogPanel>
               </TransitionChild>

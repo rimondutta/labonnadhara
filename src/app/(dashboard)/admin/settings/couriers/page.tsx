@@ -20,6 +20,9 @@ interface CourierConfig {
   apiKey: string
   apiSecret: string
   webhookSecret: string
+  hasApiKey?: boolean
+  hasApiSecret?: boolean
+  hasWebhookSecret?: boolean
   trackingUrlPattern: string
   enabled: boolean
   notes: string
@@ -107,10 +110,20 @@ export default function CourierSettingsPage() {
     setSaving(true)
     try {
       const isEdit = editCode !== null
+      const payload = {
+        name: form.name,
+        code: form.code,
+        apiKey: form.apiKey,
+        apiSecret: form.apiSecret,
+        webhookSecret: form.webhookSecret,
+        trackingUrlPattern: form.trackingUrlPattern,
+        enabled: form.enabled,
+        notes: form.notes,
+      }
       const res = await fetch("/api/admin/settings/couriers", {
         method: isEdit ? "PUT" : "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(form),
+        body: JSON.stringify(payload),
       })
       const data = await res.json()
       if (!res.ok) { notify(data.error || "Save failed", true); return }
@@ -243,7 +256,7 @@ export default function CourierSettingsPage() {
                     type={showApiKey ? "text" : "password"}
                     value={form.apiKey}
                     onChange={e => handleField("apiKey", e.target.value)}
-                    placeholder="Paste your API key…"
+                    placeholder={form.hasApiKey ? "Stored securely — enter new key to replace" : "Paste your API key…"}
                     className="w-full border border-gray-300 rounded-lg px-3 py-2 pr-9 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
                   />
                   <button type="button" onClick={() => setShowApiKey(v => !v)} className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-700">
@@ -260,7 +273,7 @@ export default function CourierSettingsPage() {
                     type={showApiSecret ? "text" : "password"}
                     value={form.apiSecret}
                     onChange={e => handleField("apiSecret", e.target.value)}
-                    placeholder="Paste your API secret…"
+                    placeholder={form.hasApiSecret ? "Stored securely — enter new secret to replace" : "Paste your API secret…"}
                     className="w-full border border-gray-300 rounded-lg px-3 py-2 pr-9 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
                   />
                   <button type="button" onClick={() => setShowApiSecret(v => !v)} className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-700">
@@ -277,7 +290,7 @@ export default function CourierSettingsPage() {
                     type={showWebhook ? "text" : "password"}
                     value={form.webhookSecret}
                     onChange={e => handleField("webhookSecret", e.target.value)}
-                    placeholder="Optional webhook verification secret"
+                    placeholder={form.hasWebhookSecret ? "Stored securely — enter new secret to replace" : "Optional webhook verification secret"}
                     className="w-full border border-gray-300 rounded-lg px-3 py-2 pr-9 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
                   />
                   <button type="button" onClick={() => setShowWebhook(v => !v)} className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-700">
@@ -406,19 +419,19 @@ export default function CourierSettingsPage() {
                     <div>
                       <p className="text-xs text-gray-500 font-medium mb-0.5">API Key</p>
                       <p className="font-mono bg-white border border-gray-200 px-3 py-1.5 rounded-lg text-gray-700 text-xs break-all">
-                        {c.apiKey ? "●".repeat(Math.min(c.apiKey.length, 20)) : <span className="text-gray-400 italic">Not set</span>}
+                        {c.apiKey ? c.apiKey : <span className="text-gray-400 italic">Not set</span>}
                       </p>
                     </div>
                     <div>
                       <p className="text-xs text-gray-500 font-medium mb-0.5">API Secret</p>
                       <p className="font-mono bg-white border border-gray-200 px-3 py-1.5 rounded-lg text-gray-700 text-xs break-all">
-                        {c.apiSecret ? "●".repeat(Math.min(c.apiSecret.length, 20)) : <span className="text-gray-400 italic">Not set</span>}
+                        {c.apiSecret ? c.apiSecret : <span className="text-gray-400 italic">Not set</span>}
                       </p>
                     </div>
                     <div>
                       <p className="text-xs text-gray-500 font-medium mb-0.5">Webhook Secret</p>
                       <p className="font-mono bg-white border border-gray-200 px-3 py-1.5 rounded-lg text-gray-700 text-xs break-all">
-                        {c.webhookSecret ? "●".repeat(Math.min(c.webhookSecret.length, 20)) : <span className="text-gray-400 italic">Not set</span>}
+                        {c.webhookSecret ? c.webhookSecret : <span className="text-gray-400 italic">Not set</span>}
                       </p>
                     </div>
                     <div>

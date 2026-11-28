@@ -1,0 +1,173 @@
+{
+  "version": 3,
+  "skills": {
+    "stitch-design": {
+      "source": "google-labs-code/stitch-skills",
+      "sourceType": "github",
+      "sourceUrl": "https://github.com/google-labs-code/stitch-skills.git",
+      "skillPath": "skills/stitch-design/SKILL.md",
+      "skillFolderHash": "",
+      "installedAt": "2026-04-14T17:22:47.915Z",
+      "updatedAt": "2026-04-14T17:22:47.915Z"
+    },
+    "find-skills": {
+      "source": "vercel-labs/skills",
+      "sourceType": "github",
+      "sourceUrl": "https://github.com/vercel-labs/skills.git",
+      "skillPath": "skills/find-skills/SKILL.md",
+      "skillFolderHash": "",
+      "installedAt": "2026-04-14T17:22:56.363Z",
+      "updatedAt": "2026-04-14T17:22:56.363Z"
+    },
+    "stitch-loop": {
+      "source": "google-labs-code/stitch-skills",
+      "sourceType": "github",
+      "sourceUrl": "https://github.com/google-labs-code/stitch-skills.git",
+      "skillPath": "skills/stitch-loop/SKILL.md",
+      "skillFolderHash": "",
+      "installedAt": "2026-04-14T17:24:55.098Z",
+      "updatedAt": "2026-04-14T17:24:55.098Z"
+    },
+    "design-md": {
+      "source": "google-labs-code/stitch-skills",
+      "sourceType": "github",
+      "sourceUrl": "https://github.com/google-labs-code/stitch-skills.git",
+      "skillPath": "skills/design-md/SKILL.md",
+      "skillFolderHash": "",
+      "installedAt": "2026-04-14T17:25:16.191Z",
+      "updatedAt": "2026-04-14T17:25:16.191Z"
+    },
+    "enhance-prompt": {
+      "source": "google-labs-code/stitch-skills",
+      "sourceType": "github",
+      "sourceUrl": "https://github.com/google-labs-code/stitch-skills.git",
+      "skillPath": "skills/enhance-prompt/SKILL.md",
+      "skillFolderHash": "",
+      "installedAt": "2026-04-14T17:25:32.796Z",
+      "updatedAt": "2026-04-14T17:25:32.796Z"
+    },
+    "react:components": {
+      "source": "google-labs-code/stitch-skills",
+      "sourceType": "github",
+      "sourceUrl": "https://github.com/google-labs-code/stitch-skills.git",
+      "skillPath": "skills/react-components/SKILL.md",
+      "skillFolderHash": "",
+      "installedAt": "2026-04-14T17:25:52.034Z",
+      "updatedAt": "2026-04-14T17:25:52.034Z"
+    },
+    "remotion": {
+      "source": "google-labs-code/stitch-skills",
+      "sourceType": "github",
+      "sourceUrl": "https://github.com/google-labs-code/stitch-skills.git",
+      "skillPath": "skills/remotion/SKILL.md",
+      "skillFolderHash": "",
+      "installedAt": "2026-04-14T17:26:15.763Z",
+      "updatedAt": "2026-04-14T17:26:15.763Z"
+    },
+    "shadcn-ui": {
+      "source": "google-labs-code/stitch-skills",
+      "sourceType": "github",
+      "sourceUrl": "https://github.com/google-labs-code/stitch-skills.git",
+      "skillPath": "skills/shadcn-ui/SKILL.md",
+      "skillFolderHash": "",
+      "installedAt": "2026-04-14T17:26:31.728Z",
+      "updatedAt": "2026-04-14T17:26:31.728Z"
+    },
+    "gsap-scrolltrigger": {
+      "source": "greensock/gsap-skills",
+      "sourceType": "github",
+      "sourceUrl": "https://github.com/greensock/gsap-skills.git",
+      "skillPath": "skills/gsap-scrolltrigger/SKILL.md",
+      "skillFolderHash": "7838f515e05bfab0a79dd63368a409ddc7d76ee6",
+      "installedAt": "2026-04-28T14:08:34.114Z",
+      "updatedAt": "2026-04-28T14:08:34.114Z"
+    },
+    "gsap-frameworks": {
+      "source": "greensock/gsap-skills",
+      "sourceType": "github",
+      "sourceUrl": "https://github.com/greensock/gsap-skills.git",
+      "skillPath": "skills/gsap-frameworks/SKILL.md",
+      "skillFolderHash": "5b086fa623be801882128fa16b2a9b446d193029",
+      "installedAt": "2026-04-28T14:09:41.268Z",
+      "updatedAt": "2026-04-28T14:09:41.268Z"
+    },
+    "gsap-core": {
+      "source": "greensock/gsap-skills",
+      "sourceType": "github",
+      "sourceUrl": "https://github.com/greensock/gsap-skills.git",
+      "skillPath": "skills/gsap-core/SKILL.md",
+      "skillFolderHash": "135754edd728103e329a8df8b471b197375b370e",
+      "installedAt": "2026-04-28T14:10:11.841Z",
+      "updatedAt": "2026-04-28T14:10:11.841Z"
+    },
+    "gsap-performance": {
+      "source": "greensock/gsap-skills",
+      "sourceType": "github",
+      "sourceUrl": "https://github.com/greensock/gsap-skills.git",
+      "skillPath": "skills/gsap-performance/SKILL.md",
+      "skillFolderHash": "34dec2f051872f8d02df06de97450e448bac9c5e",
+      "installedAt": "2026-04-28T14:10:31.362Z",
+      "updatedAt": "2026-04-28T14:10:31.362Z"
+    },
+    "gsap-plugins": {
+      "source": "greensock/gsap-skills",
+      "sourceType": "github",
+      "sourceUrl": "https://github.com/greensock/gsap-skills.git",
+      "skillPath": "skills/gsap-plugins/SKILL.md",
+      "skillFolderHash": "e31ccbdb75cf41f0e7df0fec567f6e07956eaca9",
+      "installedAt": "2026-04-28T14:11:19.992Z",
+      "updatedAt": "2026-04-28T14:11:19.992Z"
+    },
+    "gsap-react": {
+      "source": "greensock/gsap-skills",
+      "sourceType": "github",
+      "sourceUrl": "https://github.com/greensock/gsap-skills.git",
+      "skillPath": "skills/gsap-react/SKILL.md",
+      "skillFolderHash": "ac01a338b96fddbc6cf65a89858d2e6068887b39",
+      "installedAt": "2026-04-28T14:11:38.232Z",
+      "updatedAt": "2026-04-28T14:11:38.232Z"
+    },
+    "gsap-timeline": {
+      "source": "greensock/gsap-skills",
+      "sourceType": "github",
+      "sourceUrl": "https://github.com/greensock/gsap-skills.git",
+      "skillPath": "skills/gsap-timeline/SKILL.md",
+      "skillFolderHash": "37eb5d623c3e14367864d57160acb64f13950994",
+      "installedAt": "2026-04-28T14:11:56.541Z",
+      "updatedAt": "2026-04-28T14:11:56.541Z"
+    },
+    "gsap-utils": {
+      "source": "greensock/gsap-skills",
+      "sourceType": "github",
+      "sourceUrl": "https://github.com/greensock/gsap-skills.git",
+      "skillPath": "skills/gsap-utils/SKILL.md",
+      "skillFolderHash": "3f7aa617dd2dc7ebf21f30349b9c7b6d8640d789",
+      "installedAt": "2026-04-28T14:12:11.564Z",
+      "updatedAt": "2026-04-28T14:12:11.564Z"
+    }
+  },
+  "dismissed": {
+    "findSkillsPrompt": true
+  },
+  "lastSelectedAgents": [
+    "amp",
+    "cline",
+    "codex",
+    "cursor",
+    "droid",
+    "fx",
+    "gemini-cli",
+    "github-copilot",
+    "kilo",
+    "kimi-code-cli",
+    "opencode",
+    "pi",
+    "warp",
+    "zed",
+    "augment",
+    "bob",
+    "claude-code",
+    "codearts-agent",
+    "codebuddy"
+  ]
+}

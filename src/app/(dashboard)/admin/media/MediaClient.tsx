@@ -6,7 +6,7 @@ import Image from 'next/image';
 
 interface MediaClientProps {
   initialImages: any[];
-  deleteMedia: (publicId: string) => Promise<{ success: boolean }>;
+  deleteMedia: (publicId: string) => Promise<{ success: boolean; error?: string }>;
 }
 
 export default function MediaClient({ initialImages, deleteMedia }: MediaClientProps) {
@@ -22,7 +22,7 @@ export default function MediaClient({ initialImages, deleteMedia }: MediaClientP
     if (res.success) {
       setImages(images.filter(img => img.public_id !== publicId));
     } else {
-      alert("Failed to delete image.");
+      alert(res.error || "Failed to delete image.");
     }
     setDeletingId(null);
   };
